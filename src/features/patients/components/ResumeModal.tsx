@@ -3,31 +3,20 @@
 import { useState, useRef } from "react";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogActions } from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { resumePatientSession } from "../client/patient-api";
+import {
+  resumePatientSession,
+  type ResumeSessionData,
+} from "../client/patient-api";
 import { apiErrorMessage } from "@/lib/http/api-client";
-import type {
-  FormDefinition,
-  ThemeDefinition,
-} from "@/features/forms/domain/types";
-import type { PatientAnswers } from "../domain/types";
 
 interface ResumeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onResumeSuccess: (data: {
-    sessionId: string;
-    sessionReference: string;
-    newRecoveryCode: string;
-    currentAnswers: PatientAnswers;
-    sessionRevision: number;
-    publicSlug: string;
-    versionNumber: number;
-    definition: FormDefinition;
-    theme: ThemeDefinition;
-  }) => void;
+  onResumeSuccess: (data: ResumeSessionData) => void;
 }
 
 export function ResumeModal({
@@ -59,17 +48,7 @@ export function ResumeModal({
         recoveryCode.trim(),
       );
 
-      onResumeSuccess({
-        publicSlug: response.data.publicSlug,
-        versionNumber: response.data.versionNumber,
-        definition: response.data.definition,
-        theme: response.data.theme,
-        sessionId: response.data.sessionId,
-        sessionReference: response.data.sessionReference,
-        newRecoveryCode: response.data.newRecoveryCode,
-        currentAnswers: response.data.currentAnswers as PatientAnswers,
-        sessionRevision: response.data.sessionRevision,
-      });
+      onResumeSuccess(response.data);
       onClose();
     } catch (err) {
       setErrorMessage(apiErrorMessage(err, APP_MESSAGES.RESUME_FAILED));
@@ -97,13 +76,10 @@ export function ResumeModal({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3.5">
-        <div>
-          <label
-            htmlFor="resume-session-ref"
-            className="block text-xs font-semibold text-gray-700 mb-1"
-          >
-            Session Reference (e.g. BKS-9A4F-71KQ)
-          </label>
+        <FormField
+          id="resume-session-ref"
+          label="Session Reference (e.g. BKS-9A4F-71KQ)"
+        >
           <Input
             id="resume-session-ref"
             type="text"
@@ -114,15 +90,12 @@ export function ResumeModal({
             placeholder="BKS-XXXX-XXXX"
             className="uppercase font-mono text-xs py-2 px-3 rounded-lg"
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label
-            htmlFor="resume-recovery-code"
-            className="block text-xs font-semibold text-gray-700 mb-1"
-          >
-            Recovery Code (e.g. BK-7M4P-88XZ-11QR)
-          </label>
+        <FormField
+          id="resume-recovery-code"
+          label="Recovery Code (e.g. BK-7M4P-88XZ-11QR)"
+        >
           <Input
             id="resume-recovery-code"
             type="text"
@@ -133,11 +106,11 @@ export function ResumeModal({
             placeholder="BK-XXXX-XXXX-XXXX-XXXX"
             className="uppercase font-mono text-xs py-2 px-3 rounded-lg"
           />
-        </div>
+        </FormField>
 
         {errorMessage && <Alert>{errorMessage}</Alert>}
 
-        <div className="flex gap-2 pt-2 justify-end">
+        <DialogActions className="pt-2">
           <Button
             type="button"
             disabled={isLoading}
@@ -154,7 +127,7 @@ export function ResumeModal({
           >
             {APP_MESSAGES.RESTORE_PROGRESS}
           </Button>
-        </div>
+        </DialogActions>
       </form>
     </Dialog>
   );

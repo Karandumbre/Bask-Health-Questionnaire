@@ -19,6 +19,7 @@ import {
   UndoIcon,
   SaveIcon,
   CheckIcon,
+  ArrowRightIcon,
 } from "@/components/ui/icons";
 
 export function ConflictModal() {
@@ -201,7 +202,7 @@ function ConflictDialog() {
             {baseDefinition.questions.length} {APP_MESSAGES.FIELDS}
           </span>
         </div>
-        <div className="text-gray-300 font-sans">➔</div>
+        <ArrowRightIcon className="h-4 w-4 shrink-0 text-gray-300" />
         <div>
           <span className="text-gray-400 block text-micro uppercase font-bold">
             {APP_MESSAGES.YOUR_LOCAL_UNSAVED}
@@ -210,7 +211,7 @@ function ConflictDialog() {
             {definition.questions.length} {APP_MESSAGES.FIELDS_2}
           </span>
         </div>
-        <div className="text-gray-300 font-sans">➔</div>
+        <ArrowRightIcon className="h-4 w-4 shrink-0 text-gray-300" />
         <div>
           <span className="text-gray-400 block text-micro uppercase font-bold">
             {APP_MESSAGES.LATEST_SERVER}

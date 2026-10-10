@@ -6,7 +6,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Spinner } from "@/components/ui/spinner";
-import { CheckIcon } from "@/components/ui/icons";
+import { CheckIcon, KeyIcon } from "@/components/ui/icons";
 
 interface RecoveryCodeModalProps {
   recoveryCode: string;
@@ -34,7 +34,7 @@ export function RecoveryCodeModal({
     >
       <div className="text-center space-y-1.5 pt-2">
         <div className="mx-auto w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-2">
-          🔑
+          <KeyIcon className="h-5 w-5" />
         </div>
         <h2 id="recovery-title" className="text-base font-bold text-gray-900">
           Save Your Session Recovery Code

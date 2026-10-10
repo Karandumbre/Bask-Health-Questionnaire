@@ -12,7 +12,6 @@ import { useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useBuilder } from "../context/builder-context";
 import {
-  ArrowLeftIcon,
   CheckIcon,
   AlertTriangleIcon,
   ViewIcon,
@@ -21,6 +20,7 @@ import {
   MobileIcon,
   SendIcon,
 } from "@/components/ui/icons";
+import { AdminBackLink } from "./AdminBackLink";
 
 export function AdminHeader() {
   const {
@@ -66,8 +66,7 @@ export function AdminHeader() {
       <header className="h-14 border-b border-gray-200 bg-white px-4 flex items-center justify-between sticky top-0 z-30 select-none">
         {/* Left section: Back button & Title */}
         <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href={ROUTES.adminForms}
+          <AdminBackLink
             onClick={(e) => {
               if (hasUnsavedChanges) {
                 if (
@@ -79,12 +78,7 @@ export function AdminHeader() {
                 }
               }
             }}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors p-1.5 -ml-1.5 rounded hover:bg-gray-100"
-            title={APP_MESSAGES.BACK_TO_FORMS_DASHBOARD}
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{APP_MESSAGES.FORMS}</span>
-          </Link>
+          />
 
           <div className="h-4 w-px bg-gray-200" />
 

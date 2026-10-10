@@ -30,10 +30,8 @@ describe("Shared patient session policy", () => {
   });
 
   it("verifies recovery security: bounded cooldown, code normalization, and anti-enumeration", async () => {
-    const {
-      RECOVERY_MAX_ATTEMPTS,
-      RECOVERY_LOCKOUT_MS,
-    } = await import("@/features/patients/server/session-policy");
+    const { RECOVERY_MAX_ATTEMPTS, RECOVERY_LOCKOUT_MS } =
+      await import("@/features/patients/server/session-policy");
     const {
       generateRecoveryCode,
       normalizeRecoveryCode,
@@ -49,7 +47,9 @@ describe("Shared patient session policy", () => {
     // 1. Verify constant-time valid code check
     expect(verifyRecoveryCode(code, hash, pepper)).toBe(true);
     expect(verifyRecoveryCode(code.toLowerCase(), hash, pepper)).toBe(true);
-    expect(verifyRecoveryCode(code.replace(/-/g, " "), hash, pepper)).toBe(true);
+    expect(verifyRecoveryCode(code.replace(/-/g, " "), hash, pepper)).toBe(
+      true,
+    );
 
     // 2. Reject incorrect code
     expect(verifyRecoveryCode("BK-WRONG-CODE-TEST", hash, pepper)).toBe(false);

@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckIcon } from "@/components/ui/icons";
+import { CheckIcon, InfoIcon } from "@/components/ui/icons";
+import { formatStandardDateTime } from "@/lib/utils/date";
 
 interface SubmissionConfirmationProps {
   formTitle: string;
@@ -15,10 +16,7 @@ export function SubmissionConfirmation({
   submittedAt,
   isIdempotentReplay = false,
 }: SubmissionConfirmationProps) {
-  const formattedDate = new Date(submittedAt).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const formattedDate = formatStandardDateTime(submittedAt);
 
   return (
     <div className="max-w-xl mx-auto py-12 px-4 sm:px-6 text-center space-y-6">
@@ -39,8 +37,9 @@ export function SubmissionConfirmation({
       </div>
 
       {isIdempotentReplay && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 max-w-sm mx-auto">
-          ℹ️ Your responses were previously submitted and confirmed.
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 max-w-sm mx-auto flex items-start gap-2 text-left">
+          <InfoIcon className="h-4 w-4 shrink-0" />
+          <span>Your responses were previously submitted and confirmed.</span>
         </div>
       )}
 

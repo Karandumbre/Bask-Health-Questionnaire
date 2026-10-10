@@ -160,10 +160,14 @@ async function createPublishedFixture(browser: Browser): Promise<Fixture> {
   return { formId, slugV1, slugV2 };
 }
 
-const nameInput = (page: Page) => page.locator('input[id^="patient-field-q_name"]');
-const packsInput = (page: Page) => page.locator('input[id^="patient-field-q_packs"]');
+const nameInput = (page: Page) =>
+  page.locator('input[id^="patient-field-q_name"]');
+const packsInput = (page: Page) =>
+  page.locator('input[id^="patient-field-q_packs"]');
 const savedIndicator = (page: Page) =>
-  page.locator("[data-patient-progress-bar]").getByText("Saved", { exact: true });
+  page
+    .locator("[data-patient-progress-bar]")
+    .getByText("Saved", { exact: true });
 
 async function readRecoveryCredentials(page: Page) {
   const refText = await page.getByText(/^Ref: /).innerText();
@@ -282,12 +286,16 @@ test.describe("Phase 3B journeys (real backend)", () => {
 
     const submit = page.getByRole("button", { name: "Submit Responses" });
     await submit.click();
-    await expect(page.getByRole("alert").first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("alert").first()).toBeVisible({
+      timeout: 15000,
+    });
     await submit.click();
     await expect(page.getByText("Intake Submitted Successfully")).toBeVisible({
       timeout: 15000,
     });
-    await expect(page.getByText(/previously submitted and confirmed/)).toBeVisible();
+    await expect(
+      page.getByText(/previously submitted and confirmed/),
+    ).toBeVisible();
 
     // Admin sees exactly one response for this session.
     const admin = await adminContext.newPage();
@@ -295,11 +303,15 @@ test.describe("Phase 3B journeys (real backend)", () => {
     await expect(
       admin.getByRole("table", { name: "Clinical Form Responses" }),
     ).toBeVisible({ timeout: 15000 });
-    await expect(admin.getByRole("row").filter({ hasText: reference })).toHaveCount(1);
+    await expect(
+      admin.getByRole("row").filter({ hasText: reference }),
+    ).toHaveCount(1);
     await admin.close();
   });
 
-  test("historical versions keep their own labels and theme", async ({ page }) => {
+  test("historical versions keep their own labels and theme", async ({
+    page,
+  }) => {
     await page.goto(`/intake/${fixture.slugV1}`);
     await expect(page.getByText(LABEL_NAME_V1, { exact: false })).toBeVisible();
     await expect(page.getByText(LABEL_NAME_V2)).toHaveCount(0);
@@ -329,9 +341,14 @@ test.describe("Phase 3B journeys (real backend)", () => {
     await admin.goto(`/admin/forms/${fixture.formId}/responses`);
     const table = admin.getByRole("table", { name: "Clinical Form Responses" });
     await expect(table).toBeVisible({ timeout: 15000 });
-    await expect(table.getByRole("columnheader", { name: "Version" })).toBeVisible();
+    await expect(
+      table.getByRole("columnheader", { name: "Version" }),
+    ).toBeVisible();
 
-    await table.getByRole("button", { name: /View Detail/ }).first().click();
+    await table
+      .getByRole("button", { name: /View Detail/ })
+      .first()
+      .click();
     const dialog = admin.getByRole("dialog");
     await expect(dialog.getByText("Intake Response Detail")).toBeVisible({
       timeout: 15000,
@@ -339,7 +356,9 @@ test.describe("Phase 3B journeys (real backend)", () => {
     await expect(dialog.getByText("Snapshot Version 1")).toBeVisible();
     await expect(dialog.getByText(LABEL_NAME_V1)).toBeVisible();
     await expect(dialog.getByText(LABEL_NAME_V2)).toHaveCount(0);
-    await expect(dialog.getByTestId("response-field-q_smoker")).toContainText("No");
+    await expect(dialog.getByTestId("response-field-q_smoker")).toContainText(
+      "No",
+    );
 
     await admin.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
@@ -360,7 +379,9 @@ test.describe("Phase 3B journeys (real backend)", () => {
     );
     await preset.selectOption("Slate");
     await slateSave;
-    await expect(admin.locator('[role="status"]:has-text("Saved")')).toBeVisible({
+    await expect(
+      admin.locator('[role="status"]:has-text("Saved")'),
+    ).toBeVisible({
       timeout: 15000,
     });
     await admin.reload();
@@ -387,7 +408,9 @@ test.describe("Phase 3B journeys (real backend)", () => {
     await shuffle1Save;
     await expect(admin.locator("#theme-preset")).toHaveValue("custom");
     await expect
-      .poll(async () => (await draftTheme()).isCustomShuffle, { timeout: 15000 })
+      .poll(async () => (await draftTheme()).isCustomShuffle, {
+        timeout: 15000,
+      })
       .toBe(true);
     const firstShuffle = (await draftTheme()).presetName;
 
@@ -429,7 +452,8 @@ test.describe("Phase 3B journeys (real backend)", () => {
 
     // Tab forward until the first answer field receives focus.
     for (let i = 0; i < 15; i++) {
-      if (await nameInput(page).evaluate((el) => el === document.activeElement)) break;
+      if (await nameInput(page).evaluate((el) => el === document.activeElement))
+        break;
       await page.keyboard.press("Tab");
     }
     await expect(nameInput(page)).toBeFocused();
@@ -458,7 +482,11 @@ test.describe("Phase 3B journeys (real backend)", () => {
   });
 
   test.describe("mobile viewport", () => {
-    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    test.use({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
 
     test("has no horizontal overflow and Next Required jumps to the first gap", async ({
       page,
@@ -466,16 +494,19 @@ test.describe("Phase 3B journeys (real backend)", () => {
       await page.goto(`/intake/${fixture.slugV1}`);
       await expect(nameInput(page)).toBeVisible();
       const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
       );
       expect(overflow).toBeLessThanOrEqual(0);
 
       await nameInput(page).fill("Mobile Patient");
-      const jump = page.getByRole("button", { name: /Jump to next required question/ });
+      const jump = page.getByRole("button", {
+        name: /Jump to next required question/,
+      });
       await expect(jump).toContainText("Next Required (2)");
       await jump.click();
       await expect(page.locator('input[value="opt_yes"]')).toBeFocused();
     });
   });
 });
-

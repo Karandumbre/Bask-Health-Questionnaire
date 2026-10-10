@@ -8,6 +8,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 
 import { useBuilder } from "../context/builder-context";
 import type { Question } from "@/features/forms/domain/types";
@@ -127,13 +128,11 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
           ) : (
             <>
               {/* Parent Field Selector */}
-              <div>
-                <label
-                  htmlFor={`condition-parent-${question.id}`}
-                  className="block text-caption font-medium text-gray-700 mb-1"
-                >
-                  {APP_MESSAGES.WHEN_PARENT_QUESTION}
-                </label>
+              <FormField
+                id={`condition-parent-${question.id}`}
+                label={APP_MESSAGES.WHEN_PARENT_QUESTION}
+                labelClassName="text-caption font-medium"
+              >
                 <Select
                   id={`condition-parent-${question.id}`}
                   value={currentParentId}
@@ -161,17 +160,15 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                       </option>
                     )}
                 </Select>
-              </div>
+              </FormField>
 
               {/* Option Selector */}
               {selectedParent?.type === "single_select" && (
-                <div>
-                  <label
-                    htmlFor={`condition-option-${question.id}`}
-                    className="block text-caption font-medium text-gray-700 mb-1"
-                  >
-                    {APP_MESSAGES.EQUALS_CHOICE}
-                  </label>
+                <FormField
+                  id={`condition-option-${question.id}`}
+                  label={APP_MESSAGES.EQUALS_CHOICE}
+                  labelClassName="text-caption font-medium"
+                >
                   <Select
                     id={`condition-option-${question.id}`}
                     value={currentOptionId}
@@ -187,7 +184,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                       </option>
                     ))}
                   </Select>
-                </div>
+                </FormField>
               )}
 
               {/* Status Indicator */}

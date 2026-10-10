@@ -9,6 +9,7 @@ import {
 } from "@/features/forms/server/response-service";
 import { ResponsesView } from "@/features/forms/components/ResponsesView";
 import type { SubmissionListItem } from "@/features/forms/client/responses-api";
+import type { PatientAnswers } from "@/features/patients/domain/types";
 
 interface PageProps {
   params: Promise<{ formId: string }>;
@@ -89,7 +90,7 @@ export default async function FormResponsesPage({ params }: PageProps) {
       formName: sub.formName ?? formAccess.form.name,
       publishedVersionId: sub.publishedVersionId,
       versionNumber: sub.versionNumber,
-      answerSnapshot: (sub.answerSnapshot ?? {}) as Record<string, unknown>,
+      answerSnapshot: (sub.answerSnapshot ?? {}) as PatientAnswers,
       status: sub.status ?? "completed",
       submittedAt:
         typeof sub.submittedAt === "string"

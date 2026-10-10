@@ -3,6 +3,8 @@ import { COMPONENT_STYLES } from "@/design-system/component-styles";
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
+import { Button } from "./button";
+import { XIcon } from "./icons";
 
 /** Native modal semantics include focus trapping and an inert background. */
 export function Dialog({
@@ -81,5 +83,63 @@ export function Dialog({
     >
       {children}
     </dialog>
+  );
+}
+
+export function DialogHeader({
+  titleId,
+  title,
+  description,
+  onClose,
+  closeLabel = "Close",
+  disabled = false,
+  className,
+}: {
+  titleId: string;
+  title: ReactNode;
+  description?: ReactNode;
+  onClose?: () => void;
+  closeLabel?: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={twMerge("flex items-start justify-between gap-3", className)}
+    >
+      <div>
+        <h3 id={titleId} className="text-base font-bold text-gray-900">
+          {title}
+        </h3>
+        {description && (
+          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+        )}
+      </div>
+      {onClose && (
+        <Button
+          type="button"
+          disabled={disabled}
+          onClick={onClose}
+          aria-label={closeLabel}
+          className="text-gray-400 hover:text-gray-600 text-sm font-medium p-1"
+        >
+          <XIcon className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export function DialogActions({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={twMerge("flex justify-end gap-2 pt-2", className)}>
+      {children}
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckIcon, EditIcon, DeleteIcon } from "@/components/ui/icons";
+import { formatShortDateTime } from "@/lib/utils/date";
 import type { useFormDashboard } from "../hooks/use-form-dashboard";
 import type { FormListItem } from "../domain/dashboard-types";
 
@@ -95,11 +96,7 @@ export function FormRow({
 
       {/* Updated At */}
       <td className="py-3.5 px-4 text-gray-500 text-caption">
-        {new Date(form.updatedAt).toLocaleDateString()} {APP_MESSAGES.AT}{" "}
-        {new Date(form.updatedAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
+        {formatShortDateTime(form.updatedAt)}
       </td>
 
       {/* Actions */}

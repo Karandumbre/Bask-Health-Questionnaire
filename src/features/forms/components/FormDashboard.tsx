@@ -106,7 +106,7 @@ export function FormDashboard({
             placeholder={APP_MESSAGES.SEARCH_FORMS_BY_TITLE}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="pl-9 pr-3 py-2 rounded-xl"
           />
         </div>
 

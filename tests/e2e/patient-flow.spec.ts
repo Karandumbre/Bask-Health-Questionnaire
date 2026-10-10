@@ -236,7 +236,9 @@ test.describe("Mobile Patient Intake Journey", () => {
     await expect(
       page.locator("text=Save Your Session Recovery Code"),
     ).toBeVisible();
-    await expect(page.getByText("BK-7M4P-88XZ-11QR", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("BK-7M4P-88XZ-11QR", { exact: true }),
+    ).toBeVisible();
 
     // Close recovery modal
     await page.click("text=I've Saved My Code — Continue");

@@ -2,39 +2,29 @@ import { API_ROUTES } from "@/lib/constants/application";
 import { z } from "zod";
 import { apiRequest, successSchema } from "@/lib/http/api-client";
 import { FormDefinitionSchema, ThemeDefinitionSchema } from "../domain/types";
+import { PatientAnswersSchema } from "@/features/patients/domain/types";
 
-export const SubmissionListItemSchema = z.object({
+export const BaseSubmissionSchema = z.object({
   id: z.string(),
   sessionId: z.string(),
   sessionReference: z.string(),
   formName: z.string().optional(),
   publishedVersionId: z.string(),
   versionNumber: z.number().int().positive(),
-  answerSnapshot: z.record(z.string(), z.unknown()),
+  answerSnapshot: PatientAnswersSchema,
   status: z.string().optional().default("completed"),
-  submittedAt: z.union([z.string(), z.date()]).transform((d) =>
-    typeof d === "string" ? d : d.toISOString(),
-  ),
+  submittedAt: z
+    .union([z.string(), z.date()])
+    .transform((d) => (typeof d === "string" ? d : d.toISOString())),
 });
 
+export const SubmissionListItemSchema = BaseSubmissionSchema;
 export type SubmissionListItem = z.infer<typeof SubmissionListItemSchema>;
 
-export const SubmissionDetailSchema = z.object({
-  id: z.string(),
-  sessionId: z.string(),
-  sessionReference: z.string(),
-  formName: z.string().optional(),
-  publishedVersionId: z.string(),
-  versionNumber: z.number().int().positive(),
+export const SubmissionDetailSchema = BaseSubmissionSchema.extend({
   definitionSnapshot: FormDefinitionSchema,
   themeSnapshot: ThemeDefinitionSchema,
-  answerSnapshot: z.record(z.string(), z.unknown()),
-  status: z.string().optional().default("completed"),
-  submittedAt: z.union([z.string(), z.date()]).transform((d) =>
-    typeof d === "string" ? d : d.toISOString(),
-  ),
 });
-
 export type SubmissionDetail = z.infer<typeof SubmissionDetailSchema>;
 
 const listResponseSchema = successSchema.extend({
@@ -93,4 +83,3 @@ export async function fetchSubmissionDetail(
 
   return response.submission;
 }
-

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { CheckIcon, MoonIcon, SunIcon } from "@/components/ui/icons";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { useMemo } from "react";
 
@@ -57,18 +58,7 @@ export function PatientProgressBar({
             )}
             {saveStatus === "saved" && (
               <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
-                <svg
-                  className="h-3 w-3"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <CheckIcon className="h-3 w-3" />
                 Saved
               </span>
             )}
@@ -99,9 +89,14 @@ export function PatientProgressBar({
                 onClick={onToggleThemeMode}
                 aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
                 aria-pressed={themeMode === "dark"}
-                className="text-xs px-2 py-1 rounded-md border font-medium border-intake-border bg-intake-bg text-intake-text-primary hover:border-intake-border-focus focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border font-medium border-intake-border bg-intake-bg text-intake-text-primary hover:border-intake-border-focus focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
               >
-                {themeMode === "light" ? "🌙 Dark" : "☀️ Light"}
+                {themeMode === "light" ? (
+                  <MoonIcon className="h-4 w-4" />
+                ) : (
+                  <SunIcon className="h-4 w-4" />
+                )}
+                {themeMode === "light" ? "Dark" : "Light"}
               </Button>
             )}
 
