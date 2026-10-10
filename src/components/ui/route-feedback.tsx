@@ -6,7 +6,7 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 import { ROUTES } from "@/lib/constants/application";
 import { Alert } from "./alert";
 import { Button } from "./button";
-import { Spinner } from "./spinner";
+import { Skeleton, SkeletonRegion } from "./skeleton";
 
 export function RouteError({
   reset,
@@ -40,12 +40,19 @@ export function RouteError({
 
 export function RouteLoading() {
   return (
-    <div
-      role="status"
-      className="min-h-screen bg-gray-50 flex items-center justify-center gap-3 text-sm"
-    >
-      <Spinner />
-      {APP_MESSAGES.LOADING}
-    </div>
+    <SkeletonRegion className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Skeleton className="h-8 w-1/2" />
+        {[0, 1, 2].map((key) => (
+          <div
+            key={key}
+            className="rounded-xl border border-gray-200 bg-white p-6 space-y-4"
+          >
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ))}
+      </div>
+    </SkeletonRegion>
   );
 }

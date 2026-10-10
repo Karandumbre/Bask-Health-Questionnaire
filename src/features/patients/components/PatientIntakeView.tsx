@@ -20,7 +20,7 @@ import { ResumeModal } from "./ResumeModal";
 import { SubmissionConfirmation } from "./SubmissionConfirmation";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
+import { IntakeLoading } from "./IntakeLoading";
 import { usePatientProgress } from "../hooks/use-patient-progress";
 import { Button } from "@/components/ui/button";
 import { apiErrorMessage } from "@/lib/http/api-client";
@@ -332,18 +332,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   const cssVars = form ? themeToCssVariables(form.theme, patientThemeMode) : {};
 
   // 1. Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner className="w-8 h-8 text-blue-600" />
-          <p role="status" className="text-sm font-medium text-gray-600">
-            Loading intake form...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <IntakeLoading />;
 
   // 2. Load Error state
   if (loadError || !form) {

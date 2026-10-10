@@ -1,5 +1,7 @@
 /** Shared primitive recipes. Dimensions and colors resolve through tokens.css. */
 export const COMPONENT_STYLES = {
+  skeleton:
+    "rounded-md bg-gray-200/70 animate-pulse motion-reduce:animate-none",
   spinner:
     "inline-block h-4 w-4 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin motion-reduce:animate-none",
   button: {

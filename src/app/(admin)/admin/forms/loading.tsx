@@ -1,1 +1,1 @@
-export { RouteLoading as default } from "@/components/ui/route-feedback";
+export { FormsLoading as default } from "@/features/forms/components/FormLoading";

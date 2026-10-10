@@ -1,1 +1,1 @@
-export { RouteLoading as default } from "@/components/ui/route-feedback";
+export { IntakeLoading as default } from "@/features/patients/components/IntakeLoading";

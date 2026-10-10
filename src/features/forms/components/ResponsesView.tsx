@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants/application";
 import { APP_MESSAGES } from "@/lib/constants/messages";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonRegion } from "@/components/ui/skeleton";
+import { ResponseDetailLoading, ResponseListSkeleton } from "./FormLoading";
 import { Alert } from "@/components/ui/alert";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
@@ -205,6 +206,12 @@ export function ResponsesView({
 
         {listError && <Alert>{listError}</Alert>}
 
+        {loadingList && submissions.length === 0 && (
+          <SkeletonRegion label={APP_MESSAGES.LOADING_RESPONSES}>
+            <ResponseListSkeleton />
+          </SkeletonRegion>
+        )}
+
         {/* Responses Table / List */}
         {submissions.length === 0 ? (
           !listError &&
@@ -336,14 +343,7 @@ export function ResponsesView({
               ✕
             </Button>
           </div>
-          {loadingDetail && (
-            <div className="p-12 text-center space-y-3">
-              <Spinner className="w-8 h-8 text-blue-600" />
-              <p role="status" className="text-xs text-gray-500 font-medium">
-                {APP_MESSAGES.LOADING_RESPONSE_DETAIL}
-              </p>
-            </div>
-          )}
+          {loadingDetail && <ResponseDetailLoading />}
 
           {detailError && (
             <div className="p-8 text-center space-y-3">

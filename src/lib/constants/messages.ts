@@ -6,6 +6,7 @@ export const APP_MESSAGES = {
   REFRESH_RESPONSES: "Refresh responses",
   RESPONSE_DETAIL: "Intake Response Detail",
   CLOSE_DIALOG: "Close dialog",
+  LOADING_INTAKE: "Loading intake form...",
   LOADING: "Loading...",
   RETRY: "Retry",
   RETRYING: "Retrying...",
