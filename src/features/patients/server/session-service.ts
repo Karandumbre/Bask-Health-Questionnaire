@@ -1,3 +1,4 @@
+import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -11,14 +12,19 @@ import {
   verifyRecoveryCode,
   generateCapabilityToken,
   hashCapabilityToken,
-  verifyCapabilityToken,
 } from "@/lib/security/credentials";
 import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
 import { validateSessionProgress } from "../domain/validation";
 
-const SESSION_PEPPER =
-  process.env.APP_SESSION_PEPPER || "intake-studio-default-pepper-key-32b";
+import {
+  getSessionPepper,
+  verifySessionAccess,
+  SESSION_DURATION_MS,
+  RECOVERY_DURATION_MS,
+  RECOVERY_MAX_ATTEMPTS,
+  RECOVERY_LOCKOUT_MS,
+} from "./session-policy";
 
 export interface CreateSessionParams {
   publicSlug: string;
@@ -106,15 +112,18 @@ export async function createPatientSession(
   const recoveryCode = generateRecoveryCode();
   const capabilityToken = generateCapabilityToken();
 
-  const credentialHash = hashCapabilityToken(capabilityToken, SESSION_PEPPER);
+  const credentialHash = hashCapabilityToken(
+    capabilityToken,
+    getSessionPepper(),
+  );
   const recoveryHash = hashRecoveryCode(
     normalizeRecoveryCode(recoveryCode),
-    SESSION_PEPPER,
+    getSessionPepper(),
   );
 
   const now = new Date();
-  const recoveryExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const recoveryExpiresAt = new Date(now.getTime() + RECOVERY_DURATION_MS); // 7 days
+  const expiresAt = new Date(now.getTime() + SESSION_DURATION_MS); // 30 days
 
   // 3. Persist session
   const [session] = await db
@@ -172,18 +181,7 @@ export async function authenticatePatientSession(
     throw AppError.sessionUnauthorized("Session not found.");
   }
 
-  if (new Date() > session.expiresAt) {
-    throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
-  }
-
-  const isValid = verifyCapabilityToken(
-    capabilityToken,
-    session.credentialHash,
-    SESSION_PEPPER,
-  );
-  if (!isValid) {
-    throw AppError.sessionUnauthorized("Invalid session credentials.");
-  }
+  verifySessionAccess(session, capabilityToken);
 
   return session;
 }
@@ -201,7 +199,7 @@ export async function resumePatientSession(
 ): Promise<ResumeSessionResult> {
   const { sessionReference, recoveryCode } = params;
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // 1. Locate and lock session row FOR UPDATE
     const [sessionWithVersion] = await tx
       .select({
@@ -236,9 +234,13 @@ export async function resumePatientSession(
       throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
     }
 
+    if (now >= session.recoveryExpiresAt.getTime()) {
+      throw new AppError("SESSION_EXPIRED", "Recovery code has expired.", 410);
+    }
+
     // 2. Sliding window rate limiting check
-    const MAX_ATTEMPTS = 5;
-    const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+    const MAX_ATTEMPTS = RECOVERY_MAX_ATTEMPTS;
+    const LOCKOUT_MS = RECOVERY_LOCKOUT_MS; // 15 minutes
 
     if (session.recoveryAttemptsCount >= MAX_ATTEMPTS) {
       if (session.recoveryLastAttemptAt) {
@@ -254,7 +256,7 @@ export async function resumePatientSession(
     const isValid = verifyRecoveryCode(
       recoveryCode,
       session.recoveryHash,
-      SESSION_PEPPER,
+      getSessionPepper(),
     );
 
     if (!isValid) {
@@ -262,15 +264,22 @@ export async function resumePatientSession(
       await tx
         .update(patientSessions)
         .set({
-          recoveryAttemptsCount: session.recoveryAttemptsCount + 1,
+          recoveryAttemptsCount:
+            (session.recoveryLastAttemptAt &&
+            now - session.recoveryLastAttemptAt.getTime() < LOCKOUT_MS
+              ? session.recoveryAttemptsCount
+              : 0) + 1,
           recoveryLastAttemptAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(patientSessions.id, session.id));
 
-      throw AppError.sessionUnauthorized(
-        "Invalid session reference or recovery code.",
-      );
+      // Return the failure so the attempt counter commits before throwing.
+      return {
+        error: AppError.sessionUnauthorized(
+          "Invalid session reference or recovery code.",
+        ),
+      };
     }
 
     // 4. Atomic rotation: issue fresh recovery code & fresh capability token
@@ -279,11 +288,11 @@ export async function resumePatientSession(
 
     const newRecoveryHash = hashRecoveryCode(
       normalizeRecoveryCode(newRecoveryCode),
-      SESSION_PEPPER,
+      getSessionPepper(),
     );
     const newCredentialHash = hashCapabilityToken(
       newCapabilityToken,
-      SESSION_PEPPER,
+      getSessionPepper(),
     );
 
     const [updatedSession] = await tx
@@ -292,6 +301,7 @@ export async function resumePatientSession(
         recoveryHash: newRecoveryHash,
         recoveryAttemptsCount: 0,
         recoveryLastAttemptAt: null,
+        recoveryExpiresAt: new Date(now + RECOVERY_DURATION_MS),
         credentialHash: newCredentialHash,
         updatedAt: new Date(),
       })
@@ -319,6 +329,10 @@ export async function resumePatientSession(
       sessionRevision: updatedSession.revision,
     };
   });
+  if ("error" in result && result.error) throw result.error;
+  if ("error" in result)
+    throw new AppError("INTERNAL_ERROR", "Recovery failed.", 500);
+  return result;
 }
 
 /**
@@ -326,6 +340,7 @@ export async function resumePatientSession(
  * Prunes answers for any questions that became hidden when parent answers changed.
  */
 export async function savePatientProgress(params: SaveProgressParams) {
+  revisionSchema.parse(params.expectedSessionRevision);
   const { sessionId, capabilityToken, expectedSessionRevision, answers } =
     params;
 

@@ -1,3 +1,4 @@
+import { THEME_PRESET_OCEAN } from "@/features/themes/domain/theme-tokens";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/db/schema";
 import {
   createForm,
+  renameForm,
   updateDraft,
   archiveForm,
   deleteUnpublishedForm,
@@ -81,26 +83,14 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
     ],
   };
 
-  const defaultTheme = {
-    presetName: "Ocean",
-    isCustomShuffle: false,
-    light: {
-      background: "#FFFFFF",
-      surface: "#F8FAFC",
-      text: "#0F172A",
-      primary: "#0284C7",
-      primaryForeground: "#FFFFFF",
-    },
-    dark: {
-      background: "#0F172A",
-      surface: "#1E293B",
-      text: "#F8FAFC",
-      primary: "#38BDF8",
-      primaryForeground: "#0F172A",
-    },
-  };
+  const defaultTheme = THEME_PRESET_OCEAN;
 
+  let initialized = false;
   beforeAll(async () => {
+    if (process.env.IS_TEST_DATABASE !== "true")
+      throw new Error(
+        "Integration tests require IS_TEST_DATABASE=true and a disposable database.",
+      );
     // Production safety check: Prevent tests from ever running against production
     if (
       process.env.NODE_ENV === "production" ||
@@ -136,9 +126,11 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         role: "editor",
       },
     ]);
+    initialized = true;
   });
 
   afterAll(async () => {
+    if (!initialized) return;
     // Clean up test data safely using direct client to handle triggers
     const directSql = getDirectClient();
     try {
@@ -961,5 +953,117 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       code: "FORBIDDEN",
       status: 403,
     });
+  });
+  it("rename advances the revision and rejects a stale editor save", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Before",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    await renameForm({
+      formId: form.id,
+      name: "After",
+      expectedRevision: 0,
+      userId: editorUserId1,
+    });
+    await expect(
+      updateDraft({
+        formId: form.id,
+        expectedRevision: 0,
+        definition: testFormDefinition,
+        theme: defaultTheme,
+        userId: editorUserId2,
+      }),
+    ).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
+    const [draft] = await db
+      .select()
+      .from(formDrafts)
+      .where(eq(formDrafts.formId, form.id));
+    expect(draft?.revision).toBe(1);
+    expect(draft?.definitionJson).toMatchObject({ title: "After" });
+  });
+
+  it("concurrent retries of one publication return the same version", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Retry publication",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    const request = {
+      formId: form.id,
+      expectedRevision: 0,
+      operationId: crypto.randomUUID(),
+      userId: ownerUserId,
+    };
+    const results = await Promise.all([
+      publishForm(request),
+      publishForm(request),
+    ]);
+    expect(results[0]?.publishedVersionId).toBe(results[1]?.publishedVersionId);
+    expect(results.filter((result) => result.isIdempotentReplay)).toHaveLength(
+      1,
+    );
+    const { form: other } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Other form",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    await expect(
+      publishForm({ ...request, formId: other.id }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("failed recovery attempts persist and expired recovery codes are rejected", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Recovery policy",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    const published = await publishForm({
+      formId: form.id,
+      expectedRevision: 0,
+      operationId: crypto.randomUUID(),
+      userId: ownerUserId,
+    });
+    const session = await createPatientSession({
+      publicSlug: published.publicSlug,
+    });
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await expect(
+        resumePatientSession({
+          sessionReference: session.sessionReference,
+          recoveryCode: "wrong",
+        }),
+      ).rejects.toMatchObject({ status: 401 });
+    }
+    const [saved] = await db
+      .select()
+      .from(patientSessions)
+      .where(eq(patientSessions.id, session.sessionId));
+    expect(saved?.recoveryAttemptsCount).toBe(5);
+    await expect(
+      resumePatientSession({
+        sessionReference: session.sessionReference,
+        recoveryCode: session.recoveryCode,
+      }),
+    ).rejects.toMatchObject({ status: 429 });
+    await db
+      .update(patientSessions)
+      .set({ recoveryExpiresAt: new Date(0) })
+      .where(eq(patientSessions.id, session.sessionId));
+    await expect(
+      resumePatientSession({
+        sessionReference: session.sessionReference,
+        recoveryCode: session.recoveryCode,
+      }),
+    ).rejects.toMatchObject({ code: "SESSION_EXPIRED" });
   });
 });

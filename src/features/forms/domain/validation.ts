@@ -1,7 +1,7 @@
+import { validateQuestionCondition } from "./conditions";
 import {
   FormDefinition,
   FormDefinitionSchema,
-  Question,
   SingleSelectQuestion,
   MultiSelectQuestion,
 } from "./types";
@@ -71,7 +71,6 @@ export function validateFormForPublish(definition: FormDefinition): {
 
   // Question ID uniqueness & index map
   const questionIndexMap = new Map<string, number>();
-  const questionMap = new Map<string, Question>();
 
   for (let i = 0; i < definition.questions.length; i++) {
     const q = definition.questions[i];
@@ -85,7 +84,6 @@ export function validateFormForPublish(definition: FormDefinition): {
       });
     } else {
       questionIndexMap.set(q.id, i);
-      questionMap.set(q.id, q);
     }
   }
 
@@ -189,83 +187,7 @@ export function validateFormForPublish(definition: FormDefinition): {
       }
     }
 
-    // Visibility Condition Validation
-    if (q.visibility) {
-      const { parentQuestionId, equalsOptionId } = q.visibility;
-      const parentIndex = questionIndexMap.get(parentQuestionId);
-
-      if (parentIndex === undefined) {
-        errors.push({
-          questionId: q.id,
-          field: "visibility",
-          issue: `Condition references non-existent parent question "${parentQuestionId}"`,
-          code: "MISSING_PARENT_QUESTION",
-        });
-      } else if (parentIndex >= i) {
-        errors.push({
-          questionId: q.id,
-          field: "visibility",
-          issue: `Condition references parent question "${parentQuestionId}" which appears at or after this question`,
-          code: "FORWARD_OR_SELF_DEPENDENCY",
-        });
-      } else {
-        const parent = questionMap.get(parentQuestionId);
-        if (!parent) {
-          errors.push({
-            questionId: q.id,
-            field: "visibility",
-            issue: `Parent question "${parentQuestionId}" not found`,
-            code: "MISSING_PARENT_QUESTION",
-          });
-        } else {
-          // Parent MUST be single_select
-          if (parent.type !== "single_select") {
-            errors.push({
-              questionId: q.id,
-              field: "visibility",
-              issue: `Condition parent question must be single_select, but is "${parent.type}"`,
-              code: "INVALID_PARENT_TYPE",
-            });
-          }
-
-          // Parent MUST be required
-          if (!parent.required) {
-            errors.push({
-              questionId: q.id,
-              field: "visibility",
-              issue: "Condition parent question must be required",
-              code: "PARENT_NOT_REQUIRED",
-            });
-          }
-
-          // Parent MUST be unconditional (no nested conditions)
-          if (parent.visibility !== null) {
-            errors.push({
-              questionId: q.id,
-              field: "visibility",
-              issue:
-                "Condition parent question must be unconditional (nested conditions are not allowed)",
-              code: "NESTED_CONDITION_FORBIDDEN",
-            });
-          }
-
-          // equalsOptionId MUST exist in parent options
-          if (parent.type === "single_select") {
-            const hasOption = parent.options.some(
-              (opt) => opt.id === equalsOptionId,
-            );
-            if (!hasOption) {
-              errors.push({
-                questionId: q.id,
-                field: "visibility",
-                issue: `Condition references non-existent option ID "${equalsOptionId}" on parent question`,
-                code: "MISSING_PARENT_OPTION",
-              });
-            }
-          }
-        }
-      }
-    }
+    errors.push(...validateQuestionCondition(definition.questions, q));
   }
 
   return {

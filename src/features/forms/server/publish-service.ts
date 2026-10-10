@@ -1,6 +1,7 @@
+import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   forms,
@@ -54,6 +55,7 @@ function slugify(text: string): string {
 export async function publishForm(
   params: PublishFormParams,
 ): Promise<PublishResult> {
+  revisionSchema.parse(params.expectedRevision);
   const { formId, expectedRevision, operationId, userId } = params;
 
   // 1. Authorize workspace editor
@@ -63,6 +65,7 @@ export async function publishForm(
   const [existingOp] = await db
     .select({
       operationId: publicationOperations.operationId,
+      formId: publicationOperations.formId,
       publishedVersionId: publicationOperations.publishedVersionId,
       versionNumber: publishedVersions.versionNumber,
       publicSlug: publishedVersions.publicSlug,
@@ -77,6 +80,12 @@ export async function publishForm(
     .limit(1);
 
   if (existingOp) {
+    if (existingOp.formId !== formId)
+      throw new AppError(
+        "INVALID_FORM",
+        "Publication operation belongs to a different form.",
+        409,
+      );
     return {
       publishedVersionId: existingOp.publishedVersionId,
       versionNumber: existingOp.versionNumber,
@@ -89,6 +98,9 @@ export async function publishForm(
 
   // 3. Execute transactional publication with row locks
   return await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${operationId}, 1))`,
+    );
     // Lock the form container row
     const [lockedForm] = await tx
       .select()
@@ -106,6 +118,35 @@ export async function publishForm(
           resourceType: "form",
         },
       );
+    }
+
+    const [replay] = await tx
+      .select({
+        formId: publicationOperations.formId,
+        publishedVersionId: publishedVersions.id,
+        versionNumber: publishedVersions.versionNumber,
+        publicSlug: publishedVersions.publicSlug,
+        publishedAt: publishedVersions.publishedAt,
+      })
+      .from(publicationOperations)
+      .innerJoin(
+        publishedVersions,
+        eq(publicationOperations.publishedVersionId, publishedVersions.id),
+      )
+      .where(eq(publicationOperations.operationId, operationId))
+      .limit(1);
+    if (replay) {
+      if (replay.formId !== formId)
+        throw new AppError(
+          "INVALID_FORM",
+          "Publication operation belongs to a different form.",
+          409,
+        );
+      return {
+        ...replay,
+        publicUrl: `/intake/${replay.publicSlug}`,
+        isIdempotentReplay: true,
+      };
     }
 
     // Lock the draft row

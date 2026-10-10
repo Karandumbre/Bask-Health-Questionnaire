@@ -1,0 +1,152 @@
+import crypto from "node:crypto";
+import type { VerifiedAuthUser } from "../supabase/server";
+
+/**
+ * Strict security boundary for automated test authentication.
+ *
+ * Invariants:
+ * 1. Must explicitly opt-in: ENABLE_TEST_AUTH === "true"
+ * 2. Disabled on EVERY Vercel environment (production, preview, development)
+ * 3. Fails closed if APP_ENV is production, or if TEST_AUTH_SECRET is missing or < 32 characters
+ * 4. Fails closed against unverified remote production databases
+ * 5. Uses HMAC-SHA256 signatures with timing-safe verification
+ */
+export function isTestAuthPermitted(): boolean {
+  // 1. Explicit opt-in flag required
+  if (process.env.ENABLE_TEST_AUTH !== "true") {
+    return false;
+  }
+
+  // 2. Prohibited on all Vercel deployment environments
+  if (
+    process.env.VERCEL === "1" ||
+    Boolean(process.env.VERCEL_ENV) ||
+    Boolean(process.env.VERCEL_URL)
+  ) {
+    return false;
+  }
+
+  // 3. Prohibited in production application environments
+  const appEnv = (process.env.APP_ENV || "").toLowerCase();
+  if (appEnv === "production" || appEnv === "prod") {
+    return false;
+  }
+
+  // 4. Fail closed when TEST_AUTH_SECRET is missing or insufficient length
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret || typeof secret !== "string" || secret.length < 32) {
+    return false;
+  }
+
+  // 5. Never allow against unflagged production databases
+  const dbUrl = (process.env.DATABASE_URL || "").toLowerCase();
+  if (
+    dbUrl.includes("pooler.supabase.com") &&
+    process.env.IS_TEST_DATABASE !== "true" &&
+    !dbUrl.includes("test")
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export interface TestUserPayload {
+  id: string;
+  email: string;
+  issuedAt: number;
+}
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Creates a signed, tamper-proof test session token.
+ * Returns null if test auth is not strictly permitted.
+ */
+export function createTestAuthCookie(user: {
+  id: string;
+  email: string;
+}): string | null {
+  if (!isTestAuthPermitted()) return null;
+  if (!UUID_REGEX.test(user.id)) return null;
+
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret) return null;
+
+  const payload: TestUserPayload = {
+    id: user.id,
+    email: user.email,
+    issuedAt: Date.now(),
+  };
+
+  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(data)
+    .digest("base64url");
+
+  return `${data}.${signature}`;
+}
+
+/**
+ * Verifies a signed test session token with constant-time signature comparison.
+ * Returns null on any validation failure, expiration, or disabled state.
+ */
+export function verifyTestAuthCookie(
+  cookieValue: string | undefined,
+): VerifiedAuthUser | null {
+  if (!cookieValue || !isTestAuthPermitted()) return null;
+
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret) return null;
+
+  const parts = cookieValue.split(".");
+  if (parts.length !== 2) return null;
+
+  const [data, signature] = parts;
+  if (!data || !signature) return null;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(data)
+    .digest("base64url");
+
+  const sigBuffer = Buffer.from(signature);
+  const expBuffer = Buffer.from(expectedSignature);
+
+  if (
+    sigBuffer.length !== expBuffer.length ||
+    !crypto.timingSafeEqual(sigBuffer, expBuffer)
+  ) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(data, "base64url").toString("utf8"),
+    ) as TestUserPayload;
+
+    if (!payload.id || !UUID_REGEX.test(payload.id)) {
+      return null;
+    }
+
+    // Tokens expire after 1 hour
+    if (Date.now() - payload.issuedAt > 3600 * 1000) {
+      return null;
+    }
+
+    return {
+      id: payload.id,
+      email: payload.email,
+      role: "authenticated",
+      claims: {
+        sub: payload.id,
+        email: payload.email,
+        aud: "authenticated",
+      },
+    };
+  } catch {
+    return null;
+  }
+}

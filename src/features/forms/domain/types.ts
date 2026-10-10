@@ -5,7 +5,7 @@ import { z } from "zod";
  */
 export const OptionSchema = z.object({
   id: z.string().min(1, "Option ID must not be empty"),
-  label: z.string().min(1, "Option label must not be empty"),
+  label: z.string(),
 });
 export type Option = z.infer<typeof OptionSchema>;
 
@@ -14,8 +14,8 @@ export type Option = z.infer<typeof OptionSchema>;
  * Single condition allowed: points to an earlier, required, unconditional single_select question.
  */
 export const VisibilityConditionSchema = z.object({
-  parentQuestionId: z.string().min(1, "Parent question ID is required"),
-  equalsOptionId: z.string().min(1, "Target option ID is required"),
+  parentQuestionId: z.string(),
+  equalsOptionId: z.string(),
 });
 export type VisibilityCondition = z.infer<typeof VisibilityConditionSchema>;
 
@@ -115,26 +115,9 @@ export const FormDefinitionSchema = z.object({
 });
 export type FormDefinition = z.infer<typeof FormDefinitionSchema>;
 
-/**
- * Theme Token Palette for light and dark modes.
- */
-export const ThemeModeTokensSchema = z.object({
-  background: z.string(),
-  surface: z.string(),
-  text: z.string(),
-  textMuted: z.string().optional(),
-  border: z.string().optional(),
-  primary: z.string(),
-  primaryForeground: z.string(),
-  focusRing: z.string().optional(),
-  error: z.string().optional(),
-});
-export type ThemeModeTokens = z.infer<typeof ThemeModeTokensSchema>;
-
-export const ThemeDefinitionSchema = z.object({
-  presetName: z.string().default("Ocean"),
-  isCustomShuffle: z.boolean().default(false),
-  light: ThemeModeTokensSchema,
-  dark: ThemeModeTokensSchema,
-});
-export type ThemeDefinition = z.infer<typeof ThemeDefinitionSchema>;
+export {
+  ThemeModeTokensSchema,
+  type ThemeModeTokens,
+  ThemeDefinitionSchema,
+  type ThemeDefinition,
+} from "@/features/themes/domain/theme-tokens";

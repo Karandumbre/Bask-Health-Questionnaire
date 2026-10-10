@@ -9,7 +9,13 @@ import {
 } from "@/features/forms/server/draft-service";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import { handleRouteError } from "@/lib/errors/route-handler";
+import { z } from "zod";
 import { AppError } from "@/lib/errors";
+import { parseRequestJson } from "@/lib/http/request-validation";
+import {
+  renameFormSchema,
+  saveDraftSchema,
+} from "@/features/forms/domain/request-schemas";
 
 interface RouteContext {
   params: Promise<{ formId: string }>;
@@ -50,13 +56,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const user = await requireAdmin();
     const { formId } = await context.params;
 
-    const body = await request.json().catch(() => ({}));
+    const body = await parseRequestJson(
+      request,
+      z.record(z.string(), z.unknown()),
+    );
 
     // Branch 1: Rename form if only name is provided
-    if (typeof body.name === "string" && body.expectedRevision === undefined) {
+    if (typeof body.name === "string" && body.definition === undefined) {
       const updatedForm = await renameForm({
         formId,
-        name: body.name,
+        ...renameFormSchema.parse(body),
         userId: user.id,
       });
 
@@ -66,29 +75,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       });
     }
 
-    // Branch 2: Optimistic concurrency CAS update
-    if (typeof body.expectedRevision !== "number") {
-      throw new AppError(
-        "INVALID_FORM",
-        "expectedRevision (integer) is required for autosave mutations.",
-        400,
-      );
-    }
-
-    if (!body.definition || !body.theme) {
-      throw new AppError(
-        "INVALID_FORM",
-        "Both 'definition' and 'theme' objects must be provided for draft updates.",
-        400,
-      );
-    }
-
     const result = await updateDraft({
       formId,
-      expectedRevision: body.expectedRevision,
-      definition: body.definition,
-      theme: body.theme,
       userId: user.id,
+      ...saveDraftSchema.parse(body),
     });
 
     return NextResponse.json(result);

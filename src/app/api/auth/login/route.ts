@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import { handleRouteError } from "@/lib/errors/route-handler";
 import { AppError } from "@/lib/errors";
+import {
+  isTestAuthPermitted,
+  createTestAuthCookie,
+} from "@/lib/auth/test-auth-guard";
 
 /**
  * POST /api/auth/login
@@ -33,13 +37,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (error || !data.user) {
-      const isProduction =
-        process.env.APP_ENV === "production" ||
-        process.env.VERCEL_ENV === "production";
       if (
-        !isProduction &&
-        (process.env.NODE_ENV !== "production" ||
-          process.env.ALLOW_TEST_AUTH === "true") &&
+        isTestAuthPermitted() &&
         email === "reviewer@baskhealth.com" &&
         password === "ClinicalReview2026!"
       ) {
@@ -47,16 +46,20 @@ export async function POST(request: NextRequest) {
           id: "a1111111-1111-4111-8111-111111111111",
           email: "reviewer@baskhealth.com",
         };
-        const response = NextResponse.json({
-          success: true,
-          user: testUser,
-        });
-        response.cookies.set("bask_test_user", JSON.stringify(testUser), {
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
-        });
-        return response;
+        const token = createTestAuthCookie(testUser);
+        if (token) {
+          const response = NextResponse.json({
+            success: true,
+            user: testUser,
+          });
+          response.cookies.set("bask_test_auth", token, {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 3600,
+          });
+          return response;
+        }
       }
 
       throw new AppError("UNAUTHORIZED", "Invalid reviewer credentials.", 401);

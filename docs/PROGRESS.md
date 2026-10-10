@@ -327,7 +327,7 @@ All security boundaries, schema models, CAS concurrency, database immutability t
 
 ---
 
-### 3. Verification & Build Evidence
+### 3. Verification & Build Evidence (Phase 1/2 Baseline)
 
 | Verification Command                 | Execution Scope                            | Result            | Details                                                              |
 | ------------------------------------ | ------------------------------------------ | ----------------- | -------------------------------------------------------------------- |
@@ -335,3 +335,85 @@ All security boundaries, schema models, CAS concurrency, database immutability t
 | `npm run lint` (`eslint .`)          | ESLint 9 flat config (`eslint.config.mjs`) | **PASS (Exit 0)** | 0 errors, 0 warnings. Clean React 19 hook purity and ref compliance. |
 | `npm run test:unit`                  | Vitest 5.0.3 unit test suite               | **PASS (Exit 0)** | **37 passed / 0 failed** in 0.58s.                                   |
 | `npm run build`                      | Next.js 16.4.0 (Turbopack)                 | **PASS (Exit 0)** | All 13 routes and Edge proxy compiled cleanly in 3.8s.               |
+
+---
+
+## Phase 2A: Administrative Workflows, Autosave Hardening & End-to-End Verification
+
+**Date:** 2026-10-10  
+**Status:** Complete & Fully Verified (77/77 Vitest Unit & Integration Tests Passing, Playwright E2E Browser Smoke Test Passing in 22.6s, Clean Typecheck & Lint)  
+**Lead:** Staff Full-Stack Architect & Security Reviewer
+
+---
+
+### 1. Work Implemented & Files Changed
+
+1. **Autosave & CAS Concurrency Engine (`src/features/forms/client/draft-autosave.ts`, `builder-context.tsx`):**
+   - Implemented monotonic `editVersion` vs `savedVersion` sequence tracking.
+   - Guarded against concurrent in-flight writes using `running: Promise<boolean>` drain loop.
+   - Guaranteed that stale acknowledgements can never overwrite newer local edits.
+   - Transitioned `status` to `"saved"` only when all pending local edits have been acknowledged by the server.
+   - On HTTP 409 `REVISION_CONFLICT`, paused autosave and populated `conflict` state with server revision without silent data loss.
+   - Connected `window.beforeunload` warning when `hasUnsavedChanges = (saveStatus !== "saved")`.
+   - Fixed React state updater side-effect bug by moving `setSelectedQuestionId` out of `setDefinition` updater.
+
+2. **Conditional Dependency Integrity (`src/features/forms/components/ConditionBuilder.tsx`, `domain/validation.ts`):**
+   - Preserved broken dependencies upon parent/option deletion instead of silently stripping them, allowing administrators to see and fix the issue.
+   - Provided an explicit "Remove condition" button when dependency is invalid.
+   - Authored comprehensive test suite (`tests/unit/domain/conditional-dependencies.test.ts`) covering all 7 breakage edge cases: parent deletion, referenced option deletion, reordering, parent made optional, parent becoming conditional (nested forbidden), duplicating dependent questions, and renaming labels.
+
+3. **HTTP Route Security (`src/app/api/admin/`, `src/lib/auth/admin.ts`, `src/lib/security/csrf.ts`):**
+   - Audited and verified all administrative mutation endpoints (`/api/admin/forms`, `/api/admin/forms/[formId]`, `/api/admin/forms/[formId]/publish`, `/api/admin/forms/[formId]/responses`, `/api/admin/workspaces`).
+   - Verified server-level enforcement of CSRF/Origin validation (`verifyRequestOrigin`), workspace tenancy RBAC (`requireWorkspaceMembership`, `requireFormWorkspaceAccess`), authenticated user (`requireAdmin`), and Zod input validation schemas.
+   - Added unit test suite (`tests/unit/security/http-security-routes.test.ts`) proving 401 unauthenticated, 403 cross-tenant, and origin rejection.
+
+4. **Accessibility & Motion Enhancements:**
+   - Added global `prefers-reduced-motion` media query in `src/app/globals.css`.
+   - Added `aria-label`, `aria-expanded`, and `aria-haspopup` across `FieldNavigator.tsx`.
+   - Linked `id` and `htmlFor` for form inputs in `QuestionInspector.tsx`.
+   - Added `role="status"` and `aria-live="polite"` to save indicator in `AdminHeader.tsx`.
+
+5. **Automated End-to-End Testing (`playwright.config.ts`, `tests/e2e/smoke.spec.ts`):**
+   - Installed and configured Playwright with Chromium browser automation.
+   - Configured non-production test authentication fixture safely isolated from production (`ALLOW_TEST_AUTH="true"`, strictly guarded against `APP_ENV="production"`).
+   - Implemented full 8-step administrative lifecycle test verifying:
+     1. Reviewer login.
+     2. Draft creation.
+     3. Adding Single Select and Short Text questions, editing labels and required flags.
+     4. Configuring conditional visibility.
+     5. Autosave persisting to PostgreSQL with CAS revision bump.
+     6. Page reload and verifying persisted questions and conditional rules.
+     7. Breaking dependency (toggling parent to optional) and asserting publication is blocked with clinical error summary.
+     8. Fixing dependency and publishing successfully, producing immutable Version 1 and public intake URL.
+
+---
+
+### 2. Bugs Discovered & Fixed
+
+1. **PostgreSQL UUID Syntax on Test Users:**
+   - _Discovery:_ Non-production test identities using arbitrary strings (`usr_reviewer_e2e_01`) failed PostgreSQL foreign key lookups with `invalid input syntax for type uuid`.
+   - _Fix:_ Replaced test identity with valid UUID format (`a1111111-1111-4111-8111-111111111111`).
+2. **React State Setter Side-Effect Bug in Builder Context:**
+   - _Discovery:_ `setSelectedQuestionId` was invoked inside the `setDefinition((prev) => ...)` updater function in `addQuestion` and `duplicateQuestion`. React 19 ignores state updates scheduled during other state updaters, leaving the Question Inspector unselected.
+   - _Fix:_ Created the question object before `setDefinition` and called `setSelectedQuestionId` outside the updater.
+3. **Autosave Assertion Timing Race on Page Reload:**
+   - _Discovery:_ The draft autosave indicator begins in `"saved"` state on initial load. Asserting `expect(status).toBeVisible("Saved")` passed instantly before the 800ms debounce timer could fire, causing `page.reload()` to abort unsaved edits.
+   - _Fix:_ Hardened test assertions to explicitly wait for the header revision indicator (`header span.font-mono`) to advance before reload.
+4. **Silent Condition Stripping on Question Deletion:**
+   - _Discovery:_ Deleting a parent question previously auto-stripped condition definitions, concealing broken rules.
+   - _Fix:_ Preserved condition state so pre-publish validation explicitly catches broken dependencies and displays actionable remediation.
+5. **Strict Mode Disambiguation in Header:**
+   - _Discovery:_ `header span:has-text('rev')` matched both the revision counter and the "Patient Preview" button.
+   - _Fix:_ Targeted the revision badge specifically using `header span.font-mono`.
+
+---
+
+### 3. Tests Executed & Actual Results
+
+| Test Suite / Command   | Execution Scope                                     | Result            | Details                                                                                                                                                                                                                                                      |
+| ---------------------- | --------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run test:unit`    | 10 test files, 77 unit & integration tests          | **PASS (Exit 0)** | **77 passed / 0 failed** in 1.83s. Includes conditional dependencies (9), HTTP route security (10), smoke workflow (1), autosave concurrency (7), credentials (6), validation (14), visibility (5), patient validation (9), benchmarks (3), API client (13). |
+| `npx playwright test`  | Chromium E2E Smoke Test (`tests/e2e/smoke.spec.ts`) | **PASS (Exit 0)** | **1 passed / 0 failed** in 22.6s. Verified 8-step admin lifecycle against live Next.js instance and PostgreSQL.                                                                                                                                              |
+| `npm run typecheck`    | Entire codebase (`tsc --noEmit`)                    | **PASS (Exit 0)** | 0 errors. Strict TypeScript compliance.                                                                                                                                                                                                                      |
+| `npm run lint`         | ESLint 9 (`eslint .`)                               | **PASS (Exit 0)** | 0 errors, 0 warnings.                                                                                                                                                                                                                                        |
+| `next build --webpack` | Next.js production build                            | **PASS (Exit 0)** | 13 routes and Edge proxy compiled cleanly.                                                                                                                                                                                                                   |

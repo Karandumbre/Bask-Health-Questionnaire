@@ -16,23 +16,23 @@
 - `IN PROGRESS`: Currently being implemented.
 - `PENDING`: Not started or blocked.
 
-| Workstream                                         | Status  | Evidence / File Paths / Next Condition                                                                                                                                                                                                                                                                            |
-| -------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Requirements analysis and reference interpretation | DONE    | Acceptance criteria decomposed into `CHECKLIST.md` and `PHASE_1_ARCHITECTURE.md`.                                                                                                                                                                                                                                 |
-| Phase 1: architecture proposal and ADRs            | DONE    | Documented in `docs/architecture/README.md`, `docs/architecture/ADRS.md` (ADR-001 through ADR-012).                                                                                                                                                                                                               |
-| Phase 1: schema, security, edge-case design        | DONE    | Documented in `docs/architecture/ERD.md`, `docs/architecture/API_CONTRACTS.md`, `docs/architecture/THREAT_MODEL.md`, `docs/architecture/EDGE_CASES.md`, `docs/architecture/DEFENSE_IN_DEPTH.md`.                                                                                                                  |
-| Next.js 16 source scaffold / strict TS / Polaris   | DONE    | `package.json` (`next@^16.4.0`), `tsconfig.json` (strict, 0 errors via `npm run typecheck`), `eslint.config.mjs` (0 errors via `npm run lint`).                                                                                                                                                                   |
-| Domain contracts & pure validation rules           | DONE    | `src/features/forms/domain/` and `src/features/patients/domain/`; verified via 26 passing unit tests.                                                                                                                                                                                                             |
-| 100-field fixture & performance trace              | DONE    | `tests/fixtures/100-field-fixture.ts`; verified via `tests/unit/domain/100-field-benchmark.test.ts` (<5ms latency).                                                                                                                                                                                               |
-| PostgreSQL schema and migrations                   | DONE    | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`).                          |
-| Admin authentication & workspace RBAC              | PARTIAL | Backend service & claims verification DONE (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`). Reviewer Login UI (`/admin/login`), login API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), and route redirect guards implemented (Phase 2A). Full production user onboarding PENDING.             |
-| Admin draft CRUD & concurrency lifecycle           | PARTIAL | Backend CAS service DONE. HTTP API routes (`/api/admin/forms`, `/api/admin/forms/[formId]`), Form Builder 3-pane UI, Field Navigator with Polaris Icons, Question Inspector, Form Canvas, and Autosave Engine with HTTP 409 Conflict Modal implemented and compiled (Phase 2A). E2E browser verification PENDING. |
-| Publish immutable versions & triggers              | PARTIAL | Backend publish service & DB triggers DONE (`trg_protect_published_versions`). Publish API route (`/api/admin/forms/[formId]/publish`) and Publish Modal with clinical validation summary implemented (Phase 2A). Patient intake route PENDING Phase 3.                                                           |
-| Patient session persistence & submission           | PARTIAL | Backend session & submission services DONE (`src/features/patients/server/session-service.ts`, `src/features/patients/server/submission-service.ts`, verified via Tests 8-14). Patient HTTP routes & mobile UI PENDING Phase 3.                                                                                   |
-| Responses administration                           | PARTIAL | Backend response service DONE (`src/features/forms/server/response-service.ts`, verified via Test 15). HTTP response routes & admin responses UI PENDING Phase 2/3.                                                                                                                                               |
-| Automated database integration & E2E tests         | PARTIAL | 52 tests passing: 37 unit/benchmark tests + 15 real PostgreSQL concurrency integration tests (`tests/integration/postgres-integration.test.ts`). Playwright browser E2E pending Phase 2 UI.                                                                                                                       |
-| CI/CD & Deployment workflows                       | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`) with hardened permissions, Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Awaiting reviewer Vercel connection.                                                                              |
-| Reviewer deliverables & audit logs                 | PARTIAL | Architecture artifacts, checklist, and `docs/PROGRESS.md` maintained; demo video pending Phase 2/3.                                                                                                                                                                                                               |
+| Workstream                                         | Status  | Evidence / File Paths / Next Condition                                                                                                                                                                                                                                                               |
+| -------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Requirements analysis and reference interpretation | DONE    | Acceptance criteria decomposed into `CHECKLIST.md` and `PHASE_1_ARCHITECTURE.md`.                                                                                                                                                                                                                    |
+| Phase 1: architecture proposal and ADRs            | DONE    | Documented in `docs/architecture/README.md`, `docs/architecture/ADRS.md` (ADR-001 through ADR-012).                                                                                                                                                                                                  |
+| Phase 1: schema, security, edge-case design        | DONE    | Documented in `docs/architecture/ERD.md`, `docs/architecture/API_CONTRACTS.md`, `docs/architecture/THREAT_MODEL.md`, `docs/architecture/EDGE_CASES.md`, `docs/architecture/DEFENSE_IN_DEPTH.md`.                                                                                                     |
+| Next.js 16 source scaffold / strict TS / Polaris   | DONE    | `package.json` (`next@^16.4.0`), `tsconfig.json` (strict, 0 errors via `npm run typecheck`), `eslint.config.mjs` (0 errors via `npm run lint`).                                                                                                                                                      |
+| Domain contracts & pure validation rules           | DONE    | `src/features/forms/domain/` and `src/features/patients/domain/`; verified via 26 passing unit tests.                                                                                                                                                                                                |
+| 100-field fixture & performance trace              | DONE    | `tests/fixtures/100-field-fixture.ts`; verified via `tests/unit/domain/100-field-benchmark.test.ts` (<5ms latency).                                                                                                                                                                                  |
+| PostgreSQL schema and migrations                   | DONE    | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`).             |
+| Admin authentication & workspace RBAC              | DONE    | Backend service & claims verification (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`). Reviewer Login UI (`/admin/login`), login API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), route redirect guards, and Playwright E2E browser authentication verified.                     |
+| Admin draft CRUD & concurrency lifecycle           | DONE    | Backend CAS service (`src/features/forms/server/draft-service.ts`), API routes (`/api/admin/forms`, `/api/admin/forms/[formId]`), 3-pane UI, Field Navigator with Polaris Icons, Inspector, Canvas, debounced autosave state machine, 409 conflict modal, and Playwright 8-step smoke flow verified. |
+| Publish immutable versions & validation triggers   | DONE    | Backend publish service & DB triggers (`trg_protect_published_versions`), `/api/admin/forms/[formId]/publish`, publish readiness validation blocking broken rules, snapshot generation, and Playwright E2E verification.                                                                             |
+| Patient session persistence & submission           | PARTIAL | Backend session & submission services DONE (`src/features/patients/server/session-service.ts`, `src/features/patients/server/submission-service.ts`, verified via Tests 8-14). Patient HTTP routes & mobile UI PENDING Phase 3.                                                                      |
+| Responses administration                           | PARTIAL | Backend response service DONE (`src/features/forms/server/response-service.ts`, verified via Test 15). HTTP response routes & admin responses UI PENDING Phase 3.                                                                                                                                    |
+| Automated database integration & E2E tests         | DONE    | 77 passing unit/integration tests (`npm run test:unit`) + Playwright Chromium browser E2E smoke test (`npx playwright test`, 8-step admin lifecycle passing in 22.6s).                                                                                                                               |
+| CI/CD & Deployment workflows                       | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`) with hardened permissions, Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Awaiting reviewer Vercel connection.                                                                 |
+| Reviewer deliverables & audit logs                 | PARTIAL | Architecture artifacts, checklist, and `docs/PROGRESS.md` maintained; demo video pending Phase 3.                                                                                                                                                                                                    |
 
 **Files:** `CHECKLIST.md` (master), `PHASE_1_ARCHITECTURE.md`, `PHASE_1_LOCAL_AI_PROMPT.md`, `docs/PROGRESS.md`, `docs/architecture/*`.
 
@@ -124,82 +124,82 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ## 2. Authentication and authorization
 
-- [ ] **Yes, authentication is required**: private reviewer/admin login; full signup/reset flows are explicitly not required.
-- [ ] Protect admin routes, server endpoints/actions, database access, and response reads.
-- [ ] Scope every admin query/mutation to authorized workspace/form.
-- [ ] Ensure unauthenticated users cannot draft, publish, change theme, list responses, or read private submissions.
-- [ ] Public published-form read grants no admin privileges.
-- [ ] Patient resume requires a high-entropy, session-specific credential; store only a hash server-side.
+- [x] **Yes, authentication is required**: private reviewer/admin login; full signup/reset flows are explicitly not required.
+- [x] Protect admin routes, server endpoints/actions, database access, and response reads.
+- [x] Scope every admin query/mutation to authorized workspace/form.
+- [x] Ensure unauthenticated users cannot draft, publish, change theme, list responses, or read private submissions.
+- [x] Public published-form read grants no admin privileges.
+- [x] Patient resume requires a high-entropy, session-specific credential; store only a hash server-side.
 - [ ] Prefer **HttpOnly, Secure, SameSite** cookie for same-browser resumes; provide a deliberate cross-browser mechanism, e.g. one-time resume link/code delivered to the original patient through a **verified** channel, or a user-held secret. Do not claim another-browser resume works through cookies alone.
 - [ ] Ensure resume URLs never carry **answers**; if a resume token appears in a URL, minimize leakage (Referrer-Policy, no analytics, token rotation/redemption, scrub history), and document risk. Prefer code entry / token exchange.
 - [ ] Rate-limit guessing, credential redemption, and public writes; no cross-session access via sequential IDs.
-- [ ] Do not expose Supabase service-role keys in client bundles. Keep admin authorization independent of cosmetic UI hiding.
-- [ ] Test direct API requests and cross-user/workspace/session privilege escalation.
+- [x] Do not expose Supabase service-role keys in client bundles. Keep admin authorization independent of cosmetic UI hiding.
+- [x] Test direct API requests and cross-user/workspace/session privilege escalation.
 
 ## 3. Draft list / lifecycle
 
-- [ ] Create a new unpublished draft.
-- [ ] List/search/open existing drafts; show title, modified time, save state and publish status.
-- [ ] Rename unpublished drafts.
-- [ ] Delete unpublished drafts with confirmation and reasonable recovery policy.
-- [ ] Define how a previously published form gets a new editable draft without mutating prior versions.
-- [ ] Restore draft after refresh from most recent **successfully committed** DB state.
-- [ ] Empty, loading, permission-denied, network-failure and removed-draft states.
+- [x] Create a new unpublished draft.
+- [x] List/search/open existing drafts; show title, modified time, save state and publish status.
+- [x] Rename unpublished drafts.
+- [x] Delete unpublished drafts with confirmation and reasonable recovery policy.
+- [x] Define how a previously published form gets a new editable draft without mutating prior versions.
+- [x] Restore draft after refresh from most recent **successfully committed** DB state.
+- [x] Empty, loading, permission-denied, network-failure and removed-draft states.
 
 ## 4. Builder and question editing
 
-- [ ] Add, select, edit, duplicate, delete and reorder questions.
-- [ ] Provide **keyboard-accessible Move up / Move down** as alternative to drag-and-drop.
-- [ ] Field types: short text, long text, number, single-select, multi-select, checkbox.
-- [ ] Persist label, helper text, required toggle, placeholder where meaningful.
-- [ ] Text fields: min/max length (where chosen), required whitespace-trim validation.
-- [ ] Numbers: optional min/max bounds, integer-only setting, finite-number check.
-- [ ] Single/multi-select: >=2 distinctly labeled options with **stable option IDs**, no duplicate normalized labels, no blank options.
-- [ ] Checkbox: required means it must be checked.
-- [ ] Duplicate regenerates question/option IDs; decide whether conditions on duplicated questions are copied only if still valid.
-- [ ] Supports large labels and long help text, narrow windows, overflow management, scrolling and unsaved changes.
-- [ ] Preview uses actual field widgets, client validation and condition evaluation without writing production responses.
-- [ ] Persist draft edits and theme settings across reloads; incomplete drafts are allowed.
+- [x] Add, select, edit, duplicate, delete and reorder questions.
+- [x] Provide **keyboard-accessible Move up / Move down** as alternative to drag-and-drop.
+- [x] Field types: short text, long text, number, single-select, multi-select, checkbox.
+- [x] Persist label, helper text, required toggle, placeholder where meaningful.
+- [x] Text fields: min/max length (where chosen), required whitespace-trim validation.
+- [x] Numbers: optional min/max bounds, integer-only setting, finite-number check.
+- [x] Single/multi-select: >=2 distinctly labeled options with **stable option IDs**, no duplicate normalized labels, no blank options.
+- [x] Checkbox: required means it must be checked.
+- [x] Duplicate regenerates question/option IDs; decide whether conditions on duplicated questions are copied only if still valid.
+- [x] Supports large labels and long help text, narrow windows, overflow management, scrolling and unsaved changes.
+- [x] Preview uses actual field widgets, client validation and condition evaluation without writing production responses.
+- [x] Persist draft edits and theme settings across reloads; incomplete drafts are allowed.
 
 ## 5. Conditional visibility and dependency integrity
 
-- [ ] Limit each field to **one** condition: upstream earlier, required, **unconditional single-select** question equals a selected option ID.
-- [ ] Do not allow nested conditions or arbitrary boolean expressions.
-- [ ] Refer to parent question and choice by stable IDs; **renaming** a label/option does not break a rule.
-- [ ] Reordering parent after dependent marks condition invalid; editor flags it and publication is blocked.
-- [ ] Deleting parent/option marks dependency invalid; provide a clear “Fix condition” action.
-- [ ] Making parent optional, conditional, or changing its type invalidates dependents.
-- [ ] Reordering/replacing/deleting must never silently retarget a condition to another option.
-- [ ] When a parent answer no longer matches, remove **all newly hidden answers** in UI and DB, including server-side sanitization.
-- [ ] Re-showing a previously hidden field starts blank; unrelated visible values survive.
-- [ ] Validate all dependency integrity during **publish** (not just during editing).
+- [x] Limit each field to **one** condition: upstream earlier, required, **unconditional single-select** question equals a selected option ID.
+- [x] Do not allow nested conditions or arbitrary boolean expressions.
+- [x] Refer to parent question and choice by stable IDs; **renaming** a label/option does not break a rule.
+- [x] Reordering parent after dependent marks condition invalid; editor flags it and publication is blocked.
+- [x] Deleting parent/option marks dependency invalid; provide a clear “Fix condition” action.
+- [x] Making parent optional, conditional, or changing its type invalidates dependents.
+- [x] Reordering/replacing/deleting must never silently retarget a condition to another option.
+- [x] When a parent answer no longer matches, remove **all newly hidden answers** in UI and DB, including server-side sanitization.
+- [x] Re-showing a previously hidden field starts blank; unrelated visible values survive.
+- [x] Validate all dependency integrity during **publish** (not just during editing).
 - [ ] Validate conditions against the published snapshot when **saving progress and submitting**.
 
 ## 6. Autosave and concurrent admin editing
 
-- [ ] Implement debounced autosave with explicit states: `editing`, `saving`, `saved`, `failed`, `conflict`, `offline`.
-- [ ] Keep local dirty edits intact when a save fails; offer Retry, not destructive reload.
-- [ ] Every write uses **expected revision**, e.g. `UPDATE drafts ... WHERE id=? AND revision=? RETURNING revision`.
-- [ ] On a successful write, increment revision atomically; acknowledge only the revision and contents actually committed.
-- [ ] Prevent older requests/responses from marking newer edits as saved; use client sequence numbers and/or serialized saves plus server revision checks.
-- [ ] Two admins saving against the same revision: exactly one wins; other receives **409 conflict**.
-- [ ] Show conflict UI: compare latest server state to local edits; choose reload, manual merge, or copy unsaved edits before resolution. **Do not silently last-write-wins.**
+- [x] Implement debounced autosave with explicit states: `editing`, `saving`, `saved`, `failed`, `conflict`, `offline`.
+- [x] Keep local dirty edits intact when a save fails; offer Retry, not destructive reload.
+- [x] Every write uses **expected revision**, e.g. `UPDATE drafts ... WHERE id=? AND revision=? RETURNING revision`.
+- [x] On a successful write, increment revision atomically; acknowledge only the revision and contents actually committed.
+- [x] Prevent older requests/responses from marking newer edits as saved; use client sequence numbers and/or serialized saves plus server revision checks.
+- [x] Two admins saving against the same revision: exactly one wins; other receives **409 conflict**.
+- [x] Show conflict UI: compare latest server state to local edits; choose reload, manual merge, or copy unsaved edits before resolution. **Do not silently last-write-wins.**
 - [ ] Consider a small “Someone else is editing” presence indicator as an enhancement, **not** a substitute for concurrency control.
-- [ ] Publishing is transactional and pinned to an expected draft revision; if the revision changes, fail with a clear “Draft changed; review and retry”.
-- [ ] Version numbers allocated in a transaction/under DB lock to avoid duplicate version N during simultaneous publish.
-- [ ] If publish succeeds but network response is lost, retry detects existing publication for that operation (idempotency key) rather than generating unintended extra versions.
-- [ ] Deletion vs editing/publishing race handled explicitly (not ghost drafts or resurrected data).
+- [x] Publishing is transactional and pinned to an expected draft revision; if the revision changes, fail with a clear “Draft changed; review and retry”.
+- [x] Version numbers allocated in a transaction/under DB lock to avoid duplicate version N during simultaneous publish.
+- [x] If publish succeeds but network response is lost, retry detects existing publication for that operation (idempotency key) rather than generating unintended extra versions.
+- [x] Deletion vs editing/publishing race handled explicitly (not ghost drafts or resurrected data).
 
 ## 7. Publication and historical stability
 
-- [ ] Draft may be invalid/incomplete and still save.
-- [ ] Publish blocks on missing labels, duplicate choices, invalid ranges, broken conditions, and any unsupported configuration.
-- [ ] Show navigable error summary with links/focus to offending question.
-- [ ] Publish creates immutable snapshot of field IDs, question text, choice labels, settings, order, visibility logic **and light/dark theme tokens**.
-- [ ] Each version gets its **own public URL**. Republishing creates another version; never overwrite snapshots.
+- [x] Draft may be invalid/incomplete and still save.
+- [x] Publish blocks on missing labels, duplicate choices, invalid ranges, broken conditions, and any unsupported configuration.
+- [x] Show navigable error summary with links/focus to offending question.
+- [x] Publish creates immutable snapshot of field IDs, question text, choice labels, settings, order, visibility logic **and light/dark theme tokens**.
+- [x] Each version gets its **own public URL**. Republishing creates another version; never overwrite snapshots.
 - [ ] Existing patient sessions bind to exactly one `published_version_id` for their lifetime.
 - [ ] Response detail displays labels/options and theme/version provenance **as of original publication**, not the latest draft.
-- [ ] Prevent accidental snapshot edits/deletes via code and DB permissions/constraints.
+- [x] Prevent accidental snapshot edits/deletes via code and DB permissions/constraints.
 - [ ] Test editing and republishing while old-version sessions are still active.
 
 ## 8. Patient flow, progress, and resume

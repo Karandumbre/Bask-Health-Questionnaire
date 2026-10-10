@@ -1,8 +1,8 @@
-import type { FieldType, Question } from "../domain/types";
+import type { FieldType, Question } from "./types";
 
 export function generateId(prefix: string): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
+    return `${prefix}_${crypto.randomUUID()}`;
   }
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }

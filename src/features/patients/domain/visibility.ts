@@ -23,13 +23,14 @@ export function evaluateQuestionVisibility(
     return false;
   }
 
-  // If parent itself has conditions and is hidden, child is hidden
+  // Incomplete drafts can contain cycles or invalid parent types. Fail closed.
   if (
-    parent.visibility &&
-    !evaluateQuestionVisibility(parent, answers, questionMap)
-  ) {
+    parent.type !== "single_select" ||
+    !parent.required ||
+    parent.visibility !== null ||
+    !parent.options.some((option) => option.id === equalsOptionId)
+  )
     return false;
-  }
 
   const parentAnswer = answers[parentQuestionId];
 

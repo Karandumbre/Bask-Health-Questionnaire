@@ -37,8 +37,8 @@ export async function saveFormDraft(
   return data.revision;
 }
 
-export function loadFormDraft(id: string) {
-  return apiRequest(formUrl(id), draftSchema);
+export function loadFormDraft(id: string, signal?: AbortSignal) {
+  return apiRequest(formUrl(id), draftSchema, { signal });
 }
 
 export function createForm(name: string) {
@@ -48,10 +48,10 @@ export function createForm(name: string) {
   });
 }
 
-export function renameForm(id: string, name: string) {
+export function renameForm(id: string, name: string, expectedRevision: number) {
   return apiRequest(formUrl(id), formSchema, {
     method: "PATCH",
-    json: { name },
+    json: { name, expectedRevision },
   });
 }
 

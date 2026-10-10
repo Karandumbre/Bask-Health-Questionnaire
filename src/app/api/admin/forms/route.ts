@@ -10,6 +10,8 @@ import {
 } from "@/features/forms/server/draft-service";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import { handleRouteError } from "@/lib/errors/route-handler";
+import { parseRequestJson } from "@/lib/http/request-validation";
+import { createFormSchema } from "@/features/forms/domain/request-schemas";
 import { AppError } from "@/lib/errors";
 
 /**
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     verifyRequestOrigin(request);
     const user = await requireAdmin();
 
-    const body = await request.json().catch(() => ({}));
+    const body = await parseRequestJson(request, createFormSchema);
     let workspaceId = body.workspaceId;
 
     if (!workspaceId) {

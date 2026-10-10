@@ -1,3 +1,4 @@
+import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import { eq, and, isNull, desc, count } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -39,34 +40,12 @@ export interface RenameFormParams {
   formId: string;
   name: string;
   userId: string;
+  expectedRevision: number;
 }
 
-const DEFAULT_THEME: ThemeDefinition = {
-  presetName: "Ocean",
-  isCustomShuffle: false,
-  light: {
-    background: "#F8FAFC",
-    surface: "#FFFFFF",
-    text: "#0F172A",
-    textMuted: "#64748B",
-    border: "#E2E8F0",
-    primary: "#0284C7",
-    primaryForeground: "#FFFFFF",
-    focusRing: "#38BDF8",
-    error: "#EF4444",
-  },
-  dark: {
-    background: "#0B1120",
-    surface: "#1E293B",
-    text: "#F8FAFC",
-    textMuted: "#94A3B8",
-    border: "#334155",
-    primary: "#38BDF8",
-    primaryForeground: "#0B1120",
-    focusRing: "#7DD3FC",
-    error: "#F87171",
-  },
-};
+import { THEME_PRESET_OCEAN } from "@/features/themes/domain/theme-tokens";
+
+const DEFAULT_THEME: ThemeDefinition = THEME_PRESET_OCEAN;
 
 /**
  * Creates a new clinical form and its initial working draft (revision 0).
@@ -82,18 +61,16 @@ export async function createForm(params: CreateFormParams) {
     throw new AppError("INVALID_FORM", "Form name cannot be empty.", 400);
   }
 
-  const definition: FormDefinition = initialDefinition ?? {
-    schemaVersion: 1,
-    title: validatedName,
-    description: "",
-    questions: [],
-  };
+  const definition = FormDefinitionSchema.parse(
+    initialDefinition ?? {
+      schemaVersion: 1,
+      title: validatedName,
+      description: "",
+      questions: [],
+    },
+  );
 
-  const theme: ThemeDefinition = initialTheme ?? DEFAULT_THEME;
-
-  // Validate structures permissively for drafting
-  FormDefinitionSchema.parse(definition);
-  ThemeDefinitionSchema.parse(theme);
+  const theme = ThemeDefinitionSchema.parse(initialTheme ?? DEFAULT_THEME);
 
   return await db.transaction(async (tx) => {
     // 2. Insert form container
@@ -203,6 +180,7 @@ export async function getFormDraft(formId: string, userId: string) {
  * Renames a form and updates its draft title.
  */
 export async function renameForm(params: RenameFormParams) {
+  revisionSchema.parse(params.expectedRevision);
   const { formId, name, userId } = params;
   await requireFormWorkspaceAccess(formId, userId, "editor");
 
@@ -212,34 +190,33 @@ export async function renameForm(params: RenameFormParams) {
   }
 
   return await db.transaction(async (tx) => {
-    const [updatedForm] = await tx
-      .update(forms)
-      .set({
-        name: newName,
-        updatedAt: new Date(),
-      })
-      .where(eq(forms.id, formId))
-      .returning();
-
-    // Also update title in draft definition if present
+    // Lock form then draft in the same order as publication and autosave.
+    await tx.select().from(forms).where(eq(forms.id, formId)).for("update");
     const [draft] = await tx
       .select()
       .from(formDrafts)
-      .where(eq(formDrafts.formId, formId));
-
-    if (draft) {
-      const def = draft.definitionJson as FormDefinition;
-      const updatedDef: FormDefinition = { ...def, title: newName };
-      await tx
-        .update(formDrafts)
-        .set({
-          definitionJson: updatedDef,
-          updatedAt: new Date(),
-          updatedBy: userId,
-        })
-        .where(eq(formDrafts.id, draft.id));
+      .where(eq(formDrafts.formId, formId))
+      .for("update");
+    if (!draft)
+      throw new AppError("NOT_FOUND", "Working draft not found.", 404);
+    if (draft.revision !== params.expectedRevision) {
+      throw AppError.revisionConflict(params.expectedRevision, draft.revision);
     }
-
+    const definition = FormDefinitionSchema.parse(draft.definitionJson);
+    await tx
+      .update(formDrafts)
+      .set({
+        definitionJson: { ...definition, title: newName },
+        revision: draft.revision + 1,
+        updatedAt: new Date(),
+        updatedBy: userId,
+      })
+      .where(eq(formDrafts.id, draft.id));
+    const [updatedForm] = await tx
+      .update(forms)
+      .set({ name: newName, updatedAt: new Date() })
+      .where(eq(forms.id, formId))
+      .returning();
     return updatedForm;
   });
 }
@@ -250,61 +227,53 @@ export async function renameForm(params: RenameFormParams) {
  * Prevents silent overwrites between multiple administrators.
  */
 export async function updateDraft(params: UpdateDraftParams) {
+  revisionSchema.parse(params.expectedRevision);
   const { formId, expectedRevision, definition, theme, userId } = params;
 
   // 1. Authorize workspace member
   await requireFormWorkspaceAccess(formId, userId, "editor");
 
-  // Permissive parse for draft persistence
-  FormDefinitionSchema.parse(definition);
-  ThemeDefinitionSchema.parse(theme);
-
-  // 2. Perform atomic Compare-And-Swap update
-  const [updatedDraft] = await db
-    .update(formDrafts)
-    .set({
-      definitionJson: definition,
-      themeJson: theme,
-      revision: expectedRevision + 1,
-      updatedBy: userId,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(formDrafts.formId, formId),
-        eq(formDrafts.revision, expectedRevision),
-      ),
-    )
-    .returning();
-
-  // 3. If no row updated, revision collision occurred -> HTTP 409
-  if (!updatedDraft) {
-    const [currentDraft] = await db
-      .select()
-      .from(formDrafts)
-      .where(eq(formDrafts.formId, formId))
-      .limit(1);
-
-    const currentRev = currentDraft ? currentDraft.revision : -1;
-    throw AppError.revisionConflict(
-      expectedRevision,
-      currentRev,
-      "Draft has been updated by another administrator. Please reload to review changes.",
-    );
-  }
-
-  // Also touch form's updatedAt
-  await db
-    .update(forms)
-    .set({ updatedAt: new Date() })
-    .where(eq(forms.id, formId));
-
-  return {
-    success: true,
-    draft: updatedDraft,
-    revision: updatedDraft.revision,
-    updatedAt: updatedDraft.updatedAt,
-  };
+  const parsedDefinition = FormDefinitionSchema.parse(definition);
+  const parsedTheme = ThemeDefinitionSchema.parse(theme);
+  return db.transaction(async (tx) => {
+    await tx.select().from(forms).where(eq(forms.id, formId)).for("update");
+    const [updatedDraft] = await tx
+      .update(formDrafts)
+      .set({
+        definitionJson: parsedDefinition,
+        themeJson: parsedTheme,
+        revision: expectedRevision + 1,
+        updatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(formDrafts.formId, formId),
+          eq(formDrafts.revision, expectedRevision),
+        ),
+      )
+      .returning();
+    if (!updatedDraft) {
+      const [current] = await tx
+        .select()
+        .from(formDrafts)
+        .where(eq(formDrafts.formId, formId))
+        .limit(1);
+      if (!current)
+        throw new AppError("NOT_FOUND", "Working draft not found.", 404);
+      throw AppError.revisionConflict(expectedRevision, current.revision);
+    }
+    await tx
+      .update(forms)
+      .set({ name: parsedDefinition.title, updatedAt: new Date() })
+      .where(eq(forms.id, formId));
+    return {
+      success: true,
+      draft: updatedDraft,
+      revision: updatedDraft.revision,
+      updatedAt: updatedDraft.updatedAt,
+    };
+  });
 }
 
 /**

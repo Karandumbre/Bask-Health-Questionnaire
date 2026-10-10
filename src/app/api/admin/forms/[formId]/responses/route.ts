@@ -4,6 +4,7 @@ import {
   listFormSubmissions,
   getSubmissionDetail,
 } from "@/features/forms/server/response-service";
+import { paginationSchema } from "@/lib/http/request-validation";
 import { handleRouteError } from "@/lib/errors/route-handler";
 
 interface RouteContext {
@@ -24,11 +25,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const searchParams = request.nextUrl.searchParams;
     const submissionId = searchParams.get("submissionId");
-    const limit = Math.min(
-      Math.max(Number(searchParams.get("limit") || 50), 1),
-      100,
-    );
-    const offset = Math.max(Number(searchParams.get("offset") || 0), 0);
+    const { limit, offset } = paginationSchema.parse({
+      limit: searchParams.get("limit") ?? undefined,
+      offset: searchParams.get("offset") ?? undefined,
+    });
 
     if (submissionId) {
       const detail = await getSubmissionDetail({

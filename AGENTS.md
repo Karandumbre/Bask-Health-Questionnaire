@@ -8,7 +8,7 @@
 - Use `src/lib/http/api-client.ts` for browser API requests. Its shared Axios instance uses interceptors for headers and error normalization; retain AbortSignal cancellation and avoid automatic mutation retries. Validate responses with Zod; put feature-specific endpoint helpers in the feature's `client/` directory. Keep browser code separate from server-only services.
 - Keep pure domain rules in `domain/`, persistence in `server/`, and React behavior in `hooks/` or context. Avoid combining network, persistence, and presentation in one component.
 - The builder context composes editing state. `DraftAutosave` handles serialized revision-aware saves. Never mark newer edits saved when an older request completes, retry a conflict implicitly, or guess a successful revision.
-- Keep reusable question factories and IDs in `src/features/forms/client/question-operations.ts`. Preserve published question and option IDs; regenerate IDs only when creating or duplicating fields.
+- Keep reusable question factories and IDs in `src/features/forms/domain/question-operations.ts`. Preserve published question and option IDs; regenerate IDs only when creating or duplicating fields.
 
 ## Authentication and persistence
 
@@ -30,5 +30,7 @@
 ## Project context
 
 - Read `CHECKLIST.md`, `docs/PROGRESS.md`, and `docs/architecture/` when working on the relevant feature. These describe contracts and pending work, not proof that a behavior was tested.
-- Graphify is available on the development machine. If `graphify-out/graph.json` exists, query it for architecture context and verify findings against current source. Generated graph output is ignored by Git; its absence does not prevent direct code inspection.
-- Do not create or rebuild a project-wide graph merely for a small edit. Generate or refresh it when requested or when an architecture task warrants it, following the Graphify skill and excluding secrets, dependencies, and build output.
+- Graphify is available on the development machine. When `graphify-out/graph.json` exists and code relationships or architecture are relevant, query it first and verify findings against current source.
+- After completing code changes, refresh an existing graph with `graphify update .` and verify the command succeeds before reporting the work complete. If the graph cannot be refreshed, report that explicitly; do not claim it is current.
+- Do not create a project-wide graph for routine edits when none exists. Generate one when explicitly requested or when an architecture task warrants it, following the Graphify skill and excluding secrets, dependencies, and build output. Documentation-only changes do not require a graph update.
+- Generated graph output is ignored by Git and should remain local unless explicitly requested otherwise.

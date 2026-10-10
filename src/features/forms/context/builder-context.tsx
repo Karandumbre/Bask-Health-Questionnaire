@@ -22,7 +22,7 @@ import {
   generateId,
   createDefaultQuestion,
   cloneQuestionWithNewId,
-} from "../client/question-operations";
+} from "../domain/question-operations";
 import type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 export type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 
@@ -155,19 +155,16 @@ export function BuilderProvider({
 
   const deleteQuestion = useCallback(
     (id: string) => {
-      setDefinition((prev) => {
-        const nextQuestions = prev.questions.filter((q) => q.id !== id);
-
-        // Update selected question if deleted question was selected
-        if (selectedQuestionId === id) {
-          const nextSelected = nextQuestions[0]?.id ?? null;
-          setSelectedQuestionId(nextSelected);
-        }
-
-        return { ...prev, questions: nextQuestions };
-      });
+      setDefinition((prev) => ({
+        ...prev,
+        questions: prev.questions.filter((q) => q.id !== id),
+      }));
+      if (selectedQuestionId === id)
+        setSelectedQuestionId(
+          definition.questions.find((q) => q.id !== id)?.id ?? null,
+        );
     },
-    [selectedQuestionId],
+    [selectedQuestionId, definition.questions],
   );
 
   const reorderQuestion = useCallback(

@@ -7,13 +7,10 @@ import {
   submissions,
 } from "@/lib/db/schema";
 import { AppError } from "@/lib/errors";
-import { verifyCapabilityToken } from "@/lib/security/credentials";
+import { verifySessionAccess } from "./session-policy";
 import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
 import { validateSessionSubmission } from "../domain/validation";
-
-const SESSION_PEPPER =
-  process.env.APP_SESSION_PEPPER || "intake-studio-default-pepper-key-32b";
 
 export interface SubmitSessionParams {
   sessionId: string;
@@ -59,19 +56,7 @@ export async function submitPatientSession(
       throw AppError.sessionUnauthorized("Session not found.");
     }
 
-    // 2. Validate capability cookie token
-    const isValid = verifyCapabilityToken(
-      capabilityToken,
-      lockedSession.credentialHash,
-      SESSION_PEPPER,
-    );
-    if (!isValid) {
-      throw AppError.sessionUnauthorized("Invalid session credentials.");
-    }
-
-    if (new Date() > lockedSession.expiresAt) {
-      throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
-    }
+    verifySessionAccess(lockedSession, capabilityToken);
 
     // 3. Idempotent replay check: If already completed, fetch existing submission
     if (lockedSession.status === "completed") {

@@ -1,13 +1,10 @@
 "use client";
 
-import {
-  apiRequest,
-  apiErrorMessage,
-  successSchema,
-} from "@/lib/http/api-client";
+import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import { login } from "@/features/auth/client/auth-api";
 import { useState, type FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangleIcon } from "@/components/ui/icons";
@@ -28,10 +25,7 @@ function LoginForm() {
     setErrorMessage(null);
 
     try {
-      await apiRequest("/api/auth/login", successSchema, {
-        method: "POST",
-        json: { email, password },
-      });
+      await login(email, password);
 
       router.push(nextUrl);
       router.refresh();

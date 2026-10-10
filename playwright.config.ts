@@ -29,7 +29,10 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 30000,
     env: {
-      ALLOW_TEST_AUTH: "true",
+      ENABLE_TEST_AUTH: "true",
+      TEST_AUTH_SECRET:
+        "bask_test_auth_secret_minimum_32_characters_for_hmac_sha256",
+      IS_TEST_DATABASE: "true",
     },
   },
 });

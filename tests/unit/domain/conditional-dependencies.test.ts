@@ -6,7 +6,7 @@ import {
   ShortTextQuestion,
 } from "@/features/forms/domain/types";
 import { validateFormForPublish } from "@/features/forms/domain/validation";
-import { cloneQuestionWithNewId } from "@/features/forms/client/question-operations";
+import { cloneQuestionWithNewId } from "@/features/forms/domain/question-operations";
 
 describe("Conditional Dependencies Integrity", () => {
   const createValidTwoQuestionForm = (): {
@@ -82,7 +82,7 @@ describe("Conditional Dependencies Integrity", () => {
       ),
     ).toBe(true);
     expect(publishResult.errors[0]?.issue).toContain(
-      "references non-existent parent question",
+      "Referenced parent question no longer exists",
     );
   });
 
@@ -115,7 +115,7 @@ describe("Conditional Dependencies Integrity", () => {
       publishResult.errors.some((err) => err.code === "MISSING_PARENT_OPTION"),
     ).toBe(true);
     expect(publishResult.errors[0]?.issue).toContain(
-      "references non-existent option ID",
+      "Referenced option no longer exists",
     );
   });
 
@@ -140,7 +140,7 @@ describe("Conditional Dependencies Integrity", () => {
       ),
     ).toBe(true);
     expect(publishResult.errors[0]?.issue).toContain(
-      "appears at or after this question",
+      "Parent question must appear before this question",
     );
   });
 
@@ -169,7 +169,7 @@ describe("Conditional Dependencies Integrity", () => {
     expect(
       publishResult.errors.some((err) => err.code === "PARENT_NOT_REQUIRED"),
     ).toBe(true);
-    expect(publishResult.errors[0]?.issue).toContain("must be required");
+    expect(publishResult.errors[0]?.issue).toContain("must be marked Required");
   });
 
   it("parent becoming conditional breaks dependency (nested condition forbidden): draft saveable, publish rejected", () => {
@@ -216,7 +216,7 @@ describe("Conditional Dependencies Integrity", () => {
       ),
     ).toBe(true);
     expect(publishResult.errors[0]?.issue).toContain(
-      "nested conditions are not allowed",
+      "nested conditions are forbidden",
     );
   });
 

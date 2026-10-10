@@ -1,7 +1,9 @@
+import { requireSupabaseConfig } from "./config";
 import "server-only";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { verifyTestAuthCookie } from "@/lib/auth/test-auth-guard";
 
 /**
  * Creates a server-side Supabase client bound to Next.js cookies().
@@ -10,10 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function createClient(): Promise<SupabaseClient> {
   const cookieStore = await cookies();
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const { url: supabaseUrl, key: supabaseKey } = requireSupabaseConfig();
 
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -89,32 +88,16 @@ export async function getServerVerifiedUser(
     // Continue to test fixture fallback if non-production
   }
 
-  // 3. Isolated test fixture fallback (strictly non-production for automated E2E tests)
-  const isProduction =
-    process.env.APP_ENV === "production" ||
-    process.env.VERCEL_ENV === "production";
-  if (
-    !isProduction &&
-    (process.env.NODE_ENV !== "production" ||
-      process.env.ALLOW_TEST_AUTH === "true")
-  ) {
-    try {
-      const cookieStore = await cookies();
-      const testUserCookie = cookieStore.get("bask_test_user");
-      if (testUserCookie?.value) {
-        const parsed = JSON.parse(testUserCookie.value);
-        if (parsed?.id) {
-          return {
-            id: parsed.id,
-            email: parsed.email ?? "reviewer@baskhealth.com",
-            role: "authenticated",
-            claims: { sub: parsed.id, email: parsed.email },
-          };
-        }
-      }
-    } catch {
-      // Ignored
+  // 3. Isolated test fixture fallback (strictly opt-in, fail-closed, non-Vercel only)
+  try {
+    const cookieStore = await cookies();
+    const testCookie = cookieStore.get("bask_test_auth");
+    const verifiedUser = verifyTestAuthCookie(testCookie?.value);
+    if (verifiedUser) {
+      return verifiedUser;
     }
+  } catch {
+    // Fails closed
   }
 
   return null;

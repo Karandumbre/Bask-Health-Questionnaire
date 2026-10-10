@@ -1,13 +1,14 @@
 "use client";
+import {
+  getEligibleConditionParents,
+  validateQuestionCondition,
+} from "../domain/conditions";
 
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 
 import { useBuilder } from "../context/builder-context";
-import type {
-  Question,
-  SingleSelectQuestion,
-} from "@/features/forms/domain/types";
+import type { Question } from "@/features/forms/domain/types";
 import { AlertTriangleIcon, CheckIcon } from "@/components/ui/icons";
 
 interface ConditionBuilderProps {
@@ -17,64 +18,19 @@ interface ConditionBuilderProps {
 export function ConditionBuilder({ question }: ConditionBuilderProps) {
   const { definition, updateQuestion } = useBuilder();
 
-  // Find question index
-  const currentIndex = definition.questions.findIndex(
-    (q) => q.id === question.id,
+  const eligibleParents = getEligibleConditionParents(
+    definition.questions,
+    question.id,
   );
-
-  // Eligible parents: earlier, required, unconditional single_select
-  const eligibleParents = definition.questions.filter((q, idx) => {
-    return (
-      idx < currentIndex &&
-      q.type === "single_select" &&
-      q.required === true &&
-      q.visibility === null
-    );
-  }) as SingleSelectQuestion[];
-
   const isConditional = question.visibility !== null;
   const currentParentId = question.visibility?.parentQuestionId ?? "";
   const currentOptionId = question.visibility?.equalsOptionId ?? "";
-
-  // Selected parent question
   const selectedParent = definition.questions.find(
     (q) => q.id === currentParentId,
-  ) as SingleSelectQuestion | undefined;
-
-  // Validation status
-  let isConditionValid = true;
-  let validationMessage = "";
-
-  if (isConditional) {
-    if (!selectedParent) {
-      isConditionValid = false;
-      validationMessage = "Referenced parent question no longer exists.";
-    } else {
-      const parentIdx = definition.questions.findIndex(
-        (q) => q.id === selectedParent.id,
-      );
-      if (parentIdx >= currentIndex) {
-        isConditionValid = false;
-        validationMessage = "Parent question must appear before this question.";
-      } else if (selectedParent.type !== "single_select") {
-        isConditionValid = false;
-        validationMessage = "Parent question must be a single-choice field.";
-      } else if (!selectedParent.required) {
-        isConditionValid = false;
-        validationMessage = "Parent question must be marked Required.";
-      } else if (selectedParent.visibility !== null) {
-        isConditionValid = false;
-        validationMessage =
-          "Nested conditions are forbidden. Parent must be unconditional.";
-      } else if (
-        !selectedParent.options.some((opt) => opt.id === currentOptionId)
-      ) {
-        isConditionValid = false;
-        validationMessage =
-          "Referenced option no longer exists in parent question.";
-      }
-    }
-  }
+  );
+  const errors = validateQuestionCondition(definition.questions, question);
+  const isConditionValid = errors.length === 0;
+  const validationMessage = errors.map((error) => error.issue).join(" ");
 
   const handleToggle = (enabled: boolean) => {
     if (!enabled) {
@@ -203,7 +159,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
               </div>
 
               {/* Option Selector */}
-              {selectedParent && (
+              {selectedParent?.type === "single_select" && (
                 <div>
                   <label
                     htmlFor={`condition-option-${question.id}`}

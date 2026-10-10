@@ -1,5 +1,6 @@
 "use client";
 
+import { QuestionActions } from "./QuestionActions";
 import { Button } from "@/components/ui/button";
 
 import { useState, type ComponentType } from "react";
@@ -13,10 +14,6 @@ import {
   ListBulletedIcon,
   CheckboxIcon,
   PlusIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  DuplicateIcon,
-  DeleteIcon,
   AlertTriangleIcon,
 } from "@/components/ui/icons";
 
@@ -66,9 +63,6 @@ export function FieldNavigator() {
     selectedQuestionId,
     selectQuestion,
     addQuestion,
-    duplicateQuestion,
-    deleteQuestion,
-    reorderQuestion,
     publishValidationErrors,
   } = useBuilder();
 
@@ -239,47 +233,7 @@ export function FieldNavigator() {
                     } transition-opacity`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* Move Up */}
-                    <Button
-                      onClick={() => reorderQuestion(q.id, "up")}
-                      disabled={index === 0}
-                      className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent"
-                      title="Move up (Keyboard accessible)"
-                      aria-label={`Move question ${index + 1} up`}
-                    >
-                      <ChevronUpIcon className="w-3.5 h-3.5" />
-                    </Button>
-
-                    {/* Move Down */}
-                    <Button
-                      onClick={() => reorderQuestion(q.id, "down")}
-                      disabled={index === definition.questions.length - 1}
-                      className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent"
-                      title="Move down (Keyboard accessible)"
-                      aria-label={`Move question ${index + 1} down`}
-                    >
-                      <ChevronDownIcon className="w-3.5 h-3.5" />
-                    </Button>
-
-                    {/* Duplicate */}
-                    <Button
-                      onClick={() => duplicateQuestion(q.id)}
-                      className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                      title="Duplicate field"
-                      aria-label={`Duplicate question ${index + 1}`}
-                    >
-                      <DuplicateIcon className="w-3.5 h-3.5" />
-                    </Button>
-
-                    {/* Delete */}
-                    <Button
-                      onClick={() => deleteQuestion(q.id)}
-                      className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      title="Delete field"
-                      aria-label={`Delete question ${index + 1}`}
-                    >
-                      <DeleteIcon className="w-3.5 h-3.5" />
-                    </Button>
+                    <QuestionActions questionId={q.id} index={index} />
                   </div>
                 </div>
               </div>

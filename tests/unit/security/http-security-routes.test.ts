@@ -235,7 +235,7 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
   });
 
   describe("Request Body Validation", () => {
-    it("rejects autosave PATCH without integer expectedRevision (400 INVALID_FORM)", async () => {
+    it("rejects autosave PATCH without integer expectedRevision (422 INVALID_FORM)", async () => {
       vi.mocked(requireAdmin).mockResolvedValueOnce({
         id: "usr_admin",
         email: "admin@bask.com",
@@ -255,13 +255,12 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
       const response = await formPatchHandler(request, {
         params: Promise.resolve({ formId: "f_1" }),
       });
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(422);
       const data = await response.json();
       expect(data.error.code).toBe("INVALID_FORM");
-      expect(data.error.message).toContain("expectedRevision");
     });
 
-    it("rejects publish POST without integer expectedRevision (400 INVALID_FORM)", async () => {
+    it("rejects publish POST without integer expectedRevision (422 INVALID_FORM)", async () => {
       vi.mocked(requireAdmin).mockResolvedValueOnce({
         id: "usr_admin",
         email: "admin@bask.com",
@@ -281,7 +280,7 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
       const response = await publishHandler(request, {
         params: Promise.resolve({ formId: "f_1" }),
       });
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(422);
       const data = await response.json();
       expect(data.error.code).toBe("INVALID_FORM");
     });

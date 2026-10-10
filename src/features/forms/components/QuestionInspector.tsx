@@ -1,13 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 
 import { useBuilder } from "../context/builder-context";
+import { QuestionConstraintsEditor } from "./QuestionConstraintsEditor";
 import { ConditionBuilder } from "./ConditionBuilder";
-import { PlusIcon, DeleteIcon, AlertTriangleIcon } from "@/components/ui/icons";
 
-import { generateId } from "../client/question-operations";
+import { QuestionOptionsEditor } from "./QuestionOptionsEditor";
 
 export function QuestionInspector() {
   const { definition, selectedQuestionId, updateQuestion } = useBuilder();
@@ -37,45 +36,17 @@ export function QuestionInspector() {
   };
 
   const handlePlaceholderChange = (val: string) => {
-    if ("placeholder" in selectedQuestion) {
+    if (
+      selectedQuestion.type === "short_text" ||
+      selectedQuestion.type === "long_text" ||
+      selectedQuestion.type === "number"
+    ) {
       updateQuestion(selectedQuestion.id, { placeholder: val });
     }
   };
 
   const handleRequiredToggle = (val: boolean) => {
     updateQuestion(selectedQuestion.id, { required: val });
-  };
-
-  // Option management for single/multi select
-  const isSelect =
-    selectedQuestion.type === "single_select" ||
-    selectedQuestion.type === "multi_select";
-  const selectOptions = isSelect ? selectedQuestion.options : [];
-
-  const handleAddOption = () => {
-    if (!isSelect) return;
-    const newOptId = generateId("opt");
-    const newOpt = {
-      id: newOptId,
-      label: `Option ${selectOptions.length + 1}`,
-    };
-    updateQuestion(selectedQuestion.id, {
-      options: [...selectOptions, newOpt],
-    });
-  };
-
-  const handleUpdateOptionLabel = (optId: string, label: string) => {
-    if (!isSelect) return;
-    const updatedOptions = selectOptions.map((opt) =>
-      opt.id === optId ? { ...opt, label } : opt,
-    );
-    updateQuestion(selectedQuestion.id, { options: updatedOptions });
-  };
-
-  const handleDeleteOption = (optId: string) => {
-    if (!isSelect || selectOptions.length <= 2) return;
-    const updatedOptions = selectOptions.filter((opt) => opt.id !== optId);
-    updateQuestion(selectedQuestion.id, { options: updatedOptions });
   };
 
   return (
@@ -133,7 +104,9 @@ export function QuestionInspector() {
         </div>
 
         {/* Placeholder (if applicable) */}
-        {"placeholder" in selectedQuestion && (
+        {(selectedQuestion.type === "short_text" ||
+          selectedQuestion.type === "long_text" ||
+          selectedQuestion.type === "number") && (
           <div>
             <label
               htmlFor="question-placeholder-input"
@@ -175,209 +148,21 @@ export function QuestionInspector() {
           />
         </div>
 
-        {/* Options Management for Single/Multi Select */}
-        {isSelect && (
-          <div className="space-y-3 pt-2 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-gray-900">
-                Options ({selectOptions.length})
-              </label>
-              <Button
-                type="button"
-                onClick={handleAddOption}
-                className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium"
-              >
-                <PlusIcon className="w-3 h-3" />
-                <span>Add Choice</span>
-              </Button>
-            </div>
-
-            <div className="space-y-1.5">
-              {selectOptions.map((opt, optIndex) => (
-                <div key={opt.id} className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-gray-400 w-4 text-right">
-                    {optIndex + 1}.
-                  </span>
-                  <Input
-                    type="text"
-                    aria-label={`Choice ${optIndex + 1}`}
-                    value={opt.label}
-                    onChange={(e) =>
-                      handleUpdateOptionLabel(opt.id, e.target.value)
-                    }
-                    className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => handleDeleteOption(opt.id)}
-                    disabled={selectOptions.length <= 2}
-                    className="p-1 text-gray-400 hover:text-red-600 rounded disabled:opacity-20 disabled:hover:text-gray-400"
-                    title={
-                      selectOptions.length <= 2
-                        ? "Must have at least 2 choices"
-                        : "Delete option"
-                    }
-                  >
-                    <DeleteIcon className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            {selectOptions.length < 2 && (
-              <p className="text-[11px] text-red-600 flex items-center gap-1">
-                <AlertTriangleIcon className="w-3 h-3 text-red-500" />
-                At least 2 choices are required.
-              </p>
-            )}
-          </div>
+        {(selectedQuestion.type === "single_select" ||
+          selectedQuestion.type === "multi_select") && (
+          <QuestionOptionsEditor
+            question={selectedQuestion}
+            onChange={(updates) => updateQuestion(selectedQuestion.id, updates)}
+          />
         )}
 
-        {/* Numeric Bounds (if number) */}
-        {selectedQuestion.type === "number" && (
-          <div className="space-y-3 pt-2 border-t border-gray-200">
-            <label className="text-xs font-semibold text-gray-900">
-              Numeric Bounds
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label
-                  htmlFor={`min-${selectedQuestion.id}`}
-                  className="block text-[11px] text-gray-600 mb-0.5"
-                >
-                  Min Value
-                </label>
-                <Input
-                  type="number"
-                  id={`min-${selectedQuestion.id}`}
-                  value={selectedQuestion.validation?.min ?? ""}
-                  onChange={(e) =>
-                    updateQuestion(selectedQuestion.id, {
-                      validation: {
-                        ...selectedQuestion.validation,
-                        min:
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="w-full text-xs border border-gray-300 rounded p-1.5 outline-none"
-                  placeholder="None"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor={`max-${selectedQuestion.id}`}
-                  className="block text-[11px] text-gray-600 mb-0.5"
-                >
-                  Max Value
-                </label>
-                <Input
-                  type="number"
-                  id={`max-${selectedQuestion.id}`}
-                  value={selectedQuestion.validation?.max ?? ""}
-                  onChange={(e) =>
-                    updateQuestion(selectedQuestion.id, {
-                      validation: {
-                        ...selectedQuestion.validation,
-                        max:
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="w-full text-xs border border-gray-300 rounded p-1.5 outline-none"
-                  placeholder="None"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-2 rounded bg-gray-50 border border-gray-200">
-              <span className="text-[11px] font-medium text-gray-700">
-                Whole numbers only
-              </span>
-              <Input
-                type="checkbox"
-                aria-label="Whole numbers only"
-                checked={selectedQuestion.validation?.integerOnly ?? true}
-                onChange={(e) =>
-                  updateQuestion(selectedQuestion.id, {
-                    validation: {
-                      ...selectedQuestion.validation,
-                      integerOnly: e.target.checked,
-                    },
-                  })
-                }
-                className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Text Length Bounds (if text) */}
-        {(selectedQuestion.type === "short_text" ||
+        {(selectedQuestion.type === "number" ||
+          selectedQuestion.type === "short_text" ||
           selectedQuestion.type === "long_text") && (
-          <div className="space-y-3 pt-2 border-t border-gray-200">
-            <label className="text-xs font-semibold text-gray-900">
-              Length Limits
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label
-                  htmlFor={`min-length-${selectedQuestion.id}`}
-                  className="block text-[11px] text-gray-600 mb-0.5"
-                >
-                  Min Length
-                </label>
-                <Input
-                  type="number"
-                  id={`min-length-${selectedQuestion.id}`}
-                  value={selectedQuestion.validation?.minLength ?? ""}
-                  onChange={(e) =>
-                    updateQuestion(selectedQuestion.id, {
-                      validation: {
-                        ...selectedQuestion.validation,
-                        minLength:
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="w-full text-xs border border-gray-300 rounded p-1.5 outline-none"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor={`max-length-${selectedQuestion.id}`}
-                  className="block text-[11px] text-gray-600 mb-0.5"
-                >
-                  Max Length
-                </label>
-                <Input
-                  type="number"
-                  id={`max-length-${selectedQuestion.id}`}
-                  value={selectedQuestion.validation?.maxLength ?? ""}
-                  onChange={(e) =>
-                    updateQuestion(selectedQuestion.id, {
-                      validation: {
-                        ...selectedQuestion.validation,
-                        maxLength:
-                          e.target.value === ""
-                            ? undefined
-                            : Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="w-full text-xs border border-gray-300 rounded p-1.5 outline-none"
-                  placeholder="Unlimited"
-                />
-              </div>
-            </div>
-          </div>
+          <QuestionConstraintsEditor
+            question={selectedQuestion}
+            onChange={(updates) => updateQuestion(selectedQuestion.id, updates)}
+          />
         )}
 
         {/* Conditional Visibility Section */}

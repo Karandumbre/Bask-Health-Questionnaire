@@ -28,9 +28,20 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
   test("full administrator lifecycle from draft creation to publication", async ({
     page,
   }) => {
-    page.on("console", (msg) => console.log("[CONSOLE]", msg.type(), msg.text()));
-    page.on("response", (res) => console.log("[HTTP]", res.status(), res.request().method(), res.url()));
-    page.on("requestfailed", (req) => console.log("[HTTP FAILED]", req.method(), req.url(), req.failure()?.errorText));
+    page.on("console", (msg) =>
+      console.log("[CONSOLE]", msg.type(), msg.text()),
+    );
+    page.on("response", (res) =>
+      console.log("[HTTP]", res.status(), res.request().method(), res.url()),
+    );
+    page.on("requestfailed", (req) =>
+      console.log(
+        "[HTTP FAILED]",
+        req.method(),
+        req.url(),
+        req.failure()?.errorText,
+      ),
+    );
 
     // -------------------------------------------------------------------------
     // 1. Login
@@ -134,9 +145,10 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
     await page.click("#question-required-toggle");
 
     // Wait for autosave to capture the edit
-    await expect(
-      page.locator("header span.font-mono"),
-    ).not.toHaveText(revBeforeBreak, { timeout: 15000 });
+    await expect(page.locator("header span.font-mono")).not.toHaveText(
+      revBeforeBreak,
+      { timeout: 15000 },
+    );
     await expect(page.locator('[role="status"]:has-text("Saved")')).toBeVisible(
       { timeout: 15000 },
     );
@@ -164,9 +176,10 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
       .locator("header span.font-mono")
       .innerText();
     await page.click("#question-required-toggle");
-    await expect(
-      page.locator("header span.font-mono"),
-    ).not.toHaveText(revBeforeFix, { timeout: 15000 });
+    await expect(page.locator("header span.font-mono")).not.toHaveText(
+      revBeforeFix,
+      { timeout: 15000 },
+    );
     await expect(page.locator('[role="status"]:has-text("Saved")')).toBeVisible(
       { timeout: 15000 },
     );

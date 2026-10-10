@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Session ended successfully.",
     });
+    response.cookies.delete("bask_test_auth");
     response.cookies.delete("bask_test_user");
     return response;
   } catch (error) {

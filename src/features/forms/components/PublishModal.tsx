@@ -1,5 +1,6 @@
 "use client";
 
+import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Dialog } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { publishForm } from "../client/forms-api";
@@ -39,7 +40,7 @@ function PublishDialog() {
     publicUrl: string;
   } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { copied, copyError, copy } = useClipboard();
 
   const [operationId] = useState(() => crypto.randomUUID());
 
@@ -75,12 +76,6 @@ function PublishDialog() {
     } finally {
       setIsPublishing(false);
     }
-  };
-
-  const handleCopyUrl = (url: string) => {
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleFixQuestion = (qId?: string) => {
@@ -121,6 +116,11 @@ function PublishDialog() {
         </Button>
       </div>
 
+      {copyError && (
+        <p role="alert" className="text-xs text-red-600">
+          {copyError}
+        </p>
+      )}
       {/* Branch 1: Published Success State */}
       {publishResult ? (
         <div className="space-y-4 pt-2">
@@ -155,7 +155,7 @@ function PublishDialog() {
                 className="flex-1 text-xs bg-gray-50 border border-gray-300 rounded-lg p-2 font-mono text-gray-700"
               />
               <Button
-                onClick={() => handleCopyUrl(publishResult.publicUrl)}
+                onClick={() => void copy(publishResult.publicUrl)}
                 className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 {copied ? "Copied!" : "Copy Link"}
