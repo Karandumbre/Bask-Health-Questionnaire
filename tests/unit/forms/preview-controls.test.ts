@@ -6,9 +6,11 @@ import { QuestionInput } from "@/features/forms/components/QuestionInput";
 import { getFieldDescribedBy } from "@/features/forms/components/QuestionControl";
 import { PatientQuestionField } from "@/features/patients/components/PatientQuestionField";
 import { RecoveryCodeModal } from "@/features/patients/components/RecoveryCodeModal";
+import { FormRow } from "@/features/forms/components/FormRow";
 import { isQuestionAnswered } from "@/features/patients/domain/validation";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { Question } from "@/features/forms/domain/types";
+import type { FormListItem } from "@/features/forms/domain/dashboard-types";
 
 describe("Preview controls", () => {
   it("renders a native select with an inset decorative arrow", () => {
@@ -291,6 +293,70 @@ describe("Preview controls", () => {
         }),
       );
       expect(disabledHtml).toMatch(/\sdisabled([=>\s])/i);
+    });
+
+    it("FormRow surfaces deployed intake link action for published forms and hides it for drafts", () => {
+      const mockModel = {
+        renamingFormId: null,
+        renamingName: "",
+        setRenamingName: () => {},
+        setRenamingFormId: () => {},
+        handleSaveRename: () => {},
+        handleStartRename: () => {},
+        handleDeleteForm: () => {},
+        isMutating: false,
+        pendingAction: null,
+      } as any;
+
+      const publishedForm: FormListItem = {
+        id: "form-1",
+        name: "ADHD Initial Screening",
+        workspaceId: "ws-1",
+        latestPublishedVersionNumber: 1,
+        publicSlug: "adhd-initial-screening-v1-8492",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        draftRevision: 15,
+        draftUpdatedAt: new Date().toISOString(),
+      };
+
+      const publishedRowHtml = renderToStaticMarkup(
+        createElement(
+          "table",
+          null,
+          createElement("tbody", null, createElement(FormRow, { form: publishedForm, model: mockModel })),
+        ),
+      );
+
+      // Must have "Copy Link" action button and live intake href
+      expect(publishedRowHtml).toContain("Copy Link");
+      expect(publishedRowHtml).toContain('href="/intake/adhd-initial-screening-v1-8492"');
+      expect(publishedRowHtml).toContain("Published v1");
+
+      const draftForm: FormListItem = {
+        id: "form-2",
+        name: "Draft Medical History",
+        workspaceId: "ws-1",
+        latestPublishedVersionNumber: null,
+        publicSlug: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        draftRevision: 1,
+        draftUpdatedAt: new Date().toISOString(),
+      };
+
+      const draftRowHtml = renderToStaticMarkup(
+        createElement(
+          "table",
+          null,
+          createElement("tbody", null, createElement(FormRow, { form: draftForm, model: mockModel })),
+        ),
+      );
+
+      // Must not show Copy Link button or deployed intake href
+      expect(draftRowHtml).not.toContain("Copy Link");
+      expect(draftRowHtml).not.toContain('href="/intake/');
+      expect(draftRowHtml).toContain(APP_MESSAGES.UNPUBLISHED_DRAFT);
     });
   });
 });

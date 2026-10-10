@@ -30,9 +30,29 @@ export function useFormDashboard(initialForms: FormListItem[]) {
   const [renamingFormId, setRenamingFormId] = useState<string | null>(null);
   const [renamingName, setRenamingName] = useState("");
 
-  const filteredForms = formsList.filter((f) =>
-    f.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "published" | "draft"
+  >("all");
+
+  const filteredForms = formsList.filter((f) => {
+    const matchesSearch = f.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    if (statusFilter === "published") {
+      return Boolean(f.latestPublishedVersionNumber);
+    }
+
+    if (statusFilter === "draft") {
+      return !f.latestPublishedVersionNumber;
+    }
+
+    return true;
+  });
 
   const handleCreateForm = async (e: FormEvent) => {
     e.preventDefault();
@@ -153,9 +173,12 @@ export function useFormDashboard(initialForms: FormListItem[]) {
 
   return {
     openCreateDialog,
+    formsList,
     filteredForms,
     searchQuery,
     setSearchQuery,
+    statusFilter,
+    setStatusFilter,
     isCreateModalOpen,
     setIsCreateModalOpen,
     newFormName,

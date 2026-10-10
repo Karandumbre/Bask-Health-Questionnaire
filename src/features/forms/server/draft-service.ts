@@ -138,6 +138,7 @@ export async function listWorkspaceForms(workspaceId: string, userId: string) {
       workspaceId: forms.workspaceId,
       name: forms.name,
       latestPublishedVersionNumber: forms.latestPublishedVersionNumber,
+      latestPublicSlug: publishedVersions.publicSlug,
       createdAt: forms.createdAt,
       updatedAt: forms.updatedAt,
       draftRevision: formDrafts.revision,
@@ -145,6 +146,13 @@ export async function listWorkspaceForms(workspaceId: string, userId: string) {
     })
     .from(forms)
     .leftJoin(formDrafts, eq(forms.id, formDrafts.formId))
+    .leftJoin(
+      publishedVersions,
+      and(
+        eq(forms.id, publishedVersions.formId),
+        eq(forms.latestPublishedVersionNumber, publishedVersions.versionNumber),
+      ),
+    )
     .where(and(eq(forms.workspaceId, workspaceId), isNull(forms.archivedAt)))
     .orderBy(desc(forms.updatedAt));
 

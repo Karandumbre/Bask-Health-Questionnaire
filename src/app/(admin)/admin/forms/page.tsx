@@ -31,6 +31,7 @@ export default async function AdminFormsPage() {
     name: f.name,
     workspaceId: f.workspaceId,
     latestPublishedVersionNumber: f.latestPublishedVersionNumber,
+    publicSlug: f.latestPublicSlug,
     createdAt: f.createdAt,
     updatedAt: f.updatedAt,
     draftRevision: f.draftRevision,
