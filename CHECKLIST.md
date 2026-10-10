@@ -25,9 +25,9 @@
 | Domain contracts & pure validation rules | DONE | `src/features/forms/domain/` and `src/features/patients/domain/`; verified via 26 passing unit tests. |
 | 100-field fixture & performance trace | DONE | `tests/fixtures/100-field-fixture.ts`; verified via `tests/unit/domain/100-field-benchmark.test.ts` (<5ms latency). |
 | PostgreSQL schema and migrations | DONE | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`). |
-| Admin authentication & workspace RBAC | PARTIAL | Backend service & claims verification DONE (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`, verified via Tests 7 & 15). HTTP login route and UI PENDING Phase 2. |
-| Admin draft CRUD & concurrency lifecycle | PARTIAL | Backend CAS service DONE (`src/features/forms/server/draft-service.ts`, verified via Tests 1, 2, 13). HTTP API routes & Builder UI PENDING Phase 2. |
-| Publish immutable versions & triggers | PARTIAL | Backend publish service & DB triggers DONE (`src/features/forms/server/publish-service.ts`, `trg_protect_published_versions`, verified via Tests 3, 4, 5, 6). Publish UI action PENDING Phase 2. |
+| Admin authentication & workspace RBAC | PARTIAL | Backend service & claims verification DONE (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`). Reviewer Login UI (`/admin/login`), login API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), and route redirect guards implemented (Phase 2A). Full production user onboarding PENDING. |
+| Admin draft CRUD & concurrency lifecycle | PARTIAL | Backend CAS service DONE. HTTP API routes (`/api/admin/forms`, `/api/admin/forms/[formId]`), Form Builder 3-pane UI, Field Navigator with Polaris Icons, Question Inspector, Form Canvas, and Autosave Engine with HTTP 409 Conflict Modal implemented and compiled (Phase 2A). E2E browser verification PENDING. |
+| Publish immutable versions & triggers | PARTIAL | Backend publish service & DB triggers DONE (`trg_protect_published_versions`). Publish API route (`/api/admin/forms/[formId]/publish`) and Publish Modal with clinical validation summary implemented (Phase 2A). Patient intake route PENDING Phase 3. |
 | Patient session persistence & submission | PARTIAL | Backend session & submission services DONE (`src/features/patients/server/session-service.ts`, `src/features/patients/server/submission-service.ts`, verified via Tests 8-14). Patient HTTP routes & mobile UI PENDING Phase 3. |
 | Responses administration | PARTIAL | Backend response service DONE (`src/features/forms/server/response-service.ts`, verified via Test 15). HTTP response routes & admin responses UI PENDING Phase 2/3. |
 | Automated database integration & E2E tests | PARTIAL | 52 tests passing: 37 unit/benchmark tests + 15 real PostgreSQL concurrency integration tests (`tests/integration/postgres-integration.test.ts`). Playwright browser E2E pending Phase 2 UI. |
@@ -36,7 +36,26 @@
 
 **Files:** `CHECKLIST.md` (master), `PHASE_1_ARCHITECTURE.md`, `PHASE_1_LOCAL_AI_PROMPT.md`, `docs/PROGRESS.md`, `docs/architecture/*`.
 
-**Next milestone:** Phase 2 Administrative Editor UI, Form Builder, and Polaris Icons.
+**Next milestone:** Phase 2A Administrative Editor UI Foundation, Draft Management, and Polaris Icons.
+
+---
+
+## Active Security Invariants & Open Audit Findings (Phase 1B Review)
+
+The following four security findings from the Phase 1B audit remain **OPEN** and must be actively enforced across all Phase 2 and Phase 3 implementations:
+
+- [!] **SEC-01 (HIGH): Application DB Connection Bypasses Supabase RLS**  
+  *Context:* Drizzle queries execute under the PostgreSQL `postgres` role (`rolbypassrls = true`, table owner). Supabase default-deny RLS is only evaluated on browser-side PostgREST requests.  
+  *Mandatory Invariant:* Every Route Handler and Server Action in Phase 2 & Phase 3 must explicitly invoke `requireAdmin()` and `requireWorkspaceMembership()` or `requireFormWorkspaceAccess()`. Do not assume Drizzle queries automatically enforce tenant isolation.
+- [!] **SEC-02 (MEDIUM): Patient Cookie Namespace Collision Across Concurrent Forms**  
+  *Context:* If a patient opens two different forms concurrently in the same browser, a static cookie name (e.g. `bask_session_token`) would overwrite the other session.  
+  *Mandatory Invariant:* Patient HTTP handlers in Phase 3 must namespace capability cookies per form slug (e.g. `bask_session_${publicSlug}`) with `Path=/` or `Path=/api/patient`, `HttpOnly`, `Secure`, `SameSite=Strict`.
+- [!] **SEC-03 (LOW): HTTP Route Boundary CSRF & Origin Verification**  
+  *Context:* Backend domain logic executes safely, but browser-facing HTTP mutation endpoints (`POST`, `PUT`, `DELETE`) require cross-site forgery protection.  
+  *Mandatory Invariant:* All mutating Route Handlers in Phase 2 & Phase 3 must validate `request.headers.get('origin')` against the request host and reject untrusted cross-origin mutations.
+- [!] **SEC-04 (MEDIUM): Admin Login & Session Flow (UI/API boundary)**  
+  *Context:* Server-verified authentication (`getServerVerifiedUser()` via `auth.getClaims()`) is implemented, but the admin login HTTP Route Handler, session cookie exchange, and protected route redirect UX remain pending.  
+  *Mandatory Invariant:* Implement secure login Route Handler using Supabase Auth with rate limiting, secure cookies, and Next.js 16 `proxy.ts` edge session refresh before deploying administrative routes.
 
 ---
 

@@ -1,7 +1,7 @@
 import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { adminMemberships, forms } from "@/lib/db/schema";
+import { adminMemberships, forms, workspaces } from "@/lib/db/schema";
 import { createClient, getServerVerifiedUser, type VerifiedAuthUser } from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 
@@ -108,4 +108,61 @@ export async function requireAdminWorkspaceAccess(
   const membership = await requireWorkspaceMembership(user.id, workspaceId, requiredRole);
   return { user, membership };
 }
+
+/**
+ * Resolves all active workspaces for an authenticated user.
+ * If user has no workspace yet (e.g. newly created reviewer account),
+ * provisions a default workspace and assigns owner role.
+ */
+export async function getUserWorkspaces(
+  userId: string,
+  userEmail?: string | null
+): Promise<Array<{ workspaceId: string; role: AdminRole; workspaceName: string; createdAt: Date }>> {
+  const memberships = await db
+    .select({
+      workspaceId: adminMemberships.workspaceId,
+      role: adminMemberships.role,
+      workspaceName: workspaces.name,
+      createdAt: workspaces.createdAt,
+    })
+    .from(adminMemberships)
+    .innerJoin(workspaces, eq(adminMemberships.workspaceId, workspaces.id))
+    .where(
+      and(
+        eq(adminMemberships.userId, userId),
+        isNull(adminMemberships.revokedAt)
+      )
+    );
+
+  if (memberships.length > 0) {
+    return memberships as Array<{ workspaceId: string; role: AdminRole; workspaceName: string; createdAt: Date }>;
+  }
+
+  // Provision initial workspace for first-time admin / reviewer
+  const defaultName = userEmail ? `${userEmail.split("@")[0]}'s Clinic` : "Clinical Workspace";
+  const [newWorkspace] = await db
+    .insert(workspaces)
+    .values({ name: defaultName })
+    .returning();
+
+  if (!newWorkspace) {
+    throw new AppError("INTERNAL_ERROR", "Failed to initialize workspace.", 500);
+  }
+
+  await db.insert(adminMemberships).values({
+    workspaceId: newWorkspace.id,
+    userId,
+    role: "owner",
+  });
+
+  return [
+    {
+      workspaceId: newWorkspace.id,
+      role: "owner",
+      workspaceName: newWorkspace.name,
+      createdAt: newWorkspace.createdAt,
+    },
+  ];
+}
+
 

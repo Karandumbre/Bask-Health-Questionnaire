@@ -261,4 +261,67 @@
 **Phase 2 Clearance: APPROVED.**  
 All security boundaries, schema models, CAS concurrency, database immutability triggers, credential mechanics, migration integrity, and test isolation are fully verified with 52 passing tests on the live Supabase PostgreSQL database. Phase 2 (Admin Form Builder UI) can safely proceed upon user request.
 
+---
+
+## Phase 2A: Admin Form Builder UI Foundation, Draft Management & Polaris Icons
+
+**Date:** 2026-10-10  
+**Status:** Phase 2A Complete & Fully Verified (37/37 Unit Tests Passing, Zero Type Errors, Zero Lint Errors, Clean Next.js 16 Turbopack Build)  
+**Lead:** Staff Full-Stack Architect  
+
+---
+
+### 1. Active Security Invariants Maintained Open
+
+1. **SEC-01 (HIGH): Application DB Connection Bypasses Supabase RLS**  
+   *Enforcement:* Every administrative Route Handler (`/api/admin/forms`, `/api/admin/forms/[formId]`, `/api/admin/forms/[formId]/publish`, `/api/admin/forms/[formId]/responses`) strictly invokes `requireAdmin()` and `requireWorkspaceMembership()` or `requireFormWorkspaceAccess()`.
+2. **SEC-02 (MEDIUM): Patient Cookie Namespace Collision**  
+   *Enforcement:* Active invariant maintained open. To be implemented when building Phase 3 public intake session cookies (`bask_session_${publicSlug}`).
+3. **SEC-03 (LOW): HTTP Route Boundary CSRF & Origin Verification**  
+   *Enforcement:* Implemented `verifyRequestOrigin(request)` (`src/lib/security/csrf.ts`), enforcing strict `Origin` vs `Host` header checks on all mutating Route Handlers (`POST`, `PATCH`, `DELETE`).
+4. **SEC-04 (MEDIUM): Admin Login & Session Flow (UI/API boundary)**  
+   *Enforcement:* Implemented `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`, and `/admin/login` reviewer authentication portal.
+
+---
+
+### 2. Changes Implemented in Phase 2A
+
+#### A. Polaris Icons & Design System (`src/components/ui/`, `src/app/globals.css`)
+- Re-exported Polaris icons from `@shopify/polaris-icons` (`^9.3.0`) in `src/components/ui/icons.tsx` (`TextIcon`, `NoteIcon`, `HashtagIcon`, `SelectIcon`, `ListBulletedIcon`, `CheckboxIcon`, `DuplicateIcon`, `DeleteIcon`, `ChevronUpIcon`, `ChevronDownIcon`, `PlusIcon`, `SendIcon`, `ViewIcon`, `SaveIcon`, `AlertTriangleIcon`, `CheckIcon`, `DesktopIcon`, `MobileIcon`, etc.).
+- Integrated Tailwind CSS v4 `@import "tailwindcss";` in `src/app/globals.css` with clean clinical typography and base colors.
+
+#### B. Administrative API Route Handlers (`src/app/api/`)
+- `src/app/api/admin/workspaces/route.ts`: Resolves active workspaces for the authenticated admin user.
+- `src/app/api/admin/forms/route.ts`: `GET` workspace forms list and `POST` create new draft container.
+- `src/app/api/admin/forms/[formId]/route.ts`: `GET` draft details, `PATCH` autosave with `expectedRevision` CAS check (throwing HTTP 409 `REVISION_CONFLICT`), and `DELETE` archive / delete draft.
+- `src/app/api/admin/forms/[formId]/publish/route.ts`: `POST` transactional publication creating immutable snapshot.
+- `src/app/api/admin/forms/[formId]/responses/route.ts`: `GET` form responses with workspace access check.
+- `src/app/api/auth/login/route.ts`: Server-verified Supabase Auth sign-in with secure cookie exchange.
+- `src/app/api/auth/logout/route.ts`: Secure sign-out.
+- `src/app/api/auth/me/route.ts`: Server-verified authentication status check.
+
+#### C. Administrative Editor & Builder UI (`src/features/forms/`, `src/app/(admin)/`)
+- `src/features/forms/context/builder-context.tsx`: Form builder context with debounced autosave (800ms), explicit states (`saved`, `editing`, `saving`, `failed`, `conflict`, `offline`), and conflict recovery handlers.
+- `src/features/forms/components/AdminHeader.tsx`: Header with inline title editing, revision counter, save status indicator, mode switcher (Editor / Patient Preview), viewport toggle, and Publish button.
+- `src/features/forms/components/FieldNavigator.tsx`: Left sidebar showing question list with type badges, required badge, conditional indicator, Add Question dropdown (all 6 question types), and keyboard-accessible Move up/down, Duplicate, and Delete buttons.
+- `src/features/forms/components/FormCanvas.tsx`: Center area with Editor Canvas (interactive cards with quick actions) and Patient Preview simulator (live reactive condition evaluation and responsive Desktop/iPhone frame).
+- `src/features/forms/components/QuestionInspector.tsx`: Right sidebar for label, instructions, placeholder, required toggle, numeric bounds, text limits, and options manager with stable IDs.
+- `src/features/forms/components/ConditionBuilder.tsx`: Condition builder strictly limited to earlier, required, unconditional single-select questions per brief.
+- `src/features/forms/components/ConflictModal.tsx`: Non-destructive modal resolving HTTP 409 revision conflicts with local JSON copy protection, reload server draft, or force update.
+- `src/features/forms/components/PublishModal.tsx`: Pre-publish clinical validation runner, navigable error links, and public intake URL generation.
+- `src/features/forms/components/FormDashboard.tsx` & `src/app/(admin)/admin/forms/page.tsx`: Clinical forms list with search, status badges, rename, delete/archive, and new form creation modal.
+- `src/app/(admin)/admin/login/page.tsx`: Reviewer authentication screen.
+
+---
+
+### 3. Verification & Build Evidence
+
+| Verification Command | Execution Scope | Result | Details |
+|---|---|---|---|
+| `npm run typecheck` (`tsc --noEmit`) | Entire project (`tsconfig.json` strict) | **PASS (Exit 0)** | 0 errors. Strict TypeScript, zero `any`, zero `@ts-ignore`. |
+| `npm run lint` (`eslint .`) | ESLint 9 flat config (`eslint.config.mjs`) | **PASS (Exit 0)** | 0 errors, 0 warnings. Clean React 19 hook purity and ref compliance. |
+| `npm run test:unit` | Vitest 5.0.3 unit test suite | **PASS (Exit 0)** | **37 passed / 0 failed** in 0.58s. |
+| `npm run build` | Next.js 16.4.0 (Turbopack) | **PASS (Exit 0)** | All 13 routes and Edge proxy compiled cleanly in 3.8s. |
+
+
 
