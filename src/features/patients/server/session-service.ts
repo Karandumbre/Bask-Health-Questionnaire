@@ -13,6 +13,8 @@ import {
   verifyRecoveryCode,
   generateCapabilityToken,
   hashCapabilityToken,
+  encryptRecoveryReplay,
+  decryptRecoveryReplay,
 } from "@/lib/security/credentials";
 import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
@@ -271,6 +273,43 @@ export async function resumePatientSession(
     );
 
     if (!isValid) {
+      // Check for safe retry within bounded replay window (2 minutes)
+      const RECOVERY_REPLAY_WINDOW_MS = 2 * 60 * 1000;
+      const replayElapsed = session.previousRecoveryRotatedAt
+        ? now - session.previousRecoveryRotatedAt.getTime()
+        : Infinity;
+
+      if (
+        session.previousRecoveryHash &&
+        session.recoveryReplayPayload &&
+        replayElapsed >= 0 &&
+        replayElapsed < RECOVERY_REPLAY_WINDOW_MS &&
+        verifyRecoveryCode(
+          recoveryCode,
+          session.previousRecoveryHash,
+          getSessionPepper(),
+        )
+      ) {
+        const replayed = decryptRecoveryReplay(
+          session.recoveryReplayPayload,
+          getSessionPepper(),
+        );
+        if (replayed) {
+          return {
+            sessionId: session.id,
+            sessionReference: session.sessionReference,
+            newRecoveryCode: replayed.newRecoveryCode,
+            newCapabilityToken: replayed.newCapabilityToken,
+            publicSlug: version.publicSlug,
+            versionNumber: version.versionNumber,
+            definition: version.definitionSnapshot as FormDefinition,
+            theme: version.themeSnapshot,
+            currentAnswers: session.answerJson as PatientAnswers,
+            sessionRevision: session.revision,
+          };
+        }
+      }
+
       // Record failed attempt with bounded atomic counter (resets if outside cooldown window)
       await tx
         .update(patientSessions)
@@ -303,6 +342,11 @@ export async function resumePatientSession(
       getSessionPepper(),
     );
 
+    const replayPayload = encryptRecoveryReplay(
+      { newRecoveryCode, newCapabilityToken },
+      getSessionPepper(),
+    );
+
     const [updatedSession] = await tx
       .update(patientSessions)
       .set({
@@ -311,6 +355,9 @@ export async function resumePatientSession(
         recoveryLastAttemptAt: null,
         recoveryExpiresAt: new Date(now + RECOVERY_DURATION_MS),
         credentialHash: newCredentialHash,
+        previousRecoveryHash: session.recoveryHash,
+        previousRecoveryRotatedAt: new Date(now),
+        recoveryReplayPayload: replayPayload,
         updatedAt: new Date(),
       })
       .where(eq(patientSessions.id, session.id))
@@ -384,7 +431,7 @@ export async function savePatientProgress(params: SaveProgressParams) {
     throw AppError.invalidAnswer(validation.errors);
   }
 
-  // 4. Atomic Compare-And-Swap update on session revision
+  // 4. Atomic Compare-And-Swap update on session revision and active credential hash
   const [updated] = await db
     .update(patientSessions)
     .set({
@@ -397,18 +444,39 @@ export async function savePatientProgress(params: SaveProgressParams) {
         eq(patientSessions.id, sessionId),
         eq(patientSessions.revision, expectedSessionRevision),
         eq(patientSessions.status, "in_progress"),
+        eq(patientSessions.credentialHash, session.credentialHash),
       ),
     )
     .returning();
 
   if (!updated) {
     const [current] = await db
-      .select({ revision: patientSessions.revision })
+      .select({
+        revision: patientSessions.revision,
+        credentialHash: patientSessions.credentialHash,
+        status: patientSessions.status,
+      })
       .from(patientSessions)
       .where(eq(patientSessions.id, sessionId))
       .limit(1);
 
-    const currentRev = current ? current.revision : -1;
+    if (!current) {
+      throw AppError.sessionUnauthorized(APP_MESSAGES.SESSION_NOT_FOUND);
+    }
+
+    if (current.credentialHash !== session.credentialHash) {
+      throw AppError.sessionUnauthorized(
+        APP_MESSAGES.INVALID_SESSION_CREDENTIALS,
+      );
+    }
+
+    if (current.status === "completed") {
+      throw AppError.sessionCompleted(
+        APP_MESSAGES.CANNOT_MODIFY_ANSWERS_FOR_A_COMPLETED_INTAKE_SESSION,
+      );
+    }
+
+    const currentRev = current.revision;
     throw AppError.revisionConflict(
       expectedSessionRevision,
       currentRev,

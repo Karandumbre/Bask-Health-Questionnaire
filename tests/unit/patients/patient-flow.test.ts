@@ -1,4 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockSubmitPatientSession = vi.hoisted(() => vi.fn());
+const mockSavePatientProgress = vi.hoisted(() => vi.fn());
+
+vi.mock("@/features/patients/server/submission-service", () => ({
+  submitPatientSession: mockSubmitPatientSession,
+}));
+
+vi.mock("@/features/patients/server/session-service", () => ({
+  savePatientProgress: mockSavePatientProgress,
+}));
+
+import { POST as submitHandler } from "@/app/api/patient/session/submit/route";
+import { PUT as progressHandler } from "@/app/api/patient/session/progress/route";
+import {
+  RECOVERY_MAX_ATTEMPTS,
+  RECOVERY_LOCKOUT_MS,
+  verifySessionAccess,
+} from "@/features/patients/server/session-policy";
+import {
+  normalizeRecoveryCode,
+  hashRecoveryCode,
+  verifyRecoveryCode,
+  hashCapabilityToken,
+  generateCapabilityToken,
+  generateRecoveryCode,
+  encryptRecoveryReplay,
+  decryptRecoveryReplay,
+} from "@/lib/security/credentials";
+import { AppError } from "@/lib/errors";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { NextRequest } from "next/server";
 import { Question, FormDefinition } from "@/features/forms/domain/types";
 import {
   validateSessionSubmission,
@@ -8,15 +40,6 @@ import {
   pruneHiddenAnswers,
   evaluateQuestionVisibility,
 } from "@/features/patients/domain/visibility";
-import { verifySessionAccess } from "@/features/patients/server/session-policy";
-import {
-  normalizeRecoveryCode,
-  hashRecoveryCode,
-  verifyRecoveryCode,
-  hashCapabilityToken,
-  generateCapabilityToken,
-  generateRecoveryCode,
-} from "@/lib/security/credentials";
 import { getSessionCookieName } from "@/features/patients/server/patient-cookies";
 import type { PatientAnswers } from "@/features/patients/domain/types";
 
@@ -283,26 +306,16 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
   // 6. Concurrent Recovery Redemption & Rate Limiting
   // =========================================================================
   describe("6. Concurrent Recovery Redemption & Lockout", () => {
-    it("locks out recovery after 3 consecutive failed attempts", () => {
-      const MAX_ATTEMPTS = 3;
-      let recoveryAttempts = 0;
-      let lockoutUntil: Date | null = null;
+    it("enforces recovery lockout threshold of 5 attempts and 15-minute cooldown", () => {
+      expect(RECOVERY_MAX_ATTEMPTS).toBe(5);
+      expect(RECOVERY_LOCKOUT_MS).toBe(15 * 60 * 1000);
 
-      // Simulate 3 invalid redemption attempts
-      for (let i = 0; i < MAX_ATTEMPTS; i++) {
-        recoveryAttempts++;
-        if (recoveryAttempts >= MAX_ATTEMPTS) {
-          lockoutUntil = new Date(Date.now() + 15 * 60_000); // 15 min lockout
-        }
-      }
-
-      expect(recoveryAttempts).toBe(3);
-      expect(lockoutUntil).not.toBeNull();
-      expect(lockoutUntil!.getTime()).toBeGreaterThan(Date.now());
-
-      // Attempt while locked out fails closed
-      const isLockedOut = lockoutUntil && lockoutUntil.getTime() > Date.now();
-      expect(isLockedOut).toBe(true);
+      const err = AppError.resumeRateLimited(900);
+      expect(err.statusCode).toBe(429);
+      expect(err.code).toBe("RESUME_RATE_LIMITED");
+      expect(err.message).toBe(
+        APP_MESSAGES.TOO_MANY_RECOVERY_ATTEMPTS_PLEASE_TRY_AGAIN_LATER,
+      );
     });
 
     it("cycles recovery code upon redemption so old code cannot be reused", () => {
@@ -322,6 +335,22 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
       // Old code is now invalid against the new hash
       expect(verifyRecoveryCode(initialCode, newHash, pepper)).toBe(false);
       expect(verifyRecoveryCode(newCode, newHash, pepper)).toBe(true);
+    });
+
+    it("safely encrypts and decrypts recovery replay payload to prevent lost responses", () => {
+      const replayPayload = {
+        newRecoveryCode: "BK-ABCD-1234-EFGH-5678",
+        newCapabilityToken: "token_abc_123",
+      };
+      const encrypted = encryptRecoveryReplay(replayPayload, pepper);
+      expect(encrypted).not.toContain("BK-ABCD");
+
+      const decrypted = decryptRecoveryReplay(encrypted, pepper);
+      expect(decrypted).toEqual(replayPayload);
+
+      // Rejects tampered ciphertext
+      const tampered = encrypted.slice(0, -6) + "abcdef";
+      expect(decryptRecoveryReplay(tampered, pepper)).toBeNull();
     });
   });
 
@@ -450,41 +479,45 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
   // 9. Concurrent Submissions & Exact-Once Guarantee
   // =========================================================================
   describe("9. Concurrent Submissions & Exact-Once Guarantee", () => {
-    it("guarantees idempotent handling when session is already completed", () => {
-      const initialSubmission = {
-        id: "sub_1001",
+    it("guarantees idempotent handling when session is already completed through the submission handler", async () => {
+      const existingSubmission = {
+        submissionId: "sub_1001",
         sessionId: "sess_concurrent_01",
-        submittedAt: new Date(),
+        publishedVersionId: "ver_1",
         status: "completed" as const,
+        submittedAt: new Date("2026-10-10T12:00:00Z"),
         answerSnapshot: { q_name: "Alice" },
+        isIdempotentReplay: true,
       };
 
-      // Simulated transaction logic: If session status is completed, return idempotent replay
-      const simulateSubmissionAttempt = (sessionStatus: string) => {
-        if (sessionStatus === "completed") {
-          return {
-            submissionId: initialSubmission.id,
-            status: "completed",
-            submittedAt: initialSubmission.submittedAt,
-            isIdempotentReplay: true,
-          };
-        }
-        return {
-          submissionId: "sub_1001",
-          status: "completed",
-          submittedAt: new Date(),
-          isIdempotentReplay: false,
-        };
-      };
+      mockSubmitPatientSession.mockResolvedValueOnce(existingSubmission);
 
-      // First call succeeds as new submission
-      const first = simulateSubmissionAttempt("in_progress");
-      expect(first.isIdempotentReplay).toBe(false);
+      const request = new NextRequest(
+        "http://localhost:3000/api/patient/session/submit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            origin: "http://localhost:3000",
+            host: "localhost:3000",
+            cookie:
+              "bask_session_general-intake=sess_concurrent_01:cap_valid_123",
+          },
+          body: JSON.stringify({
+            publicSlug: "general-intake",
+            answers: { q_name: "Alice" },
+          }),
+        },
+      );
 
-      // Concurrent or subsequent call detects completed status and replays without creating new record
-      const second = simulateSubmissionAttempt("completed");
-      expect(second.isIdempotentReplay).toBe(true);
-      expect(second.submissionId).toBe(initialSubmission.id);
+      const response = await submitHandler(request);
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.data.isIdempotentReplay).toBe(true);
+      expect(json.data.submissionId).toBe("sub_1001");
+      expect(json.data.status).toBe("completed");
     });
   });
 
@@ -492,28 +525,46 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
   // 10. Lost-Success-Response Retry
   // =========================================================================
   describe("10. Lost-Success-Response Retry", () => {
-    it("returns original submission confirmation upon retry replay", () => {
+    it("returns original submission confirmation upon retry replay via submission handler", async () => {
       const existingSubmission = {
-        id: "sub_retry_888",
+        submissionId: "sub_retry_888",
         sessionId: "sess_retry_01",
-        submittedAt: new Date("2026-10-10T12:00:00Z"),
+        publishedVersionId: "ver_1",
         status: "completed" as const,
+        submittedAt: new Date("2026-10-10T12:00:00Z"),
         answerSnapshot: { q_name: "Bob" },
-      };
-
-      // Simulating retry request logic from submission-service.ts
-      const replayResult = {
-        submissionId: existingSubmission.id,
-        sessionId: existingSubmission.sessionId,
-        status: existingSubmission.status,
-        submittedAt: existingSubmission.submittedAt,
-        answerSnapshot: existingSubmission.answerSnapshot,
         isIdempotentReplay: true,
       };
 
-      expect(replayResult.isIdempotentReplay).toBe(true);
-      expect(replayResult.submissionId).toBe("sub_retry_888");
-      expect(replayResult.submittedAt).toEqual(existingSubmission.submittedAt);
+      mockSubmitPatientSession.mockResolvedValueOnce(existingSubmission);
+
+      const request = new NextRequest(
+        "http://localhost:3000/api/patient/session/submit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            origin: "http://localhost:3000",
+            host: "localhost:3000",
+            cookie: "bask_session_general-intake=sess_retry_01:cap_valid_123",
+          },
+          body: JSON.stringify({
+            publicSlug: "general-intake",
+            answers: { q_name: "Bob" },
+          }),
+        },
+      );
+
+      const response = await submitHandler(request);
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.success).toBe(true);
+      expect(json.data.isIdempotentReplay).toBe(true);
+      expect(json.data.submissionId).toBe("sub_retry_888");
+      expect(new Date(json.data.submittedAt)).toEqual(
+        existingSubmission.submittedAt,
+      );
     });
   });
 
@@ -521,20 +572,41 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
   // 11. Completed Response Immutability
   // =========================================================================
   describe("11. Completed Response Immutability", () => {
-    it("fails closed when attempting to save progress on a completed session", () => {
-      const session = {
-        id: "sess_completed_99",
-        status: "completed" as const,
-      };
+    it("fails closed when attempting to save progress on a completed session via progress handler", async () => {
+      mockSavePatientProgress.mockRejectedValueOnce(
+        new AppError(
+          "SESSION_COMPLETED",
+          APP_MESSAGES.CANNOT_MODIFY_AN_ALREADY_COMPLETED_INTAKE_SESSION,
+          409,
+        ),
+      );
 
-      const attemptSaveOnCompletedSession = () => {
-        if (session.status === "completed") {
-          throw new Error("Cannot modify an already completed intake session");
-        }
-      };
+      const request = new NextRequest(
+        "http://localhost:3000/api/patient/session/progress",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            origin: "http://localhost:3000",
+            host: "localhost:3000",
+            cookie:
+              "bask_session_general-intake=sess_completed_99:cap_valid_123",
+          },
+          body: JSON.stringify({
+            publicSlug: "general-intake",
+            expectedSessionRevision: 2,
+            answers: { q_name: "Alice Modified" },
+          }),
+        },
+      );
 
-      expect(attemptSaveOnCompletedSession).toThrow(
-        "Cannot modify an already completed intake session",
+      const response = await progressHandler(request);
+      expect(response.status).toBe(409);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error.message).toBe(
+        APP_MESSAGES.CANNOT_MODIFY_AN_ALREADY_COMPLETED_INTAKE_SESSION,
       );
     });
   });

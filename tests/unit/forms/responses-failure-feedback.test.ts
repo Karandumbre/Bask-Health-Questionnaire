@@ -11,6 +11,7 @@ vi.mock("@/lib/auth/admin", () => ({
 }));
 vi.mock("@/features/forms/server/response-service", () => ({
   listFormSubmissions: listSubmissions,
+  countFormSubmissions: vi.fn().mockResolvedValue(0),
 }));
 import ResponsesPage from "@/app/(admin)/admin/forms/[formId]/responses/page";
 

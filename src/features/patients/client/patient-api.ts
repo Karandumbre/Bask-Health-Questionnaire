@@ -34,6 +34,12 @@ export const activeSessionResponseSchema = z.object({
       versionNumber: z.number(),
       definition: FormDefinitionSchema,
       theme: ThemeDefinitionSchema,
+      submission: z
+        .object({
+          submissionId: z.string(),
+          submittedAt: z.string().or(z.date()),
+        })
+        .optional(),
     }),
   ]),
 });

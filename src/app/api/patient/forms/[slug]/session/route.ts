@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AppError, ErrorCode } from "@/lib/errors";
 import { handleRouteError } from "@/lib/errors/route-handler";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import {
@@ -12,7 +13,7 @@ import {
 } from "@/features/patients/server/patient-cookies";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { publishedVersions } from "@/lib/db/schema";
+import { publishedVersions, submissions } from "@/lib/db/schema";
 import type {
   FormDefinition,
   ThemeDefinition,
@@ -61,6 +62,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
         });
       }
 
+      let submissionInfo: { submissionId: string; submittedAt: string } | undefined;
+      if (session.status === "completed") {
+        const [existingSubmission] = await db
+          .select({ id: submissions.id, submittedAt: submissions.submittedAt })
+          .from(submissions)
+          .where(eq(submissions.sessionId, session.id))
+          .limit(1);
+        if (existingSubmission) {
+          submissionInfo = {
+            submissionId: existingSubmission.id,
+            submittedAt: existingSubmission.submittedAt.toISOString(),
+          };
+        }
+      }
+
       return NextResponse.json({
         success: true,
         data: {
@@ -74,14 +90,25 @@ export async function GET(request: NextRequest, context: RouteContext) {
           versionNumber: version.versionNumber,
           definition: version.definitionSnapshot as FormDefinition,
           theme: version.themeSnapshot as ThemeDefinition,
+          submission: submissionInfo,
         },
       });
-    } catch {
-      // Invalid or expired session cookie -> active: false
-      return NextResponse.json({
-        success: true,
-        data: { active: false },
-      });
+    } catch (innerError) {
+      if (
+        innerError instanceof AppError &&
+        (innerError.status === 401 ||
+          innerError.status === 410 ||
+          innerError.code === ErrorCode.UNAUTHORIZED ||
+          innerError.code === ErrorCode.SESSION_UNAUTHORIZED ||
+          innerError.code === ErrorCode.SESSION_EXPIRED)
+      ) {
+        // Invalid or expired session cookie -> active: false
+        return NextResponse.json({
+          success: true,
+          data: { active: false },
+        });
+      }
+      throw innerError;
     }
   } catch (error) {
     return handleRouteError(error);

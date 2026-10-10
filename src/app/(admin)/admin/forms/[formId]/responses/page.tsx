@@ -3,7 +3,10 @@ import { AppError } from "@/lib/errors";
 import { redirect } from "next/navigation";
 import { ROUTES } from "@/lib/constants/application";
 import { requireAdmin, requireFormWorkspaceAccess } from "@/lib/auth/admin";
-import { listFormSubmissions } from "@/features/forms/server/response-service";
+import {
+  listFormSubmissions,
+  countFormSubmissions,
+} from "@/features/forms/server/response-service";
 import { ResponsesView } from "@/features/forms/components/ResponsesView";
 import type { SubmissionListItem } from "@/features/forms/client/responses-api";
 
@@ -56,14 +59,26 @@ export default async function FormResponsesPage({ params }: PageProps) {
 
   let initialError: string | null = null;
   let submissionsRaw: Awaited<ReturnType<typeof listFormSubmissions>> = [];
+  let initialTotalCount = 0;
   try {
-    submissionsRaw = await listFormSubmissions({
-      formId,
-      userId: user.id,
-    });
+    const [rawRows, count] = await Promise.all([
+      listFormSubmissions({
+        formId,
+        userId: user.id,
+        limit: 50,
+        offset: 0,
+      }),
+      countFormSubmissions({
+        formId,
+        userId: user.id,
+      }),
+    ]);
+    submissionsRaw = rawRows;
+    initialTotalCount = count;
   } catch {
     initialError = APP_MESSAGES.RESPONSES_LOAD_FAILED;
     submissionsRaw = [];
+    initialTotalCount = 0;
   }
 
   const initialSubmissions: SubmissionListItem[] = submissionsRaw.map(
@@ -89,6 +104,7 @@ export default async function FormResponsesPage({ params }: PageProps) {
       formName={formAccess.form.name}
       initialError={initialError}
       initialSubmissions={initialSubmissions}
+      initialTotalCount={initialTotalCount}
     />
   );
 }

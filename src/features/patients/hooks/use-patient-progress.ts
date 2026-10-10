@@ -15,11 +15,20 @@ export function usePatientProgress(slug: string) {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+  const slugRef = useRef(slug);
+  useEffect(() => {
+    slugRef.current = slug;
+  }, [slug]);
+
   const controller = useRef<DraftAutosave<PatientAnswers> | null>(null);
   const unsubscribe = useRef<(() => void) | null>(null);
   const [state, setState] = useState<AutosaveState | null>(null);
   const initialize = useCallback(
-    (answers: PatientAnswers, revision: number) => {
+    (answers: PatientAnswers, revision: number, overrideSlug?: string) => {
+      if (overrideSlug) {
+        slugRef.current = overrideSlug;
+      }
+      const targetSlug = overrideSlug ?? slugRef.current;
       setValidationErrors({});
       unsubscribe.current?.();
       controller.current?.pause();
@@ -29,7 +38,7 @@ export function usePatientProgress(slug: string) {
         async (snapshot, expectedRevision, signal) => {
           try {
             const response = await savePatientProgress(
-              slug,
+              targetSlug,
               expectedRevision,
               snapshot,
               signal,
@@ -47,7 +56,7 @@ export function usePatientProgress(slug: string) {
       setState(next.getSnapshot());
       unsubscribe.current = next.subscribe(() => setState(next.getSnapshot()));
     },
-    [slug],
+    [],
   );
   useEffect(
     () => () => {

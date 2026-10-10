@@ -301,25 +301,27 @@ export async function updateDraft(params: UpdateDraftParams) {
 export async function archiveForm(formId: string, userId: string) {
   const { form } = await requireFormWorkspaceAccess(formId, userId, "owner");
 
-  const [archived] = await db
-    .update(forms)
-    .set({
-      archivedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(forms.id, formId))
-    .returning();
+  return db.transaction(async (tx) => {
+    const [archived] = await tx
+      .update(forms)
+      .set({
+        archivedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(forms.id, formId))
+      .returning();
 
-  await db.insert(auditEvents).values({
-    workspaceId: form.workspaceId,
-    actorUserId: userId,
-    eventType: "FORM_ARCHIVED",
-    entityType: "form",
-    entityId: formId,
-    metadataJson: { formName: form.name },
+    await tx.insert(auditEvents).values({
+      workspaceId: form.workspaceId,
+      actorUserId: userId,
+      eventType: "FORM_ARCHIVED",
+      entityType: "form",
+      entityId: formId,
+      metadataJson: { formName: form.name },
+    });
+
+    return archived;
   });
-
-  return archived;
 }
 
 /**

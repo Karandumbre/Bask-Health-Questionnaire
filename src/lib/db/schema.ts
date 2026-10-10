@@ -180,6 +180,11 @@ export const patientSessions = pgTable(
     recoveryExpiresAt: timestamp("recovery_expires_at", {
       withTimezone: true,
     }).notNull(),
+    previousRecoveryHash: text("previous_recovery_hash"),
+    previousRecoveryRotatedAt: timestamp("previous_recovery_rotated_at", {
+      withTimezone: true,
+    }),
+    recoveryReplayPayload: text("recovery_replay_payload"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

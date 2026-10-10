@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import {
   listFormSubmissions,
+  countFormSubmissions,
   getSubmissionDetail,
 } from "@/features/forms/server/response-service";
 import { paginationSchema } from "@/lib/http/request-validation";
@@ -37,16 +38,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ success: true, submission: detail });
     }
 
-    const rows = await listFormSubmissions({
-      formId,
-      userId: user.id,
-      limit,
-      offset,
-    });
+    const [rows, totalCount] = await Promise.all([
+      listFormSubmissions({
+        formId,
+        userId: user.id,
+        limit,
+        offset,
+      }),
+      countFormSubmissions({
+        formId,
+        userId: user.id,
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
       submissions: rows,
+      totalCount,
       limit,
       offset,
     });

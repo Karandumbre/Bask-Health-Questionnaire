@@ -1,6 +1,6 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   submissions,
@@ -18,10 +18,36 @@ export interface ListSubmissionsParams {
   offset?: number;
 }
 
+export interface CountSubmissionsParams {
+  formId: string;
+  userId: string;
+}
+
 export interface GetSubmissionDetailParams {
   formId: string;
   submissionId: string;
   userId: string;
+}
+
+/**
+ * Counts total clinical submissions for a form within an authorized workspace.
+ */
+export async function countFormSubmissions(
+  params: CountSubmissionsParams,
+): Promise<number> {
+  const { formId, userId } = params;
+  await requireFormWorkspaceAccess(formId, userId, "editor");
+
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(submissions)
+    .innerJoin(
+      publishedVersions,
+      eq(submissions.publishedVersionId, publishedVersions.id),
+    )
+    .where(eq(publishedVersions.formId, formId));
+
+  return Number(row?.count ?? 0);
 }
 
 /**

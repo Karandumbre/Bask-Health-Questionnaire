@@ -39,6 +39,7 @@ export type SubmissionDetail = z.infer<typeof SubmissionDetailSchema>;
 
 const listResponseSchema = successSchema.extend({
   submissions: z.array(SubmissionListItemSchema),
+  totalCount: z.number().int().optional(),
   limit: z.number().int().optional(),
   offset: z.number().int().optional(),
 });
@@ -47,10 +48,15 @@ const detailResponseSchema = successSchema.extend({
   submission: SubmissionDetailSchema,
 });
 
+export interface FetchSubmissionsResult {
+  submissions: SubmissionListItem[];
+  totalCount: number;
+}
+
 export async function fetchFormSubmissions(
   formId: string,
   options?: { limit?: number; offset?: number; signal?: AbortSignal },
-) {
+): Promise<FetchSubmissionsResult> {
   const url = new URL(
     API_ROUTES.formResponses(formId),
     "http://localhost:3000",
@@ -68,7 +74,10 @@ export async function fetchFormSubmissions(
     signal: options?.signal,
   });
 
-  return response.submissions;
+  return {
+    submissions: response.submissions,
+    totalCount: response.totalCount ?? response.submissions.length,
+  };
 }
 
 export async function fetchSubmissionDetail(

@@ -1,5 +1,6 @@
 import { useId, memo } from "react";
 import type { Question } from "@/features/forms/domain/types";
+import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import { Input, Textarea } from "@/components/ui/input";
 
 interface PatientQuestionFieldProps {
@@ -29,41 +30,47 @@ export const PatientQuestionField = memo(function PatientQuestionField({
   return (
     <div
       data-question-id={question.id}
-      className={`p-4 sm:p-5 rounded-2xl border transition-all duration-150 ${
-        hasError
-          ? "border-intake-error-border bg-intake-error-bg"
-          : "border-intake-border bg-intake-surface shadow-2xs hover:border-intake-border-focus"
-      }`}
+      className={
+        question.type === "checkbox"
+          ? "px-4 sm:px-5 py-2"
+          : `p-4 sm:p-5 rounded-2xl border transition-all duration-150 ${
+              hasError
+                ? "border-intake-error-border bg-intake-error-bg"
+                : "border-intake-border bg-intake-surface shadow-2xs hover:border-intake-border-focus"
+            }`
+      }
     >
       {/* Question Header */}
-      <div className="mb-3">
-        <label
-          htmlFor={
-            question.type !== "single_select" &&
-            question.type !== "multi_select"
-              ? inputId
-              : undefined
-          }
-          className="block text-sm font-semibold text-intake-text-primary leading-snug"
-        >
-          <span className="text-intake-text-secondary font-mono text-xs mr-1.5 font-normal">
-            {index + 1}.
-          </span>
-          {question.label}
-          {question.required && (
-            <span className="text-red-500 ml-1 font-bold" aria-hidden="true">
-              *
+      {question.type !== "checkbox" && (
+        <div className="mb-3">
+          <label
+            htmlFor={
+              question.type !== "single_select" &&
+              question.type !== "multi_select"
+                ? inputId
+                : undefined
+            }
+            className="block text-sm font-semibold text-intake-text-primary leading-snug"
+          >
+            <span className="text-intake-text-secondary font-mono text-xs mr-1.5 font-normal">
+              {index + 1}.
             </span>
-          )}
-          {question.required && <span className="sr-only"> (required)</span>}
-        </label>
+            {question.label}
+            {question.required && (
+              <span className="text-red-500 ml-1 font-bold" aria-hidden="true">
+                *
+              </span>
+            )}
+            {question.required && <span className="sr-only"> (required)</span>}
+          </label>
 
-        {question.description && (
-          <p id={descId} className="text-xs text-intake-text-secondary mt-1">
-            {question.description}
-          </p>
-        )}
-      </div>
+          {question.description && (
+            <p id={descId} className="text-xs text-intake-text-secondary mt-1">
+              {question.description}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Field Input per Type */}
       <div className="mt-2">
@@ -81,7 +88,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
               hasError ? errorId : question.description ? descId : undefined
             }
             maxLength={question.validation?.maxLength}
-            className={`text-sm py-2.5 px-3.5 rounded-xl ${
+            className={`${COMPONENT_STYLES.intakeField} text-sm py-2.5 px-3.5 rounded-xl ${
               hasError
                 ? "border-intake-error-border focus:ring-intake-error-border"
                 : ""
@@ -103,7 +110,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
               hasError ? errorId : question.description ? descId : undefined
             }
             maxLength={question.validation?.maxLength}
-            className={`text-sm py-2.5 px-3.5 rounded-xl ${
+            className={`${COMPONENT_STYLES.intakeField} text-sm py-2.5 px-3.5 rounded-xl ${
               hasError
                 ? "border-intake-error-border focus:ring-intake-error-border"
                 : ""
@@ -130,7 +137,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
             aria-describedby={
               hasError ? errorId : question.description ? descId : undefined
             }
-            className={`text-sm py-2.5 px-3.5 rounded-xl ${
+            className={`${COMPONENT_STYLES.intakeField} text-sm py-2.5 px-3.5 rounded-xl ${
               hasError
                 ? "border-intake-error-border focus:ring-intake-error-border"
                 : ""
@@ -229,11 +236,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
         {question.type === "checkbox" && (
           <label
             htmlFor={inputId}
-            className={`flex items-start gap-3 p-3.5 rounded-xl border text-xs sm:text-sm cursor-pointer transition-colors min-h-touch-target select-none ${
-              Boolean(value)
-                ? "border-intake-border-focus bg-intake-surface font-semibold text-intake-text-primary ring-1 ring-intake-border-focus"
-                : "border-intake-border bg-intake-surface hover:border-intake-border-focus text-intake-text-primary"
-            } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`flex items-start gap-3 text-xs sm:text-sm font-medium text-intake-text-primary cursor-pointer min-h-touch-target ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <input
               id={inputId}
@@ -248,10 +251,32 @@ export const PatientQuestionField = memo(function PatientQuestionField({
               }
               className="mt-0.5 h-4 w-4 accent-intake-primary-action cursor-pointer shrink-0"
             />
-            <span className="leading-snug">{question.label}</span>
+            <span className="leading-snug">
+              <span className="text-intake-text-secondary font-mono text-xs mr-1.5 font-normal">
+                {index + 1}.
+              </span>
+              {question.label}
+              {question.required && (
+                <span
+                  className="ml-1 font-bold text-red-500"
+                  aria-hidden="true"
+                >
+                  *
+                </span>
+              )}
+              {question.required && (
+                <span className="sr-only"> (required)</span>
+              )}
+            </span>
           </label>
         )}
       </div>
+
+      {question.type === "checkbox" && question.description && (
+        <p id={descId} className="mt-1 text-xs text-intake-text-secondary">
+          {question.description}
+        </p>
+      )}
 
       {/* Validation Error Message */}
       {hasError && (

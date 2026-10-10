@@ -27,11 +27,14 @@ import { evaluateQuestionVisibility } from "@/features/patients/domain/visibilit
 import type { Question } from "@/features/forms/domain/types";
 import type { PatientAnswers } from "@/features/patients/domain/types";
 
+const PAGE_SIZE = 50;
+
 interface ResponsesViewProps {
   formId: string;
   formName: string;
   initialSubmissions: SubmissionListItem[];
   initialError?: string | null;
+  initialTotalCount?: number;
 }
 
 export function ResponsesView({
@@ -39,9 +42,14 @@ export function ResponsesView({
   formName,
   initialSubmissions,
   initialError = null,
+  initialTotalCount,
 }: ResponsesViewProps) {
   const [submissions, setSubmissions] =
     useState<SubmissionListItem[]>(initialSubmissions);
+  const [totalCount, setTotalCount] = useState<number>(
+    initialTotalCount ?? initialSubmissions.length,
+  );
+  const [currentPage, setCurrentPage] = useState<number>(0);
   const [listError, setListError] = useState(initialError);
   const [loadingList, setLoadingList] = useState(false);
   const listBusy = useRef(false);
@@ -54,7 +62,8 @@ export function ResponsesView({
     },
     [],
   );
-  const handleRefresh = async () => {
+
+  const loadPage = async (pageIndex: number) => {
     if (listBusy.current) return;
     listBusy.current = true;
     const controller = new AbortController();
@@ -63,9 +72,15 @@ export function ResponsesView({
     setListError(null);
     try {
       const next = await fetchFormSubmissions(formId, {
+        limit: PAGE_SIZE,
+        offset: pageIndex * PAGE_SIZE,
         signal: controller.signal,
       });
-      if (!controller.signal.aborted) setSubmissions(next);
+      if (!controller.signal.aborted) {
+        setSubmissions(next.submissions);
+        setTotalCount(next.totalCount);
+        setCurrentPage(pageIndex);
+      }
     } catch (error) {
       if (!controller.signal.aborted)
         setListError(
@@ -76,6 +91,10 @@ export function ResponsesView({
       if (!controller.signal.aborted) setLoadingList(false);
     }
   };
+
+  const handleRefresh = async () => {
+    await loadPage(currentPage);
+  };
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<
     string | null
   >(null);
@@ -84,6 +103,14 @@ export function ResponsesView({
   );
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  const detailTrigger = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!selectedSubmissionId && detailTrigger.current) {
+      detailTrigger.current.focus();
+      detailTrigger.current = null;
+    }
+  }, [selectedSubmissionId]);
 
   const handleOpenDetail = async (submissionId: string) => {
     detailRequest.current?.abort();
@@ -118,7 +145,7 @@ export function ResponsesView({
     setDetailError(null);
   };
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string, includeSeconds = true) => {
     try {
       const date = new Date(dateStr);
       return new Intl.DateTimeFormat("en-US", {
@@ -127,7 +154,7 @@ export function ResponsesView({
         year: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        second: "2-digit",
+        second: includeSeconds ? "2-digit" : undefined,
         hour12: true,
       }).format(date);
     } catch {
@@ -156,7 +183,7 @@ export function ResponsesView({
               {formName}
             </h1>
             <span className="text-caption font-mono text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
-              Responses ({submissions.length})
+              Responses ({totalCount})
             </span>
           </div>
         </div>
@@ -190,8 +217,8 @@ export function ResponsesView({
           <div className="flex items-center gap-3 text-xs">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
               <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-              {submissions.length} Completed{" "}
-              {submissions.length === 1 ? "Response" : "Responses"}
+              {totalCount} Completed{" "}
+              {totalCount === 1 ? "Response" : "Responses"}
             </span>
           </div>
           <Button
@@ -276,7 +303,11 @@ export function ResponsesView({
                     <tr
                       key={sub.id}
                       className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
-                      onClick={() => handleOpenDetail(sub.id)}
+                      onClick={(event) => {
+                        detailTrigger.current =
+                          event.currentTarget.querySelector("button");
+                        void handleOpenDetail(sub.id);
+                      }}
                     >
                       <td className="px-5 py-3.5 font-medium whitespace-nowrap text-gray-900">
                         {formatDate(sub.submittedAt)}
@@ -307,7 +338,8 @@ export function ResponsesView({
                           variant="secondary"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleOpenDetail(sub.id);
+                            detailTrigger.current = e.currentTarget;
+                            void handleOpenDetail(sub.id);
                           }}
                           className="text-xs px-2.5 py-1 text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
                         >
@@ -320,6 +352,37 @@ export function ResponsesView({
                 </tbody>
               </table>
             </div>
+            {totalCount > PAGE_SIZE && (
+              <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 bg-gray-50 text-xs text-gray-600">
+                <span>
+                  Showing {currentPage * PAGE_SIZE + 1}–
+                  {Math.min((currentPage + 1) * PAGE_SIZE, totalCount)} of{" "}
+                  {totalCount} responses
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    disabled={currentPage === 0 || loadingList}
+                    onClick={() => void loadPage(currentPage - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="px-2 font-medium">
+                    Page {currentPage + 1} of{" "}
+                    {Math.ceil(totalCount / PAGE_SIZE)}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    disabled={
+                      (currentPage + 1) * PAGE_SIZE >= totalCount || loadingList
+                    }
+                    onClick={() => void loadPage(currentPage + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -362,39 +425,20 @@ export function ResponsesView({
 
           {!loadingDetail && !detailError && selectedDetail && (
             <div className="flex flex-col max-h-conflict-height">
-              {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/80 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mt-1 text-caption text-gray-500 font-mono">
-                    <span>Session: {selectedDetail.sessionReference}</span>
-                    <span>•</span>
-                    <span>{formatDate(selectedDetail.submittedAt)}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-micro font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                    Snapshot Version {selectedDetail.versionNumber}
-                  </span>
-                </div>
-              </div>
-
-              {/* Provenance Card */}
-              <div className="px-6 py-3 bg-amber-50/50 border-b border-amber-100 flex items-center justify-between text-caption text-amber-900">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold">Historical Provenance:</span>
-                  <span>
-                    Rendered using question definitions and theme preset (
-                    <strong className="font-medium">
-                      {selectedDetail.themeSnapshot?.presetName || "Default"}
-                    </strong>
-                    ) as published at time of intake.
-                  </span>
-                </div>
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/80">
+                <h3 className="text-sm font-semibold text-gray-900 break-words">
+                  {selectedDetail.definitionSnapshot.title}
+                </h3>
+                <p className="mt-1 text-caption text-gray-500">
+                  {APP_MESSAGES.RESPONSE_SUBMITTED_SUMMARY(
+                    formatDate(selectedDetail.submittedAt, false),
+                    selectedDetail.versionNumber,
+                  )}
+                </p>
               </div>
 
               {/* Modal Body: Q&A Snapshot Breakdown */}
-              <div className="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
+              <div className="px-6 py-2 overflow-y-auto min-h-0 flex-1 text-xs">
                 {selectedDetail.definitionSnapshot.questions.map(
                   (question, idx) => (
                     <ResponseFieldRow
@@ -406,13 +450,32 @@ export function ResponsesView({
                     />
                   ),
                 )}
+                <details className="py-4 border-t border-gray-200 text-caption text-gray-500">
+                  <summary
+                    tabIndex={0}
+                    className="cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-blue-500"
+                  >
+                    {APP_MESSAGES.RECORD_DETAILS}
+                  </summary>
+                  <dl className="mt-3 space-y-2">
+                    <div>
+                      <dt>{APP_MESSAGES.RESPONSE_SESSION_REFERENCE}</dt>
+                      <dd className="font-mono break-all">
+                        {selectedDetail.sessionReference}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{APP_MESSAGES.RESPONSE_RECORD_ID}</dt>
+                      <dd className="font-mono break-all">
+                        {selectedDetail.id}
+                      </dd>
+                    </div>
+                  </dl>
+                </details>
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-3.5 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                <span className="text-micro font-mono text-gray-400">
-                  ID: {selectedDetail.id}
-                </span>
+              <div className="px-6 py-3.5 border-t border-gray-200 bg-gray-50 flex items-center justify-end">
                 <Button
                   variant="primary"
                   onClick={handleCloseDetail}
@@ -452,21 +515,13 @@ function ResponseFieldRow({
   return (
     <div
       data-testid={`response-field-${question.id}`}
-      className={`p-4 rounded-xl border transition-colors ${
-        wasVisible
-          ? "bg-white border-gray-200 shadow-2xs"
-          : "bg-gray-50/70 border-dashed border-gray-200 opacity-60"
-      }`}
+      className="py-4 border-b border-gray-100"
     >
       {/* Question Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <span className="text-caption font-semibold text-gray-400 block mb-0.5">
-            Question {index + 1} •{" "}
-            {question.type.replace("_", " ").toUpperCase()}
-          </span>
           <h4 className="text-xs font-semibold text-gray-900 leading-snug">
-            {question.label}
+            {index + 1}. {question.label}
           </h4>
           {question.description && (
             <p className="text-caption text-gray-500 mt-0.5">
@@ -474,24 +529,17 @@ function ResponseFieldRow({
             </p>
           )}
         </div>
-
-        {!wasVisible && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-micro font-medium bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap">
-            Condition Skipped
-          </span>
-        )}
       </div>
 
       {/* Answer Display */}
-      <div className="mt-3 pt-3 border-t border-gray-100">
+      <div className="mt-2 break-words">
         {!wasVisible ? (
           <p className="text-caption italic text-gray-400">
-            Field was not presented to the patient due to conditional visibility
-            logic.
+            {APP_MESSAGES.RESPONSE_NOT_SHOWN}
           </p>
         ) : answer === undefined || answer === null || answer === "" ? (
           <p className="text-caption italic text-gray-400">
-            No answer provided (optional field)
+            {APP_MESSAGES.RESPONSE_NO_ANSWER}
           </p>
         ) : (
           <AnswerValueRenderer question={question} answer={answer} />
@@ -515,8 +563,14 @@ function AnswerValueRenderer({
     case "checkbox":
       return (
         <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-          <CheckIcon className="w-4 h-4 text-emerald-600" />
-          <span>{answer === true ? "Consented / Checked" : "Unchecked"}</span>
+          {answer === true && (
+            <CheckIcon className="w-4 h-4 text-emerald-600" />
+          )}
+          <span>
+            {answer === true
+              ? APP_MESSAGES.RESPONSE_CHECKED
+              : APP_MESSAGES.RESPONSE_UNCHECKED}
+          </span>
         </div>
       );
 
@@ -527,11 +581,6 @@ function AnswerValueRenderer({
           <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-900 font-semibold text-xs border border-blue-200">
             {selectedOption ? selectedOption.label : String(answer)}
           </span>
-          {selectedOption && (
-            <span className="text-micro font-mono text-gray-400">
-              (ID: {selectedOption.id})
-            </span>
-          )}
         </div>
       );
     }
@@ -579,7 +628,7 @@ function AnswerValueRenderer({
 
     case "long_text":
       return (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-800 whitespace-pre-wrap font-sans">
+        <div className="text-xs text-gray-900 whitespace-pre-wrap">
           {String(answer)}
         </div>
       );

@@ -48,6 +48,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   const [answers, setAnswers] = useState<PatientAnswers>({});
 
   // UI state
+  const [activeSlug, setActiveSlug] = useState<string>(slug);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const {
@@ -58,7 +59,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     saveNow: saveProgressNow,
     pause: pauseProgress,
     hasConflict,
-  } = usePatientProgress(slug);
+  } = usePatientProgress(activeSlug);
   const saveStatus =
     progressState?.status === "saving"
       ? "saving"
@@ -107,11 +108,34 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         if (isCancelled) return;
 
         if (sessionRes.data.active) {
+          if (sessionRes.data.status === "completed") {
+            setSessionReference(sessionRes.data.sessionReference);
+            setForm({
+              publicSlug: sessionRes.data.publicSlug,
+              versionNumber: sessionRes.data.versionNumber,
+              definition: sessionRes.data.definition,
+              theme: sessionRes.data.theme,
+            });
+            setAnswers(sessionRes.data.currentAnswers as PatientAnswers);
+            answersRef.current = sessionRes.data.currentAnswers as PatientAnswers;
+            setSubmissionResult({
+              submissionId:
+                sessionRes.data.submission?.submissionId ??
+                sessionRes.data.sessionId,
+              submittedAt:
+                sessionRes.data.submission?.submittedAt ??
+                new Date().toISOString(),
+              isIdempotentReplay: true,
+            });
+            return;
+          }
+
           // Resume active session
           setSessionReference(sessionRes.data.sessionReference);
           initializeProgress(
             sessionRes.data.currentAnswers as PatientAnswers,
             sessionRes.data.sessionRevision,
+            sessionRes.data.publicSlug,
           );
           answersRef.current = sessionRes.data.currentAnswers as PatientAnswers;
           setForm({
@@ -241,7 +265,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         return;
       }
       const response = await submitPatientSession(
-        slug,
+        activeSlug,
         validation.sanitizedAnswers,
       );
       pauseProgress();
@@ -271,6 +295,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     definition: FormDefinition;
     theme: ThemeDefinition;
   }) => {
+    if (data.publicSlug && data.publicSlug !== activeSlug) {
+      setActiveSlug(data.publicSlug);
+      if (typeof window !== "undefined" && window.history?.replaceState) {
+        window.history.replaceState(null, "", `/intake/${data.publicSlug}`);
+      }
+    }
     setForm({
       publicSlug: data.publicSlug,
       versionNumber: data.versionNumber,
@@ -281,7 +311,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     setRecoveryCode(data.newRecoveryCode);
     setAnswers(data.currentAnswers);
     answersRef.current = data.currentAnswers;
-    initializeProgress(data.currentAnswers, data.sessionRevision);
+    initializeProgress(data.currentAnswers, data.sessionRevision, data.publicSlug);
     setFieldErrors({});
     setSubmitError(null);
   };

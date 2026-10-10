@@ -1,5 +1,6 @@
 "use client";
 
+import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import { Input, Textarea } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import type { Question } from "../domain/types";
@@ -8,8 +9,7 @@ import type {
   PatientAnswers,
 } from "@/features/patients/domain/types";
 
-const fieldClass =
-  "border-intake-border bg-intake-surface text-intake-text-primary focus:border-intake-border-focus focus:ring-intake-focus-ring";
+const fieldClass = COMPONENT_STYLES.intakeField;
 
 export function QuestionInput({
   question: q,
@@ -31,7 +31,11 @@ export function QuestionInput({
   return (
     <div
       data-question-id={q.id}
-      className={`rounded-xl border bg-intake-surface p-5 text-intake-text-primary shadow-xs ${error ? "border-intake-error-border" : "border-intake-border"}`}
+      className={
+        q.type === "checkbox"
+          ? "px-5 py-2 text-intake-text-primary"
+          : `rounded-xl border bg-intake-surface p-5 text-intake-text-primary shadow-xs ${error ? "border-intake-error-border" : "border-intake-border"}`
+      }
     >
       {q.type === "single_select" || q.type === "multi_select" ? (
         <fieldset aria-describedby={describedBy} aria-invalid={Boolean(error)}>
@@ -89,7 +93,7 @@ export function QuestionInput({
         <div>
           <label
             htmlFor={id}
-            className="flex cursor-pointer items-start gap-3 text-xs font-semibold"
+            className="flex min-h-touch-target cursor-pointer items-start gap-3 text-xs font-medium"
           >
             <Input
               id={id}

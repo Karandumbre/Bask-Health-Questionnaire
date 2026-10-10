@@ -463,7 +463,7 @@ export function threeWayMergeDrafts(params: {
   }
 
   // 5. Question Ordering Synthesis
-  // Build ordering prioritizing local sequence for local questions, plus newly introduced server questions
+  // Build ordering prioritizing local sequence for local questions, but preserving server insertion positions
   const mergedQuestions: Question[] = [];
   const processedIds = new Set<string>();
 
@@ -475,12 +475,57 @@ export function threeWayMergeDrafts(params: {
     }
   }
 
-  // Then append any server additions or restored server questions that were not in local
-  for (const serverQ of server.questions) {
-    if (resolvedQuestions.has(serverQ.id) && !processedIds.has(serverQ.id)) {
-      mergedQuestions.push(resolvedQuestions.get(serverQ.id)!);
-      processedIds.add(serverQ.id);
+  // Insert server questions preserving their relative position when possible
+  for (let i = 0; i < server.questions.length; i++) {
+    const serverQ = server.questions[i];
+    if (
+      !serverQ ||
+      processedIds.has(serverQ.id) ||
+      !resolvedQuestions.has(serverQ.id)
+    ) {
+      continue;
     }
+    const resolvedQ = resolvedQuestions.get(serverQ.id)!;
+
+    // Look for previous sibling in server.questions that exists in mergedQuestions
+    let insertIndex = -1;
+    for (let p = i - 1; p >= 0; p--) {
+      const prevServerQ = server.questions[p];
+      if (prevServerQ && processedIds.has(prevServerQ.id)) {
+        const foundIdx = mergedQuestions.findIndex(
+          (q) => q.id === prevServerQ.id,
+        );
+        if (foundIdx !== -1) {
+          insertIndex = foundIdx + 1;
+          break;
+        }
+      }
+    }
+
+    if (insertIndex !== -1) {
+      mergedQuestions.splice(insertIndex, 0, resolvedQ);
+    } else {
+      // Look for next sibling in server.questions that exists in mergedQuestions
+      let nextIndex = -1;
+      for (let n = i + 1; n < server.questions.length; n++) {
+        const nextServerQ = server.questions[n];
+        if (nextServerQ && processedIds.has(nextServerQ.id)) {
+          const foundIdx = mergedQuestions.findIndex(
+            (q) => q.id === nextServerQ.id,
+          );
+          if (foundIdx !== -1) {
+            nextIndex = foundIdx;
+            break;
+          }
+        }
+      }
+      if (nextIndex !== -1) {
+        mergedQuestions.splice(nextIndex, 0, resolvedQ);
+      } else {
+        mergedQuestions.push(resolvedQ);
+      }
+    }
+    processedIds.add(serverQ.id);
   }
 
   // Detect reordering conflict if order of shared questions differs between local and server

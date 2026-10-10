@@ -18,6 +18,8 @@ export const COMPONENT_STYLES = {
   },
   field:
     "w-full text-xs bg-white border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50",
+  intakeField:
+    "border-intake-border bg-intake-surface text-intake-text-primary placeholder:text-intake-text-secondary focus:border-intake-border-focus focus:ring-intake-focus-ring",
   select: {
     wrapper: "relative inline-grid w-full min-w-0",
     control: "col-start-1 row-start-1 appearance-none pr-9",

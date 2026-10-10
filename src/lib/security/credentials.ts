@@ -1,4 +1,11 @@
-import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import {
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+} from "crypto";
 
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // 32 characters, no I, L, O, U
 
@@ -105,4 +112,62 @@ export function verifyCapabilityToken(
   }
 
   return timingSafeEqual(bufA, bufB);
+}
+
+/**
+ * Encrypts replacement credentials for safe bounded retryability upon network drops.
+ * Uses AES-256-GCM authenticated encryption.
+ */
+export function encryptRecoveryReplay(
+  payload: { newRecoveryCode: string; newCapabilityToken: string },
+  pepper: string,
+): string {
+  const key = createHash("sha256").update(pepper).digest();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const jsonStr = JSON.stringify(payload);
+  const encrypted = Buffer.concat([
+    cipher.update(jsonStr, "utf8"),
+    cipher.final(),
+  ]);
+  const authTag = cipher.getAuthTag();
+  return `${iv.toString("hex")}:${authTag.toString("hex")}:${encrypted.toString("hex")}`;
+}
+
+/**
+ * Decrypts replacement credentials if within the valid replay window.
+ */
+export function decryptRecoveryReplay(
+  cipherPayload: string,
+  pepper: string,
+): { newRecoveryCode: string; newCapabilityToken: string } | null {
+  try {
+    const parts = cipherPayload.split(":");
+    if (parts.length !== 3) return null;
+    const [ivHex, tagHex, encryptedHex] = parts;
+    if (!ivHex || !tagHex || !encryptedHex) return null;
+    const iv = Buffer.from(ivHex, "hex");
+    const tag = Buffer.from(tagHex, "hex");
+    const encrypted = Buffer.from(encryptedHex, "hex");
+    const key = createHash("sha256").update(pepper).digest();
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
+    const parsed = JSON.parse(decrypted.toString("utf8"));
+    if (
+      typeof parsed?.newRecoveryCode === "string" &&
+      typeof parsed?.newCapabilityToken === "string"
+    ) {
+      return {
+        newRecoveryCode: parsed.newRecoveryCode,
+        newCapabilityToken: parsed.newCapabilityToken,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
