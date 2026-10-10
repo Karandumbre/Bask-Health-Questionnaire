@@ -1,5 +1,11 @@
 /** Shared application copy. Keep protocol identifiers and schema keys near their contracts. */
 export const APP_MESSAGES = {
+  INTAKE_ALREADY_SUBMITTED: "Intake already submitted",
+  INTAKE_CONFIRMATION_LOADING:
+    "Your responses are recorded. Retrieving your submission confirmation...",
+  INTAKE_CONFIRMATION_UNAVAILABLE:
+    "Your intake is already submitted and cannot be edited. We could not retrieve the confirmation details. Please retry.",
+  RETRY_CONFIRMATION: "Retry confirmation",
   INTAKE_SESSION_ENDED_TITLE: "Intake session ended",
   INTAKE_SESSION_ENDED_MESSAGE:
     "Your session has expired or is no longer authorized. Resume with your recovery code, or start a new intake. Any unsaved answers remain on this page until you start again.",

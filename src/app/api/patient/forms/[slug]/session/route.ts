@@ -37,10 +37,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const credentials = parseSessionCookie(cookieValue);
     if (!credentials) {
-      const response = NextResponse.json({
-        success: true,
-        data: { active: false, sessionEnded: Boolean(cookieValue) },
-      });
+      const response = NextResponse.json(
+        {
+          success: true,
+          data: { active: false, sessionEnded: Boolean(cookieValue) },
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
       if (cookieValue) clearSessionCapabilityCookie(response, slug);
       return response;
     }
@@ -59,50 +62,57 @@ export async function GET(request: NextRequest, context: RouteContext) {
         .limit(1);
 
       if (!version) {
-        return NextResponse.json({
-          success: true,
-          data: { active: false },
-        });
+        return NextResponse.json(
+          {
+            success: true,
+            data: { active: false },
+          },
+          { headers: { "Cache-Control": "private, no-store" } },
+        );
       }
 
       let submissionInfo:
         { submissionId: string; submittedAt: string } | undefined;
-      if (session.status === "completed") {
-        const [existingSubmission] = await db
-          .select({ id: submissions.id, submittedAt: submissions.submittedAt })
-          .from(submissions)
-          .where(eq(submissions.sessionId, session.id))
-          .limit(1);
-        if (existingSubmission) {
-          submissionInfo = {
-            submissionId: existingSubmission.id,
-            submittedAt: existingSubmission.submittedAt.toISOString(),
-          };
-        }
+      const [existingSubmission] = await db
+        .select({ id: submissions.id, submittedAt: submissions.submittedAt })
+        .from(submissions)
+        .where(eq(submissions.sessionId, session.id))
+        .limit(1);
+      if (existingSubmission) {
+        submissionInfo = {
+          submissionId: existingSubmission.id,
+          submittedAt: existingSubmission.submittedAt.toISOString(),
+        };
       }
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          active: true,
-          sessionId: session.id,
-          sessionReference: session.sessionReference,
-          status: session.status,
-          sessionRevision: session.revision,
-          currentAnswers: (session.answerJson ?? {}) as PatientAnswers,
-          publicSlug: version.publicSlug,
-          versionNumber: version.versionNumber,
-          definition: version.definitionSnapshot as FormDefinition,
-          theme: version.themeSnapshot as ThemeDefinition,
-          submission: submissionInfo,
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            active: true,
+            sessionId: session.id,
+            sessionReference: session.sessionReference,
+            status: existingSubmission ? "completed" : session.status,
+            sessionRevision: session.revision,
+            currentAnswers: (session.answerJson ?? {}) as PatientAnswers,
+            publicSlug: version.publicSlug,
+            versionNumber: version.versionNumber,
+            definition: version.definitionSnapshot as FormDefinition,
+            theme: version.themeSnapshot as ThemeDefinition,
+            submission: submissionInfo,
+          },
         },
-      });
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     } catch (innerError) {
       if (isSessionAccessError(innerError)) {
-        const response = NextResponse.json({
-          success: true,
-          data: { active: false, sessionEnded: true },
-        });
+        const response = NextResponse.json(
+          {
+            success: true,
+            data: { active: false, sessionEnded: true },
+          },
+          { headers: { "Cache-Control": "private, no-store" } },
+        );
         clearSessionCapabilityCookie(response, slug);
         return response;
       }

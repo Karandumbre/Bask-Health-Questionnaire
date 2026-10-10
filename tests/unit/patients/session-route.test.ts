@@ -121,55 +121,62 @@ describe("Patient Session Inspection Route (GET)", () => {
     expect(json.data).toBeUndefined();
   });
 
-  it("returns status: completed and attaches submission info when session is already submitted", async () => {
-    mockParseCookie.mockReturnValueOnce({
-      sessionId: "s_completed",
-      capabilityToken: "token_valid",
-    });
-    mockAuthenticate.mockResolvedValueOnce({
-      id: "s_completed",
-      sessionReference: "BKS-1234-5678",
-      publishedVersionId: "ver_1",
-      status: "completed",
-      revision: 3,
-      answerJson: { q_name: "Alice" },
-    });
+  it.each(["completed", "in_progress"])(
+    "returns stored confirmation even when the initial session read says %s",
+    async (status) => {
+      mockParseCookie.mockReturnValueOnce({
+        sessionId: "s_completed",
+        capabilityToken: "token_valid",
+      });
+      mockAuthenticate.mockResolvedValueOnce({
+        id: "s_completed",
+        sessionReference: "BKS-1234-5678",
+        publishedVersionId: "ver_1",
+        status,
+        revision: 3,
+        answerJson: { q_name: "Alice" },
+      });
 
-    const mockLimit = vi
-      .fn()
-      .mockResolvedValueOnce([
-        {
-          id: "ver_1",
-          publicSlug: "form-1",
-          versionNumber: 1,
-          definitionSnapshot: { title: "Title", questions: [] },
-          themeSnapshot: {},
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          id: "sub_1",
-          submittedAt: new Date("2026-10-10T12:00:00Z"),
-        },
-      ]);
+      const mockLimit = vi
+        .fn()
+        .mockResolvedValueOnce([
+          {
+            id: "ver_1",
+            publicSlug: "form-1",
+            versionNumber: 1,
+            definitionSnapshot: { title: "Title", questions: [] },
+            themeSnapshot: {},
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: "sub_1",
+            submittedAt: new Date("2026-10-10T12:00:00Z"),
+          },
+        ]);
 
-    mockDbSelect.mockReturnValue({
-      from: () => ({
-        where: () => ({
-          limit: mockLimit,
+      mockDbSelect.mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: mockLimit,
+          }),
         }),
-      }),
-    });
+      });
 
-    const req = createRequest("form-1", "s_completed:token_valid");
-    const res = await getSessionHandler(req, {
-      params: Promise.resolve({ slug: "form-1" }),
-    });
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.success).toBe(true);
-    expect(json.data.active).toBe(true);
-    expect(json.data.status).toBe("completed");
-    expect(json.data.submission?.submissionId).toBe("sub_1");
-  });
+      const req = createRequest("form-1", "s_completed:token_valid");
+      const res = await getSessionHandler(req, {
+        params: Promise.resolve({ slug: "form-1" }),
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.active).toBe(true);
+      expect(json.data.status).toBe("completed");
+      expect(json.data.submission?.submissionId).toBe("sub_1");
+      expect(json.data.submission?.submittedAt).toBe(
+        "2026-10-10T12:00:00.000Z",
+      );
+      expect(res.headers.get("cache-control")).toBe("private, no-store");
+    },
+  );
 });

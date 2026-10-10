@@ -10,6 +10,7 @@ import {
   startPatientSession,
   submitPatientSession,
   isPatientSessionEnded,
+  type ActivePatientSession,
 } from "../client/patient-api";
 import { getVisibleQuestions, pruneHiddenAnswers } from "../domain/visibility";
 import {
@@ -28,7 +29,7 @@ import { IntakeLoading } from "./IntakeLoading";
 import { usePatientProgress } from "../hooks/use-patient-progress";
 import { Button } from "@/components/ui/button";
 import { apiAnswerErrors } from "../client/answer-errors";
-import { apiErrorMessage } from "@/lib/http/api-client";
+import { ApiError, apiErrorMessage } from "@/lib/http/api-client";
 
 interface PatientIntakeViewProps {
   slug: string;
@@ -61,6 +62,8 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     pause: pauseProgress,
     hasConflict,
     hasSessionEnded,
+    hasSessionCompleted,
+    sessionCompleted: progressSessionCompleted,
     sessionEnded: progressSessionEnded,
   } = usePatientProgress(activeSlug);
   const saveStatus = progressSessionEnded
@@ -74,7 +77,11 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           ? "error"
           : "idle";
   const [sessionEnded, setSessionEnded] = useState(false);
-  const accessEnded = sessionEnded || progressSessionEnded;
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+  const completed = sessionCompleted || progressSessionCompleted;
+  const accessEnded = sessionEnded || progressSessionEnded || completed;
+  const [confirmationError, setConfirmationError] = useState(false);
+  const [confirmationAttempt, setConfirmationAttempt] = useState(0);
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const submitBusy = useRef(false);
@@ -94,6 +101,49 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   const [showResumeModal, setShowResumeModal] = useState<boolean>(false);
 
   const answersRef = useRef<PatientAnswers>({});
+  const showCompletedSession = useCallback(
+    (data: ActivePatientSession) => {
+      if (data.status !== "completed")
+        throw new Error(APP_MESSAGES.INTAKE_CONFIRMATION_UNAVAILABLE);
+      pauseProgress();
+      setSessionCompleted(true);
+      if (!data.submission)
+        throw new Error(APP_MESSAGES.INTAKE_CONFIRMATION_UNAVAILABLE);
+      setForm({
+        publicSlug: data.publicSlug,
+        versionNumber: data.versionNumber,
+        definition: data.definition,
+        theme: data.theme,
+      });
+      setSubmissionResult({ ...data.submission, isIdempotentReplay: true });
+      setShowRecoveryModal(false);
+      setShowResumeModal(false);
+    },
+    [pauseProgress],
+  );
+
+  useEffect(() => {
+    if (!completed || submissionResult) return;
+    const controller = new AbortController();
+    void getActiveSession(activeSlug, controller.signal)
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        if (!response.data.active)
+          throw new Error(APP_MESSAGES.INTAKE_CONFIRMATION_UNAVAILABLE);
+        showCompletedSession(response.data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setConfirmationError(true);
+      });
+    return () => controller.abort();
+  }, [
+    completed,
+    submissionResult,
+    activeSlug,
+    confirmationAttempt,
+    showCompletedSession,
+  ]);
+
   // Initialize form and session
   useEffect(() => {
     let isCancelled = false;
@@ -104,37 +154,13 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         setLoading(true);
         setLoadError(null);
 
-        // 1. Fetch published form definition
-        const formRes = await fetchPublishedForm(slug, abortController.signal);
-        if (isCancelled) return;
-
-        setForm(formRes.data);
-
-        // 2. Check active session capability
+        // Inspect the capability first so a completed/pinned session owns its view.
         const sessionRes = await getActiveSession(slug, abortController.signal);
         if (isCancelled) return;
 
         if (sessionRes.data.active) {
           if (sessionRes.data.status === "completed") {
-            setSessionReference(sessionRes.data.sessionReference);
-            setForm({
-              publicSlug: sessionRes.data.publicSlug,
-              versionNumber: sessionRes.data.versionNumber,
-              definition: sessionRes.data.definition,
-              theme: sessionRes.data.theme,
-            });
-            setAnswers(sessionRes.data.currentAnswers as PatientAnswers);
-            answersRef.current = sessionRes.data
-              .currentAnswers as PatientAnswers;
-            setSubmissionResult({
-              submissionId:
-                sessionRes.data.submission?.submissionId ??
-                sessionRes.data.sessionId,
-              submittedAt:
-                sessionRes.data.submission?.submittedAt ??
-                new Date().toISOString(),
-              isIdempotentReplay: true,
-            });
+            showCompletedSession(sessionRes.data);
             return;
           }
 
@@ -154,6 +180,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           });
           setAnswers(sessionRes.data.currentAnswers as PatientAnswers);
         } else {
+          const formRes = await fetchPublishedForm(
+            slug,
+            abortController.signal,
+          );
+          if (isCancelled) return;
+          setForm(formRes.data);
           if (sessionRes.data.sessionEnded) {
             setSessionEnded(true);
             return;
@@ -197,7 +229,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       isCancelled = true;
       abortController.abort();
     };
-  }, [slug, loadAttempt, initializeProgress]);
+  }, [slug, loadAttempt, initializeProgress, showCompletedSession]);
 
   // Keep answer updates outside React state updaters so replay cannot send writes.
   const handleAnswerChange = useCallback(
@@ -282,7 +314,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       // Finish any in-flight write before final submission. A failed progress
       // save does not discard answers; the final endpoint validates them again.
       await saveProgressNow();
-      if (hasSessionEnded()) return;
+      if (hasSessionEnded() || hasSessionCompleted()) return;
       if (hasConflict()) {
         setSubmitError(APP_MESSAGES.INTAKE_CONFLICT);
         return;
@@ -298,6 +330,11 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         isIdempotentReplay: response.data.isIdempotentReplay,
       });
     } catch (err) {
+      if (err instanceof ApiError && err.code === "SESSION_COMPLETED") {
+        pauseProgress();
+        setSessionCompleted(true);
+        return;
+      }
       if (isPatientSessionEnded(err)) {
         pauseProgress();
         setSessionEnded(true);
@@ -433,6 +470,36 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
 
   // 1. Loading state
   if (loading) return <IntakeLoading />;
+
+  if (completed && !submissionResult) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-12">
+        <div className="max-w-xl mx-auto space-y-4 text-center">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {APP_MESSAGES.INTAKE_ALREADY_SUBMITTED}
+          </h1>
+          {confirmationError ? (
+            <>
+              <Alert>{APP_MESSAGES.INTAKE_CONFIRMATION_UNAVAILABLE}</Alert>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setConfirmationError(false);
+                  setConfirmationAttempt((attempt) => attempt + 1);
+                }}
+              >
+                {APP_MESSAGES.RETRY_CONFIRMATION}
+              </Button>
+            </>
+          ) : (
+            <p role="status" className="text-sm text-gray-600">
+              {APP_MESSAGES.INTAKE_CONFIRMATION_LOADING}
+            </p>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   // 2. Load Error state
   if (loadError || !form) {

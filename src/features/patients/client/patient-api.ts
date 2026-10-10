@@ -45,6 +45,11 @@ export const activeSessionResponseSchema = z.object({
   ]),
 });
 
+export type ActivePatientSession = Extract<
+  z.infer<typeof activeSessionResponseSchema>["data"],
+  { active: true }
+>;
+
 export const startSessionResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({

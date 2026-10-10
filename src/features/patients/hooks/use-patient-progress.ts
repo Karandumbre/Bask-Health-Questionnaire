@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ApiError } from "@/lib/http/api-client";
 import { APPLICATION } from "@/lib/constants/application";
 import {
   DraftAutosave,
@@ -20,6 +21,8 @@ export function usePatientProgress(slug: string) {
   >({});
   const [sessionEnded, setSessionEnded] = useState(false);
   const sessionEndedRef = useRef(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+  const sessionCompletedRef = useRef(false);
   const slugRef = useRef(slug);
   useEffect(() => {
     slugRef.current = slug;
@@ -35,6 +38,8 @@ export function usePatientProgress(slug: string) {
       }
       const targetSlug = overrideSlug ?? slugRef.current;
       sessionEndedRef.current = false;
+      sessionCompletedRef.current = false;
+      setSessionCompleted(false);
       setSessionEnded(false);
       setValidationErrors({});
       unsubscribe.current?.();
@@ -55,7 +60,14 @@ export function usePatientProgress(slug: string) {
           } catch (error) {
             if (!signal.aborted) {
               setValidationErrors(apiAnswerErrors(error));
-              if (isPatientSessionEnded(error)) {
+              if (
+                error instanceof ApiError &&
+                error.code === "SESSION_COMPLETED"
+              ) {
+                sessionCompletedRef.current = true;
+                setSessionCompleted(true);
+                next.pause();
+              } else if (isPatientSessionEnded(error)) {
                 sessionEndedRef.current = true;
                 setSessionEnded(true);
                 next.pause();
@@ -92,16 +104,22 @@ export function usePatientProgress(slug: string) {
     [],
   );
   const hasSessionEnded = useCallback(() => sessionEndedRef.current, []);
+  const hasSessionCompleted = useCallback(
+    () => sessionCompletedRef.current,
+    [],
+  );
   const pause = useCallback(() => controller.current?.pause(), []);
   return {
     state,
     validationErrors,
     sessionEnded,
+    sessionCompleted,
     initialize,
     update,
     saveNow,
     pause,
     hasConflict,
     hasSessionEnded,
+    hasSessionCompleted,
   };
 }
