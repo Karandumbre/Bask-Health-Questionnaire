@@ -9,26 +9,29 @@ This document details the multi-layered security model, database roles, grants, 
 In a typical Supabase architecture, browser clients use the Supabase client SDK and rely on PostgreSQL Row-Level Security (RLS) policies evaluated under the `anon` or `authenticated` PostgreSQL roles.
 
 However, **Intake Studio adopts a server-side Drizzle ORM architecture** (ADR-003). In this model:
+
 - Browser clients **never** connect directly to PostgreSQL.
 - Server-side Next.js Route Handlers and Server Actions connect via connection strings (`DATABASE_URL`, `DATABASE_DIRECT_URL`).
 - PostgreSQL connection pooler connections execute under the administrative database role (`postgres`).
 - By default in PostgreSQL, table owners and superusers bypass RLS policies unless `FORCE ROW LEVEL SECURITY` is explicitly declared.
 
 **Crucial Security Rule:**
+
 > **Do not assume privileged Drizzle connections automatically enforce Supabase RLS.** The application service layer is the authoritative authorization boundary. Administrative and patient access control must be strictly enforced in code and backed by relational database constraints.
 
 ---
 
 ## 2. PostgreSQL Roles & Privilege Topology
 
-| Role | Environment | Access Level | Description |
-|---|---|---|---|
-| `postgres` | Server-only (Next.js Backend) | Superuser / Owner | Used exclusively by server-side Drizzle connection pool (`postgres.js`). Full CRUD and DDL capabilities. Credentials never exposed to client bundles. |
-| `service_role` | Supabase Admin API | Elevated Service | Used for administrative auth management (e.g., seeding reviewers, inspecting auth users). Strictly forbidden in client bundles. |
-| `authenticated` | Supabase Client SDK | Restricted | Represents a logged-in Supabase user. Not used for direct SQL in our architecture. |
-| `anon` | Supabase Client SDK | Public / Read-only | Used by browser SDK for public metadata. Not permitted direct SQL access to forms, drafts, or responses. |
+| Role            | Environment                   | Access Level       | Description                                                                                                                                           |
+| --------------- | ----------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `postgres`      | Server-only (Next.js Backend) | Superuser / Owner  | Used exclusively by server-side Drizzle connection pool (`postgres.js`). Full CRUD and DDL capabilities. Credentials never exposed to client bundles. |
+| `service_role`  | Supabase Admin API            | Elevated Service   | Used for administrative auth management (e.g., seeding reviewers, inspecting auth users). Strictly forbidden in client bundles.                       |
+| `authenticated` | Supabase Client SDK           | Restricted         | Represents a logged-in Supabase user. Not used for direct SQL in our architecture.                                                                    |
+| `anon`          | Supabase Client SDK           | Public / Read-only | Used by browser SDK for public metadata. Not permitted direct SQL access to forms, drafts, or responses.                                              |
 
 ### Defense Principles
+
 1. **Zero Client Secrets:** Client bundles contain only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `ANON_KEY`).
 2. **Strict Server Separation:** All database connection strings (`DATABASE_URL`, `DATABASE_DIRECT_URL`) and cryptographic keys (`APP_SESSION_PEPPER`) are imported in server-only modules (`import "server-only"`).
 
@@ -95,6 +98,7 @@ Incoming Request
 ## 4. Role-Based Access Control (RBAC) Specifications
 
 ### Roles Defined
+
 - **`owner`**:
   - Can manage workspace members (invite, change roles, revoke).
   - Can archive forms.
@@ -103,14 +107,16 @@ Incoming Request
 - **`editor`**:
   - Can create, edit, duplicate, and publish form drafts.
   - Can view form submissions.
-  - *Cannot* archive forms or modify workspace membership.
+  - _Cannot_ archive forms or modify workspace membership.
 - **`public_patient`**:
   - Anonymous patient interacting via public intake slug.
   - **Zero administrative privileges.**
   - Restricted strictly to reading the pinned published snapshot and managing their own session answers via an authenticated capability cookie.
 
 ### Workspace Isolation Guarantee
+
 Every database mutation in `draft-service.ts` and `publish-service.ts` begins by resolving the form's `workspace_id` and confirming active membership for `userId`:
+
 ```typescript
 const { form, membership } = await requireFormWorkspaceAccess(formId, user.id);
 // Proceed only within the validated workspace context
@@ -126,4 +132,3 @@ const { form, membership } = await requireFormWorkspaceAccess(formId, user.id);
 4. **Constant-Time Verification:** Verified using Node.js `crypto.timingSafeEqual` to eliminate timing attacks.
 5. **Atomic Rotation:** Upon successful redemption, the old recovery code is immediately invalidated, and a new recovery code + new capability cookie are generated and returned.
 6. **Rate Limiting:** If 5 failed recovery attempts occur within 15 minutes, subsequent attempts are rejected with `HTTP 429 RESUME_RATE_LIMITED` without checking the hash.
-

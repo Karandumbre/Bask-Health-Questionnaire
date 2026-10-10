@@ -26,7 +26,9 @@ export function validateFormForDraft(input: unknown): {
   if (!result.success) {
     return {
       valid: false,
-      error: result.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join("; "),
+      error: result.error.issues
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join("; "),
     };
   }
   return { valid: true, data: result.data };
@@ -156,7 +158,8 @@ export function validateFormForPublish(definition: FormDefinition): {
               errors.push({
                 questionId: q.id,
                 field: "min",
-                issue: "Minimum bound must be an integer when integer-only is enabled",
+                issue:
+                  "Minimum bound must be an integer when integer-only is enabled",
                 code: "NON_INTEGER_BOUND",
               });
             }
@@ -164,7 +167,8 @@ export function validateFormForPublish(definition: FormDefinition): {
               errors.push({
                 questionId: q.id,
                 field: "max",
-                issue: "Maximum bound must be an integer when integer-only is enabled",
+                issue:
+                  "Maximum bound must be an integer when integer-only is enabled",
                 code: "NON_INTEGER_BOUND",
               });
             }
@@ -239,14 +243,17 @@ export function validateFormForPublish(definition: FormDefinition): {
             errors.push({
               questionId: q.id,
               field: "visibility",
-              issue: "Condition parent question must be unconditional (nested conditions are not allowed)",
+              issue:
+                "Condition parent question must be unconditional (nested conditions are not allowed)",
               code: "NESTED_CONDITION_FORBIDDEN",
             });
           }
 
           // equalsOptionId MUST exist in parent options
           if (parent.type === "single_select") {
-            const hasOption = parent.options.some((opt) => opt.id === equalsOptionId);
+            const hasOption = parent.options.some(
+              (opt) => opt.id === equalsOptionId,
+            );
             if (!hasOption) {
               errors.push({
                 questionId: q.id,
@@ -269,7 +276,7 @@ export function validateFormForPublish(definition: FormDefinition): {
 
 function validateChoiceOptions(
   q: SingleSelectQuestion | MultiSelectQuestion,
-  errors: FormValidationError[]
+  errors: FormValidationError[],
 ): void {
   if (!q.options || q.options.length < 2) {
     errors.push({
@@ -319,4 +326,3 @@ function validateChoiceOptions(
     seenOptionIds.add(opt.id);
   }
 }
-

@@ -1,6 +1,10 @@
 "use client";
 
-import { apiRequest, apiErrorMessage, successSchema } from "@/lib/http/api-client";
+import {
+  apiRequest,
+  apiErrorMessage,
+  successSchema,
+} from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -24,12 +28,20 @@ function LoginForm() {
     setErrorMessage(null);
 
     try {
-      await apiRequest("/api/auth/login", successSchema, { method: "POST", json: { email, password } });
+      await apiRequest("/api/auth/login", successSchema, {
+        method: "POST",
+        json: { email, password },
+      });
 
       router.push(nextUrl);
       router.refresh();
     } catch (error) {
-      setErrorMessage(apiErrorMessage(error, "Network error during authentication. Please retry."));
+      setErrorMessage(
+        apiErrorMessage(
+          error,
+          "Network error during authentication. Please retry.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +65,6 @@ function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="reviewer@baskhealth.com"
-
         />
       </div>
 
@@ -73,7 +84,6 @@ function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••••"
-
         />
       </div>
 
@@ -88,7 +98,8 @@ function LoginForm() {
         <Button
           type="submit"
           disabled={isLoading}
-          variant="primary" className="w-full"
+          variant="primary"
+          className="w-full"
         >
           {isLoading ? "Signing in..." : "Sign in to Intake Studio"}
         </Button>
@@ -114,13 +125,20 @@ export default function AdminLoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl border border-gray-200 sm:rounded-2xl sm:px-10 space-y-6">
-          <Suspense fallback={<div className="text-xs text-gray-400 text-center py-4">Loading login form...</div>}>
+          <Suspense
+            fallback={
+              <div className="text-xs text-gray-400 text-center py-4">
+                Loading login form...
+              </div>
+            }
+          >
             <LoginForm />
           </Suspense>
 
           <div className="pt-2 border-t border-gray-100 text-center">
             <p className="text-[11px] text-gray-400">
-              Authorized clinical personnel & reviewers only. All operations audited.
+              Authorized clinical personnel & reviewers only. All operations
+              audited.
             </p>
           </div>
         </div>

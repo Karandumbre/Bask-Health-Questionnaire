@@ -1,7 +1,11 @@
 import "server-only";
 import { eq, desc, and } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { submissions, patientSessions, publishedVersions } from "@/lib/db/schema";
+import {
+  submissions,
+  patientSessions,
+  publishedVersions,
+} from "@/lib/db/schema";
 import { requireFormWorkspaceAccess } from "@/lib/auth/admin";
 import { AppError } from "@/lib/errors";
 
@@ -43,12 +47,9 @@ export async function listFormSubmissions(params: ListSubmissionsParams) {
     .from(submissions)
     .innerJoin(
       publishedVersions,
-      eq(submissions.publishedVersionId, publishedVersions.id)
+      eq(submissions.publishedVersionId, publishedVersions.id),
     )
-    .innerJoin(
-      patientSessions,
-      eq(submissions.sessionId, patientSessions.id)
-    )
+    .innerJoin(patientSessions, eq(submissions.sessionId, patientSessions.id))
     .where(eq(publishedVersions.formId, formId))
     .orderBy(desc(submissions.submittedAt))
     .limit(limit)
@@ -83,17 +84,14 @@ export async function getSubmissionDetail(params: GetSubmissionDetailParams) {
     .from(submissions)
     .innerJoin(
       publishedVersions,
-      eq(submissions.publishedVersionId, publishedVersions.id)
+      eq(submissions.publishedVersionId, publishedVersions.id),
     )
-    .innerJoin(
-      patientSessions,
-      eq(submissions.sessionId, patientSessions.id)
-    )
+    .innerJoin(patientSessions, eq(submissions.sessionId, patientSessions.id))
     .where(
       and(
         eq(submissions.id, submissionId),
-        eq(publishedVersions.formId, formId)
-      )
+        eq(publishedVersions.formId, formId),
+      ),
     )
     .limit(1);
 
@@ -105,4 +103,3 @@ export async function getSubmissionDetail(params: GetSubmissionDetailParams) {
 
   return detail;
 }
-

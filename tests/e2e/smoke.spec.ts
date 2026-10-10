@@ -19,175 +19,48 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
     // Safety guard: Never execute destructive browser tests against production
     const env = process.env.NODE_ENV || process.env.APP_ENV || "";
     if (env.toLowerCase() === "production") {
-      throw new Error("Destructive E2E smoke tests are strictly forbidden against production!");
+      throw new Error(
+        "Destructive E2E smoke tests are strictly forbidden against production!",
+      );
     }
   });
 
-  test("full administrator lifecycle from draft creation to publication", async ({ page }) => {
+  test("full administrator lifecycle from draft creation to publication", async ({
+    page,
+  }) => {
+    page.on("console", (msg) => console.log("[CONSOLE]", msg.type(), msg.text()));
+    page.on("response", (res) => console.log("[HTTP]", res.status(), res.request().method(), res.url()));
+    page.on("requestfailed", (req) => console.log("[HTTP FAILED]", req.method(), req.url(), req.failure()?.errorText));
+
     // -------------------------------------------------------------------------
     // 1. Login
     // -------------------------------------------------------------------------
     await page.goto("/admin/login");
     await expect(page).toHaveTitle(/Intake Studio|Bask/i);
 
-    // Mock API authentication or fill credentials
-    await page.route("**/api/auth/login", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          success: true,
-          user: { id: "usr_reviewer_test", email: "reviewer@baskhealth.com" },
-        }),
-      });
-    });
-
     await page.fill("#email", "reviewer@baskhealth.com");
     await page.fill("#password", "ClinicalReview2026!");
     await page.click('button[type="submit"]');
 
+    // Wait for redirect to forms dashboard
+    await page.waitForURL("**/admin/forms", { timeout: 15000 });
+    await expect(page.locator("text=Clinical Intake Forms")).toBeVisible();
+
     // -------------------------------------------------------------------------
     // 2. Create draft
     // -------------------------------------------------------------------------
-    const testFormId = "form_e2e_smoke_01";
-    let mockDraftRevision = 0;
-    let mockDefinition = {
-      schemaVersion: 1,
-      title: "GLP-1 Weight Management Intake",
-      questions: [] as any[],
-    };
-    const mockTheme = {
-      presetName: "Ocean",
-      isCustomShuffle: false,
-      light: {
-        background: "#F8FAFC",
-        surface: "#FFFFFF",
-        text: "#0F172A",
-        primary: "#0284C7",
-        primaryForeground: "#FFFFFF",
-      },
-      dark: {
-        background: "#0B1120",
-        surface: "#1E293B",
-        text: "#F8FAFC",
-        primary: "#38BDF8",
-        primaryForeground: "#0B1120",
-      },
-    };
+    const uniqueFormTitle = `E2E GLP-1 Intake ${Date.now()}`;
+    await page.click('button:has-text("Create New Form")');
+    await page.waitForSelector("#new-form-name");
+    await page.fill("#new-form-name", uniqueFormTitle);
+    await page.click('button:has-text("Create & Open")');
 
-    // Mock backend form endpoints for isolated fixture testing
-    await page.route("**/api/admin/forms", async (route) => {
-      if (route.request().method() === "POST") {
-        await route.fulfill({
-          status: 201,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: true,
-            form: { id: testFormId, name: "GLP-1 Weight Management Intake", workspaceId: "ws_test" },
-            draft: { id: "draft_01", revision: 0 },
-          }),
-        });
-      } else {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: true,
-            forms: [],
-          }),
-        });
-      }
-    });
-
-    await page.route(`**/api/admin/forms/${testFormId}`, async (route) => {
-      const method = route.request().method();
-      if (method === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: true,
-            form: { id: testFormId, name: mockDefinition.title },
-            draft: { revision: mockDraftRevision },
-            definition: mockDefinition,
-            theme: mockTheme,
-          }),
-        });
-      } else if (method === "PATCH") {
-        const body = route.request().postDataJSON();
-        if (body.expectedRevision === mockDraftRevision) {
-          mockDraftRevision++;
-          mockDefinition = body.definition;
-          await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({
-              success: true,
-              revision: mockDraftRevision,
-            }),
-          });
-        } else {
-          await route.fulfill({
-            status: 409,
-            contentType: "application/json",
-            body: JSON.stringify({
-              success: false,
-              error: {
-                code: "REVISION_CONFLICT",
-                message: "Stale revision",
-                details: { currentRevision: mockDraftRevision, expectedRevision: body.expectedRevision },
-              },
-            }),
-          });
-        }
-      }
-    });
-
-    await page.route(`**/api/admin/forms/${testFormId}/publish`, async (route) => {
-      // Validate dependency rules before allowing publication
-      const hasBroken = mockDefinition.questions.some((q: any) => {
-        if (!q.visibility) return false;
-        const parent = mockDefinition.questions.find((p: any) => p.id === q.visibility.parentQuestionId);
-        if (!parent) return true;
-        if (!parent.options.some((o: any) => o.id === q.visibility.equalsOptionId)) return true;
-        return false;
-      });
-
-      if (hasBroken) {
-        await route.fulfill({
-          status: 422,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: false,
-            error: {
-              code: "INVALID_FORM",
-              message: "Clinical dependency validation failed",
-              details: {
-                validationErrors: [
-                  { field: "visibility", issue: "Condition references missing or broken parent choice" },
-                ],
-              },
-            },
-          }),
-        });
-      } else {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: true,
-            versionNumber: 1,
-            publicSlug: "glp1-intake-v1-9k2a",
-            publicUrl: "/intake/glp1-intake-v1-9k2a",
-          }),
-        });
-      }
-    });
-
-    // Go directly to the builder edit page
-    await page.goto(`/admin/forms/${testFormId}/edit`);
+    // Navigates to builder edit page
+    await page.waitForURL("**/admin/forms/**/edit", { timeout: 15000 });
     await expect(page.locator("header")).toBeVisible();
-    await expect(page.locator("text=GLP-1 Weight Management Intake")).toBeVisible();
+    await expect(
+      page.locator("header").locator(`text=${uniqueFormTitle}`),
+    ).toBeVisible();
 
     // -------------------------------------------------------------------------
     // 3. Add and edit questions
@@ -197,78 +70,125 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
     await page.click('button:has-text("Single Select")');
 
     await expect(page.locator("#question-label-input")).toBeVisible();
-    await page.fill("#question-label-input", "Have you taken GLP-1 medications in the past?");
+    await page.fill(
+      "#question-label-input",
+      "Do you have a history of pancreatitis?",
+    );
     // Toggle required
     await page.click("#question-required-toggle");
 
     // Add Question 2: Short text
     await page.click('button:has-text("Add Field")');
     await page.click('button:has-text("Short Text")');
-    await page.fill("#question-label-input", "Specify your previous medication and dosage");
+    await expect(page.locator("#question-label-input")).toBeVisible();
+    await page.fill(
+      "#question-label-input",
+      "Describe any current symptoms and treatments",
+    );
 
     // -------------------------------------------------------------------------
     // 4. Configure visibility
     // -------------------------------------------------------------------------
     await page.click("#cond-toggle");
-    await expect(page.locator("text=Condition is valid and active")).toBeVisible();
+    await expect(
+      page.locator("text=Condition is valid and active"),
+    ).toBeVisible();
 
     // -------------------------------------------------------------------------
     // 5. Trigger autosave
     // -------------------------------------------------------------------------
-    // Wait for autosave to complete (debounced 800ms)
-    await expect(page.locator('[role="status"]:has-text("Saved")')).toBeVisible({ timeout: 5000 });
+    // Wait for debounced autosave to persist to the database (revision advances past rev 0)
+    await expect(page.locator("header").locator("text=rev 0")).not.toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.locator('[role="status"]:has-text("Saved")')).toBeVisible(
+      { timeout: 15000 },
+    );
 
     // -------------------------------------------------------------------------
     // 6. Reload and verify persistence
     // -------------------------------------------------------------------------
     await page.reload();
-    await expect(page.locator("text=Have you taken GLP-1 medications in the past?")).toBeVisible();
-    await expect(page.locator("text=Specify your previous medication and dosage")).toBeVisible();
-    await expect(page.locator("text=Conditional")).toBeVisible();
+    await expect(
+      page.locator("text=Do you have a history of pancreatitis?").first(),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator("text=Describe any current symptoms and treatments").first(),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=Conditional").first()).toBeVisible();
 
     // -------------------------------------------------------------------------
     // 7. Break a dependency and verify publish is blocked
     // -------------------------------------------------------------------------
-    // Select the first question (parent) and delete one of its options
-    await page.click("text=Have you taken GLP-1 medications in the past?");
-    // Delete the first choice option
-    const deleteOptionButtons = page.locator('button[title="Delete option"]');
-    if ((await deleteOptionButtons.count()) > 0) {
-      // Add a 3rd option first if needed so option count >= 2, or delete option
-      await page.click('button:has-text("Add Choice")');
-      await page.locator('button[title="Delete option"]').first().click();
-    }
+    // Select the first question (parent) and break the dependency by making it optional
+    await page
+      .locator("text=Do you have a history of pancreatitis?")
+      .first()
+      .click();
+    await page.waitForSelector("#question-required-toggle");
+    const revBeforeBreak = await page
+      .locator("header span.font-mono")
+      .innerText();
 
-    // Now select child question and observe broken condition
-    await page.click("text=Specify your previous medication and dosage");
+    // Turn required off
+    await page.click("#question-required-toggle");
+
+    // Wait for autosave to capture the edit
+    await expect(
+      page.locator("header span.font-mono"),
+    ).not.toHaveText(revBeforeBreak, { timeout: 15000 });
+    await expect(page.locator('[role="status"]:has-text("Saved")')).toBeVisible(
+      { timeout: 15000 },
+    );
 
     // Open Publish Modal
-    await page.click('button:has-text("Publish")');
-    // If validation error exists, Confirm & Publish button should be disabled
-    const confirmPublishButton = page.locator('button:has-text("Confirm & Publish")');
-    if (await page.locator("text=Cannot Publish").isVisible()) {
-      await expect(confirmPublishButton).toBeDisabled();
-    }
+    await page.locator('header button:has-text("Publish")').click();
+
+    // Confirm that publish is blocked with a validation error
+    await expect(page.locator("text=Cannot Publish")).toBeVisible();
+    await expect(
+      page.locator("text=Condition parent question must be required"),
+    ).toBeVisible();
+    await expect(
+      page.locator('button:has-text("Confirm & Publish")'),
+    ).toBeDisabled();
 
     // -------------------------------------------------------------------------
     // 8. Fix it and publish successfully
     // -------------------------------------------------------------------------
-    // Close modal
+    // Close publish modal
     await page.click('button:has-text("Cancel")');
 
-    // Fix condition: select an existing choice or remove condition
-    if (await page.locator('button:has-text("Remove condition")').isVisible()) {
-      await page.click('button:has-text("Remove condition")');
-    }
+    // Fix the dependency: toggle required back on
+    const revBeforeFix = await page
+      .locator("header span.font-mono")
+      .innerText();
+    await page.click("#question-required-toggle");
+    await expect(
+      page.locator("header span.font-mono"),
+    ).not.toHaveText(revBeforeFix, { timeout: 15000 });
+    await expect(page.locator('[role="status"]:has-text("Saved")')).toBeVisible(
+      { timeout: 15000 },
+    );
 
     // Open Publish Modal again
-    await page.click('button:has-text("Publish")');
+    await page.locator('header button:has-text("Publish")').click();
+    await expect(page.locator("text=Publish Readiness Summary")).toBeVisible();
+
+    const confirmPublishButton = page.locator(
+      'button:has-text("Confirm & Publish")',
+    );
     await expect(confirmPublishButton).toBeEnabled();
     await confirmPublishButton.click();
 
-    // Verify publish outcome
-    await expect(page.locator("text=Form Published Successfully!")).toBeVisible();
+    // Verify publication success
+    await expect(page.locator("text=Form Published Successfully!")).toBeVisible(
+      { timeout: 15000 },
+    );
     await expect(page.locator("text=Version 1 Created")).toBeVisible();
     await expect(page.locator('input[value*="/intake/"]')).toBeVisible();
+
+    // Close publish modal
+    await page.click('button:has-text("Done")');
   });
 });

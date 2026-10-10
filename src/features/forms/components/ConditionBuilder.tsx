@@ -1,9 +1,13 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 
 import { useBuilder } from "../context/builder-context";
-import type { Question, SingleSelectQuestion } from "@/features/forms/domain/types";
+import type {
+  Question,
+  SingleSelectQuestion,
+} from "@/features/forms/domain/types";
 import { AlertTriangleIcon, CheckIcon } from "@/components/ui/icons";
 
 interface ConditionBuilderProps {
@@ -14,7 +18,9 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
   const { definition, updateQuestion } = useBuilder();
 
   // Find question index
-  const currentIndex = definition.questions.findIndex((q) => q.id === question.id);
+  const currentIndex = definition.questions.findIndex(
+    (q) => q.id === question.id,
+  );
 
   // Eligible parents: earlier, required, unconditional single_select
   const eligibleParents = definition.questions.filter((q, idx) => {
@@ -32,7 +38,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
 
   // Selected parent question
   const selectedParent = definition.questions.find(
-    (q) => q.id === currentParentId
+    (q) => q.id === currentParentId,
   ) as SingleSelectQuestion | undefined;
 
   // Validation status
@@ -44,7 +50,9 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
       isConditionValid = false;
       validationMessage = "Referenced parent question no longer exists.";
     } else {
-      const parentIdx = definition.questions.findIndex((q) => q.id === selectedParent.id);
+      const parentIdx = definition.questions.findIndex(
+        (q) => q.id === selectedParent.id,
+      );
       if (parentIdx >= currentIndex) {
         isConditionValid = false;
         validationMessage = "Parent question must appear before this question.";
@@ -56,10 +64,14 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
         validationMessage = "Parent question must be marked Required.";
       } else if (selectedParent.visibility !== null) {
         isConditionValid = false;
-        validationMessage = "Nested conditions are forbidden. Parent must be unconditional.";
-      } else if (!selectedParent.options.some((opt) => opt.id === currentOptionId)) {
+        validationMessage =
+          "Nested conditions are forbidden. Parent must be unconditional.";
+      } else if (
+        !selectedParent.options.some((opt) => opt.id === currentOptionId)
+      ) {
         isConditionValid = false;
-        validationMessage = "Referenced option no longer exists in parent question.";
+        validationMessage =
+          "Referenced option no longer exists in parent question.";
       }
     }
   }
@@ -134,7 +146,6 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
           type="checkbox"
           checked={isConditional}
           onChange={(e) => handleToggle(e.target.checked)}
-
         />
       </div>
 
@@ -147,8 +158,8 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
               <div>
                 <p className="font-semibold">No eligible parent fields</p>
                 <p className="mt-0.5 text-amber-700">
-                  Conditions require an earlier single-choice question that is marked Required and
-                  unconditional.
+                  Conditions require an earlier single-choice question that is
+                  marked Required and unconditional.
                 </p>
               </div>
             </div>
@@ -156,7 +167,10 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
             <>
               {/* Parent Field Selector */}
               <div>
-                <label htmlFor={`condition-parent-${question.id}`} className="block text-[11px] font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor={`condition-parent-${question.id}`}
+                  className="block text-[11px] font-medium text-gray-700 mb-1"
+                >
                   When parent question:
                 </label>
                 <Select
@@ -175,8 +189,13 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                   ))}
                   {/* If current parent is invalid / outside eligible list, display it */}
                   {selectedParent &&
-                    !eligibleParents.some((p) => p.id === selectedParent.id) && (
-                      <option value={selectedParent.id} className="text-red-600">
+                    !eligibleParents.some(
+                      (p) => p.id === selectedParent.id,
+                    ) && (
+                      <option
+                        value={selectedParent.id}
+                        className="text-red-600"
+                      >
                         {selectedParent.label} (Invalid dependency)
                       </option>
                     )}
@@ -186,7 +205,10 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
               {/* Option Selector */}
               {selectedParent && (
                 <div>
-                  <label htmlFor={`condition-option-${question.id}`} className="block text-[11px] font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor={`condition-option-${question.id}`}
+                    className="block text-[11px] font-medium text-gray-700 mb-1"
+                  >
                     Equals choice:
                   </label>
                   <Select
@@ -219,14 +241,16 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                     <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
                     <span>{validationMessage}</span>
                   </div>
-                  <button
+                  <Button
                     type="button"
-                    onClick={() => updateQuestion(question.id, { visibility: null })}
+                    onClick={() =>
+                      updateQuestion(question.id, { visibility: null })
+                    }
                     className="text-[10px] font-semibold text-red-700 underline hover:text-red-900 shrink-0 cursor-pointer"
                     title="Remove broken condition"
                   >
                     Remove condition
-                  </button>
+                  </Button>
                 </div>
               )}
             </>

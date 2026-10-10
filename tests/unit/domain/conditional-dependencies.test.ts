@@ -69,13 +69,21 @@ describe("Conditional Dependencies Integrity", () => {
     };
 
     // 1. Incomplete/invalid drafts MUST remain saveable
-    expect(FormDefinitionSchema.safeParse(formAfterParentDeleted).success).toBe(true);
+    expect(FormDefinitionSchema.safeParse(formAfterParentDeleted).success).toBe(
+      true,
+    );
 
     // 2. Publication MUST be strictly blocked
     const publishResult = validateFormForPublish(formAfterParentDeleted);
     expect(publishResult.valid).toBe(false);
-    expect(publishResult.errors.some((err) => err.code === "MISSING_PARENT_QUESTION")).toBe(true);
-    expect(publishResult.errors[0]?.issue).toContain("references non-existent parent question");
+    expect(
+      publishResult.errors.some(
+        (err) => err.code === "MISSING_PARENT_QUESTION",
+      ),
+    ).toBe(true);
+    expect(publishResult.errors[0]?.issue).toContain(
+      "references non-existent parent question",
+    );
   });
 
   it("referenced option deletion breaks dependency: draft remains saveable but publication is rejected", () => {
@@ -96,13 +104,19 @@ describe("Conditional Dependencies Integrity", () => {
     };
 
     // 1. Draft remains saveable
-    expect(FormDefinitionSchema.safeParse(formWithDeletedOption).success).toBe(true);
+    expect(FormDefinitionSchema.safeParse(formWithDeletedOption).success).toBe(
+      true,
+    );
 
     // 2. Publication is blocked
     const publishResult = validateFormForPublish(formWithDeletedOption);
     expect(publishResult.valid).toBe(false);
-    expect(publishResult.errors.some((err) => err.code === "MISSING_PARENT_OPTION")).toBe(true);
-    expect(publishResult.errors[0]?.issue).toContain("references non-existent option ID");
+    expect(
+      publishResult.errors.some((err) => err.code === "MISSING_PARENT_OPTION"),
+    ).toBe(true);
+    expect(publishResult.errors[0]?.issue).toContain(
+      "references non-existent option ID",
+    );
   });
 
   it("reordering parent after child breaks dependency: draft remains saveable but publication is rejected", () => {
@@ -120,8 +134,14 @@ describe("Conditional Dependencies Integrity", () => {
     // 2. Publication is blocked
     const publishResult = validateFormForPublish(formReordered);
     expect(publishResult.valid).toBe(false);
-    expect(publishResult.errors.some((err) => err.code === "FORWARD_OR_SELF_DEPENDENCY")).toBe(true);
-    expect(publishResult.errors[0]?.issue).toContain("appears at or after this question");
+    expect(
+      publishResult.errors.some(
+        (err) => err.code === "FORWARD_OR_SELF_DEPENDENCY",
+      ),
+    ).toBe(true);
+    expect(publishResult.errors[0]?.issue).toContain(
+      "appears at or after this question",
+    );
   });
 
   it("parent made optional breaks dependency: draft remains saveable but publication is rejected", () => {
@@ -139,12 +159,16 @@ describe("Conditional Dependencies Integrity", () => {
     };
 
     // 1. Draft remains saveable
-    expect(FormDefinitionSchema.safeParse(formWithOptionalParent).success).toBe(true);
+    expect(FormDefinitionSchema.safeParse(formWithOptionalParent).success).toBe(
+      true,
+    );
 
     // 2. Publication is blocked
     const publishResult = validateFormForPublish(formWithOptionalParent);
     expect(publishResult.valid).toBe(false);
-    expect(publishResult.errors.some((err) => err.code === "PARENT_NOT_REQUIRED")).toBe(true);
+    expect(
+      publishResult.errors.some((err) => err.code === "PARENT_NOT_REQUIRED"),
+    ).toBe(true);
     expect(publishResult.errors[0]?.issue).toContain("must be required");
   });
 
@@ -179,13 +203,21 @@ describe("Conditional Dependencies Integrity", () => {
     };
 
     // 1. Draft remains saveable
-    expect(FormDefinitionSchema.safeParse(formWithNestedCondition).success).toBe(true);
+    expect(
+      FormDefinitionSchema.safeParse(formWithNestedCondition).success,
+    ).toBe(true);
 
     // 2. Publication is blocked
     const publishResult = validateFormForPublish(formWithNestedCondition);
     expect(publishResult.valid).toBe(false);
-    expect(publishResult.errors.some((err) => err.code === "NESTED_CONDITION_FORBIDDEN")).toBe(true);
-    expect(publishResult.errors[0]?.issue).toContain("nested conditions are not allowed");
+    expect(
+      publishResult.errors.some(
+        (err) => err.code === "NESTED_CONDITION_FORBIDDEN",
+      ),
+    ).toBe(true);
+    expect(publishResult.errors[0]?.issue).toContain(
+      "nested conditions are not allowed",
+    );
   });
 
   it("duplicating dependent question creates unique ID while preserving valid condition", () => {
@@ -204,7 +236,9 @@ describe("Conditional Dependencies Integrity", () => {
     };
 
     // Both draft and publish valid
-    expect(FormDefinitionSchema.safeParse(formWithDuplicate).success).toBe(true);
+    expect(FormDefinitionSchema.safeParse(formWithDuplicate).success).toBe(
+      true,
+    );
     const publishResult = validateFormForPublish(formWithDuplicate);
     expect(publishResult.valid).toBe(true);
     expect(publishResult.errors).toHaveLength(0);
@@ -218,7 +252,9 @@ describe("Conditional Dependencies Integrity", () => {
 
     expect(clonedParent.id).toBe("q_parent_cloned");
     // Ensure all options receive new unique IDs
-    expect(clonedParent.type === "single_select" && clonedParent.options[0]?.id).not.toBe("opt_yes");
+    expect(
+      clonedParent.type === "single_select" && clonedParent.options[0]?.id,
+    ).not.toBe("opt_yes");
 
     // Existing child still references original parent 'q_parent_1' and 'opt_yes'
     expect(child.visibility?.parentQuestionId).toBe("q_parent_1");
@@ -229,7 +265,9 @@ describe("Conditional Dependencies Integrity", () => {
       questions: [parent, clonedParent, child],
     };
 
-    expect(FormDefinitionSchema.safeParse(formWithClonedParent).success).toBe(true);
+    expect(FormDefinitionSchema.safeParse(formWithClonedParent).success).toBe(
+      true,
+    );
     const publishResult = validateFormForPublish(formWithClonedParent);
     expect(publishResult.valid).toBe(true);
   });
@@ -240,7 +278,8 @@ describe("Conditional Dependencies Integrity", () => {
     // Rename parent question label and option labels
     const renamedParent: SingleSelectQuestion = {
       ...parent,
-      label: "Have you noticed any cardiovascular discomfort or pressure recently?",
+      label:
+        "Have you noticed any cardiovascular discomfort or pressure recently?",
       options: [
         { id: "opt_yes", label: "Affirmative (Yes)" },
         { id: "opt_no", label: "Negative (No)" },

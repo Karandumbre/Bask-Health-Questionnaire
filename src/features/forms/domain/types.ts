@@ -138,4 +138,3 @@ export const ThemeDefinitionSchema = z.object({
   dark: ThemeModeTokensSchema,
 });
 export type ThemeDefinition = z.infer<typeof ThemeDefinitionSchema>;
-

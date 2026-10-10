@@ -7,32 +7,32 @@
 
 > The Figma screens are loose references, not pixel-perfect specifications. Design a coherent desktop admin editor and responsive patient flow. Do not mistake the mockup's seven questions or illustrated submissions for complete acceptance criteria.
 
-
 ## Live progress dashboard (update every implementation iteration)
 
 **Status vocabulary:**
+
 - `DONE`: Implemented and verified with evidence.
 - `PARTIAL`: Partly implemented or tested.
 - `IN PROGRESS`: Currently being implemented.
 - `PENDING`: Not started or blocked.
 
-| Workstream | Status | Evidence / File Paths / Next Condition |
-|---|---|---|
-| Requirements analysis and reference interpretation | DONE | Acceptance criteria decomposed into `CHECKLIST.md` and `PHASE_1_ARCHITECTURE.md`. |
-| Phase 1: architecture proposal and ADRs | DONE | Documented in `docs/architecture/README.md`, `docs/architecture/ADRS.md` (ADR-001 through ADR-012). |
-| Phase 1: schema, security, edge-case design | DONE | Documented in `docs/architecture/ERD.md`, `docs/architecture/API_CONTRACTS.md`, `docs/architecture/THREAT_MODEL.md`, `docs/architecture/EDGE_CASES.md`, `docs/architecture/DEFENSE_IN_DEPTH.md`. |
-| Next.js 16 source scaffold / strict TS / Polaris | DONE | `package.json` (`next@^16.4.0`), `tsconfig.json` (strict, 0 errors via `npm run typecheck`), `eslint.config.mjs` (0 errors via `npm run lint`). |
-| Domain contracts & pure validation rules | DONE | `src/features/forms/domain/` and `src/features/patients/domain/`; verified via 26 passing unit tests. |
-| 100-field fixture & performance trace | DONE | `tests/fixtures/100-field-fixture.ts`; verified via `tests/unit/domain/100-field-benchmark.test.ts` (<5ms latency). |
-| PostgreSQL schema and migrations | DONE | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`). |
-| Admin authentication & workspace RBAC | PARTIAL | Backend service & claims verification DONE (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`). Reviewer Login UI (`/admin/login`), login API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), and route redirect guards implemented (Phase 2A). Full production user onboarding PENDING. |
-| Admin draft CRUD & concurrency lifecycle | PARTIAL | Backend CAS service DONE. HTTP API routes (`/api/admin/forms`, `/api/admin/forms/[formId]`), Form Builder 3-pane UI, Field Navigator with Polaris Icons, Question Inspector, Form Canvas, and Autosave Engine with HTTP 409 Conflict Modal implemented and compiled (Phase 2A). E2E browser verification PENDING. |
-| Publish immutable versions & triggers | PARTIAL | Backend publish service & DB triggers DONE (`trg_protect_published_versions`). Publish API route (`/api/admin/forms/[formId]/publish`) and Publish Modal with clinical validation summary implemented (Phase 2A). Patient intake route PENDING Phase 3. |
-| Patient session persistence & submission | PARTIAL | Backend session & submission services DONE (`src/features/patients/server/session-service.ts`, `src/features/patients/server/submission-service.ts`, verified via Tests 8-14). Patient HTTP routes & mobile UI PENDING Phase 3. |
-| Responses administration | PARTIAL | Backend response service DONE (`src/features/forms/server/response-service.ts`, verified via Test 15). HTTP response routes & admin responses UI PENDING Phase 2/3. |
-| Automated database integration & E2E tests | PARTIAL | 52 tests passing: 37 unit/benchmark tests + 15 real PostgreSQL concurrency integration tests (`tests/integration/postgres-integration.test.ts`). Playwright browser E2E pending Phase 2 UI. |
-| CI/CD & Deployment workflows | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`) with hardened permissions, Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Awaiting reviewer Vercel connection. |
-| Reviewer deliverables & audit logs | PARTIAL | Architecture artifacts, checklist, and `docs/PROGRESS.md` maintained; demo video pending Phase 2/3. |
+| Workstream                                         | Status  | Evidence / File Paths / Next Condition                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Requirements analysis and reference interpretation | DONE    | Acceptance criteria decomposed into `CHECKLIST.md` and `PHASE_1_ARCHITECTURE.md`.                                                                                                                                                                                                                                 |
+| Phase 1: architecture proposal and ADRs            | DONE    | Documented in `docs/architecture/README.md`, `docs/architecture/ADRS.md` (ADR-001 through ADR-012).                                                                                                                                                                                                               |
+| Phase 1: schema, security, edge-case design        | DONE    | Documented in `docs/architecture/ERD.md`, `docs/architecture/API_CONTRACTS.md`, `docs/architecture/THREAT_MODEL.md`, `docs/architecture/EDGE_CASES.md`, `docs/architecture/DEFENSE_IN_DEPTH.md`.                                                                                                                  |
+| Next.js 16 source scaffold / strict TS / Polaris   | DONE    | `package.json` (`next@^16.4.0`), `tsconfig.json` (strict, 0 errors via `npm run typecheck`), `eslint.config.mjs` (0 errors via `npm run lint`).                                                                                                                                                                   |
+| Domain contracts & pure validation rules           | DONE    | `src/features/forms/domain/` and `src/features/patients/domain/`; verified via 26 passing unit tests.                                                                                                                                                                                                             |
+| 100-field fixture & performance trace              | DONE    | `tests/fixtures/100-field-fixture.ts`; verified via `tests/unit/domain/100-field-benchmark.test.ts` (<5ms latency).                                                                                                                                                                                               |
+| PostgreSQL schema and migrations                   | DONE    | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`).                          |
+| Admin authentication & workspace RBAC              | PARTIAL | Backend service & claims verification DONE (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`). Reviewer Login UI (`/admin/login`), login API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), and route redirect guards implemented (Phase 2A). Full production user onboarding PENDING.             |
+| Admin draft CRUD & concurrency lifecycle           | PARTIAL | Backend CAS service DONE. HTTP API routes (`/api/admin/forms`, `/api/admin/forms/[formId]`), Form Builder 3-pane UI, Field Navigator with Polaris Icons, Question Inspector, Form Canvas, and Autosave Engine with HTTP 409 Conflict Modal implemented and compiled (Phase 2A). E2E browser verification PENDING. |
+| Publish immutable versions & triggers              | PARTIAL | Backend publish service & DB triggers DONE (`trg_protect_published_versions`). Publish API route (`/api/admin/forms/[formId]/publish`) and Publish Modal with clinical validation summary implemented (Phase 2A). Patient intake route PENDING Phase 3.                                                           |
+| Patient session persistence & submission           | PARTIAL | Backend session & submission services DONE (`src/features/patients/server/session-service.ts`, `src/features/patients/server/submission-service.ts`, verified via Tests 8-14). Patient HTTP routes & mobile UI PENDING Phase 3.                                                                                   |
+| Responses administration                           | PARTIAL | Backend response service DONE (`src/features/forms/server/response-service.ts`, verified via Test 15). HTTP response routes & admin responses UI PENDING Phase 2/3.                                                                                                                                               |
+| Automated database integration & E2E tests         | PARTIAL | 52 tests passing: 37 unit/benchmark tests + 15 real PostgreSQL concurrency integration tests (`tests/integration/postgres-integration.test.ts`). Playwright browser E2E pending Phase 2 UI.                                                                                                                       |
+| CI/CD & Deployment workflows                       | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`) with hardened permissions, Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Awaiting reviewer Vercel connection.                                                                              |
+| Reviewer deliverables & audit logs                 | PARTIAL | Architecture artifacts, checklist, and `docs/PROGRESS.md` maintained; demo video pending Phase 2/3.                                                                                                                                                                                                               |
 
 **Files:** `CHECKLIST.md` (master), `PHASE_1_ARCHITECTURE.md`, `PHASE_1_LOCAL_AI_PROMPT.md`, `docs/PROGRESS.md`, `docs/architecture/*`.
 
@@ -45,17 +45,17 @@
 The following four security findings from the Phase 1B audit remain **OPEN** and must be actively enforced across all Phase 2 and Phase 3 implementations:
 
 - [!] **SEC-01 (HIGH): Application DB Connection Bypasses Supabase RLS**  
-  *Context:* Drizzle queries execute under the PostgreSQL `postgres` role (`rolbypassrls = true`, table owner). Supabase default-deny RLS is only evaluated on browser-side PostgREST requests.  
-  *Mandatory Invariant:* Every Route Handler and Server Action in Phase 2 & Phase 3 must explicitly invoke `requireAdmin()` and `requireWorkspaceMembership()` or `requireFormWorkspaceAccess()`. Do not assume Drizzle queries automatically enforce tenant isolation.
+  _Context:_ Drizzle queries execute under the PostgreSQL `postgres` role (`rolbypassrls = true`, table owner). Supabase default-deny RLS is only evaluated on browser-side PostgREST requests.  
+  _Mandatory Invariant:_ Every Route Handler and Server Action in Phase 2 & Phase 3 must explicitly invoke `requireAdmin()` and `requireWorkspaceMembership()` or `requireFormWorkspaceAccess()`. Do not assume Drizzle queries automatically enforce tenant isolation.
 - [!] **SEC-02 (MEDIUM): Patient Cookie Namespace Collision Across Concurrent Forms**  
-  *Context:* If a patient opens two different forms concurrently in the same browser, a static cookie name (e.g. `bask_session_token`) would overwrite the other session.  
-  *Mandatory Invariant:* Patient HTTP handlers in Phase 3 must namespace capability cookies per form slug (e.g. `bask_session_${publicSlug}`) with `Path=/` or `Path=/api/patient`, `HttpOnly`, `Secure`, `SameSite=Strict`.
+  _Context:_ If a patient opens two different forms concurrently in the same browser, a static cookie name (e.g. `bask_session_token`) would overwrite the other session.  
+  _Mandatory Invariant:_ Patient HTTP handlers in Phase 3 must namespace capability cookies per form slug (e.g. `bask_session_${publicSlug}`) with `Path=/` or `Path=/api/patient`, `HttpOnly`, `Secure`, `SameSite=Strict`.
 - [!] **SEC-03 (LOW): HTTP Route Boundary CSRF & Origin Verification**  
-  *Context:* Backend domain logic executes safely, but browser-facing HTTP mutation endpoints (`POST`, `PUT`, `DELETE`) require cross-site forgery protection.  
-  *Mandatory Invariant:* All mutating Route Handlers in Phase 2 & Phase 3 must validate `request.headers.get('origin')` against the request host and reject untrusted cross-origin mutations.
+  _Context:_ Backend domain logic executes safely, but browser-facing HTTP mutation endpoints (`POST`, `PUT`, `DELETE`) require cross-site forgery protection.  
+  _Mandatory Invariant:_ All mutating Route Handlers in Phase 2 & Phase 3 must validate `request.headers.get('origin')` against the request host and reject untrusted cross-origin mutations.
 - [!] **SEC-04 (MEDIUM): Admin Login & Session Flow (UI/API boundary)**  
-  *Context:* Server-verified authentication (`getServerVerifiedUser()` via `auth.getClaims()`) is implemented, but the admin login HTTP Route Handler, session cookie exchange, and protected route redirect UX remain pending.  
-  *Mandatory Invariant:* Implement secure login Route Handler using Supabase Auth with rate limiting, secure cookies, and Next.js 16 `proxy.ts` edge session refresh before deploying administrative routes.
+  _Context:_ Server-verified authentication (`getServerVerifiedUser()` via `auth.getClaims()`) is implemented, but the admin login HTTP Route Handler, session cookie exchange, and protected route redirect UX remain pending.  
+  _Mandatory Invariant:_ Implement secure login Route Handler using Supabase Auth with rate limiting, secure cookies, and Next.js 16 `proxy.ts` edge session refresh before deploying administrative routes.
 
 ---
 
@@ -233,7 +233,7 @@ tests/unit/  tests/integration/  tests/e2e/
 - [ ] Test lost response, double click, parallel requests, slow requests and invalid client bypass attempts.
 
 ## 10. Responses administration
- 
+
 - [ ] Admin-only submissions list, with paging and optional search/filter/date/version: Backend service `listFormSubmissions` DONE (`src/features/forms/server/response-service.ts`), HTTP route & Admin UI PENDING.
 - [ ] Distinguish draft, published version, in-progress sessions, submitted responses: Backend schema and status queries DONE, UI presentation PENDING.
 - [ ] Submission detail: submitted at, stable public version, original question and option labels, answers, skipped/hidden representation: Backend service `getSubmissionDetail` DONE (`src/features/forms/server/response-service.ts`), UI detail view PENDING.
@@ -245,7 +245,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [ ] Centralize semantic tokens: backgrounds, surfaces, text, muted text, border, primary, primary text, selected state, error, focus, success, etc.
 - [ ] At least **three named palettes** (e.g. Ocean, Forest, Plum), each with matching light and dark variants.
-- [ ] Admin selects preset and can **Shuffle** to produce a *fresh* usable palette (not rotate presets).
+- [ ] Admin selects preset and can **Shuffle** to produce a _fresh_ usable palette (not rotate presets).
 - [ ] Programmatically validate generated palette pair contrast: WCAG AA **4.5:1 normal text**, **3:1 large text**; also review focus/interactive non-text contrast.
 - [ ] Regenerate or adjust colors until validated; use deterministic seeded tests to sample many Shuffle results.
 - [ ] Admin controls palette and publishes both display modes; patients may switch **only light/dark**.
@@ -270,7 +270,7 @@ tests/unit/  tests/integration/  tests/e2e/
 ## 13. Testing strategy (start early)
 
 ### Unit tests (Vitest)
- 
+
 - [x] Field validators: types, required text, lengths, numeric bounds/integer, checkboxes and select membership (verified in `tests/unit/domain/patient-validation.test.ts`).
 - [x] Condition evaluation, earlier-parent invariant and stable ID behavior across labels/ordering (verified in `tests/unit/domain/patient-visibility.test.ts` and `form-validation.test.ts`).
 - [x] Hidden-answer pruning and re-show-empty behavior (verified in `tests/unit/domain/patient-visibility.test.ts`).
@@ -334,28 +334,28 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ## 16. Notable edge-case matrix
 
-| Area | Edge case | Expected result |
-|---|---|---|
-| Draft autosave | A request returns after a newer save | Do not mark newer content saved or replace local edits |
-| Draft autosave | Server rejects write/network disconnect | Retain local changes, report failed state, retry |
-| Two admins | Both update revision 7 | One commits revision 8; other gets conflict and explicit resolution |
-| Two admins | One deletes while other edits | Second gets gone/conflict; no resurrection |
-| Publish | Draft edited between validate and publish | Transaction checks expected revision; publish consistent snapshot or fails |
-| Publish | Two admins publish simultaneously | Unique versions; no partially published snapshot or accidental duplicates |
-| Reorder | Conditional child moved before parent | Flag rule error; block publish |
-| Delete | Referenced parent or option removed | Flag invalid dependency; no silent retargeting |
-| Rename | Parent/option label renamed | IDs preserve link; published labels remain historically stable |
-| Answer changes | Yes -> No -> Yes | Dependent answer removed and returns blank; unrelated answers intact |
-| Malicious save | Hidden value included in payload | Server strips it before persisting |
-| Malicious submit | Unknown option, whitespace text, decimal integer | Final validation rejects invalid payload |
-| Resume | Browser A tries browser B's session ID | Denied without valid secret/verified redemption |
-| Resume | Two tabs edit same session | Detect revision conflict or controlled merge, never overwrite silently |
-| Version | Publish v2 while v1 patient mid-way | Patient remains pinned to v1; response displays v1 labels |
-| Submit | Double click, concurrent calls, timeout after commit | Same success/submission ID, exactly one immutable response |
-| Complete | Save progress after successful submission | Rejected/no mutation of canonical answer |
-| Theme | Shuffle produces unreadable button/error/focus | Reject/adjust palette before accepting |
-| Security | Public user calls admin mutation API directly | Server rejects even if UI route is hidden |
-| Delete | Delete form with existing submissions | Preserve published versions and responses per retention policy |
+| Area             | Edge case                                            | Expected result                                                            |
+| ---------------- | ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| Draft autosave   | A request returns after a newer save                 | Do not mark newer content saved or replace local edits                     |
+| Draft autosave   | Server rejects write/network disconnect              | Retain local changes, report failed state, retry                           |
+| Two admins       | Both update revision 7                               | One commits revision 8; other gets conflict and explicit resolution        |
+| Two admins       | One deletes while other edits                        | Second gets gone/conflict; no resurrection                                 |
+| Publish          | Draft edited between validate and publish            | Transaction checks expected revision; publish consistent snapshot or fails |
+| Publish          | Two admins publish simultaneously                    | Unique versions; no partially published snapshot or accidental duplicates  |
+| Reorder          | Conditional child moved before parent                | Flag rule error; block publish                                             |
+| Delete           | Referenced parent or option removed                  | Flag invalid dependency; no silent retargeting                             |
+| Rename           | Parent/option label renamed                          | IDs preserve link; published labels remain historically stable             |
+| Answer changes   | Yes -> No -> Yes                                     | Dependent answer removed and returns blank; unrelated answers intact       |
+| Malicious save   | Hidden value included in payload                     | Server strips it before persisting                                         |
+| Malicious submit | Unknown option, whitespace text, decimal integer     | Final validation rejects invalid payload                                   |
+| Resume           | Browser A tries browser B's session ID               | Denied without valid secret/verified redemption                            |
+| Resume           | Two tabs edit same session                           | Detect revision conflict or controlled merge, never overwrite silently     |
+| Version          | Publish v2 while v1 patient mid-way                  | Patient remains pinned to v1; response displays v1 labels                  |
+| Submit           | Double click, concurrent calls, timeout after commit | Same success/submission ID, exactly one immutable response                 |
+| Complete         | Save progress after successful submission            | Rejected/no mutation of canonical answer                                   |
+| Theme            | Shuffle produces unreadable button/error/focus       | Reject/adjust palette before accepting                                     |
+| Security         | Public user calls admin mutation API directly        | Server rejects even if UI route is hidden                                  |
+| Delete           | Delete form with existing submissions                | Preserve published versions and responses per retention policy             |
 
 ## 17. Deliverables and review checklist
 

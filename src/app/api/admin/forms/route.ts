@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, getUserWorkspaces, requireWorkspaceMembership } from "@/lib/auth/admin";
-import { createForm, listWorkspaceForms } from "@/features/forms/server/draft-service";
+import {
+  requireAdmin,
+  getUserWorkspaces,
+  requireWorkspaceMembership,
+} from "@/lib/auth/admin";
+import {
+  createForm,
+  listWorkspaceForms,
+} from "@/features/forms/server/draft-service";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import { handleRouteError } from "@/lib/errors/route-handler";
 import { AppError } from "@/lib/errors";
@@ -54,12 +61,17 @@ export async function POST(request: NextRequest) {
       const userWorkspaces = await getUserWorkspaces(user.id, user.email);
       const firstWs = userWorkspaces[0];
       if (!firstWs) {
-        throw new AppError("FORBIDDEN", "No active clinical workspace available.", 403);
+        throw new AppError(
+          "FORBIDDEN",
+          "No active clinical workspace available.",
+          403,
+        );
       }
       workspaceId = firstWs.workspaceId;
     }
 
-    const name = typeof body.name === "string" ? body.name : "Untitled Clinical Intake";
+    const name =
+      typeof body.name === "string" ? body.name : "Untitled Clinical Intake";
 
     const result = await createForm({
       workspaceId,
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
         form: result.form,
         draft: result.draft,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     return handleRouteError(error);

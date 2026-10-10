@@ -17,7 +17,9 @@ describe("Patient Credentials & Cryptographic Recovery", () => {
 
   it("generates high-entropy recovery codes matching Crockford base-32 format", () => {
     const code = generateRecoveryCode();
-    expect(code).toMatch(/^BK-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+    expect(code).toMatch(
+      /^BK-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/,
+    );
     // Disallows ambiguous characters like 'O', 'I', 'L'
     expect(code).not.toContain("O");
     expect(code).not.toContain("I");
@@ -59,4 +61,3 @@ describe("Patient Credentials & Cryptographic Recovery", () => {
     expect(verifyRecoveryCode(code, hash, "different-pepper")).toBe(false);
   });
 });
-

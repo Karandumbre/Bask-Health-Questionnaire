@@ -7,6 +7,7 @@ This document details critical race conditions, integrity hazards, and algorithm
 ## 1. Administrative Authoring Races
 
 ### 1.1. Two Administrators Editing the Same Draft
+
 - **Hazard:** Admin Alice opens Draft Revision 4. Admin Bob opens Draft Revision 4. Alice saves at $T_1$, advancing the database to Revision 5. Bob attempts to save at $T_2$ with local changes based on Revision 4.
 - **Resolution Strategy:**
   1. Bob's request sends `{ expectedRevision: 4 }`.
@@ -24,6 +25,7 @@ This document details critical race conditions, integrity hazards, and algorithm
      - **Reload Server Revision** to overwrite local state with Alice's changes.
 
 ### 1.2. Stale Network Responses Overwriting Newer Edits
+
 - **Hazard:** Admin Alice types "Chest Pain" (autosave request #1 dispatched). Alice immediately types "Severe Chest Pain" (autosave request #2 dispatched). Network latency causes request #2 to resolve at the server first, and request #1 resolves second.
 - **Resolution Strategy:**
   - Client increments an internal monotonic sequence number (`clientMutationSeq`) per keystroke.
@@ -32,6 +34,7 @@ This document details critical race conditions, integrity hazards, and algorithm
   - The client ignores incoming responses whose sequence number is older than the latest dispatched request.
 
 ### 1.3. Simultaneous Form Publish & Edit
+
 - **Hazard:** Alice edits the draft while Bob triggers "Publish".
 - **Resolution Strategy:**
   - `publishForm` begins an explicit PostgreSQL transaction:
@@ -48,6 +51,7 @@ This document details critical race conditions, integrity hazards, and algorithm
   - If Alice's edit committed right before Bob's publish, Bob's `expectedRevision` check fails, alerting Bob that the draft changed and must be re-reviewed before publishing.
 
 ### 1.4. Network Timeout on Publish (Idempotent Retry)
+
 - **Hazard:** Bob clicks Publish. The server completes the transaction, but the network connection drops before Bob's browser receives the HTTP response. Bob clicks Publish again.
 - **Resolution Strategy:**
   - Publish requests require a client-generated UUID `operationId`.
@@ -59,22 +63,25 @@ This document details critical race conditions, integrity hazards, and algorithm
 ## 2. Dependency & Visibility Hazards
 
 ### 2.1. Parent Question Reordered After Child
+
 - **Hazard:** Question 2 depends on Question 1. Admin reorders Question 1 to position 5.
 - **Resolution Strategy:**
   - Draft autosave **permits** invalid drafts so work is never lost while rearranging.
-  - The form inspector immediately flags Question 2 with an error badge: *"Depends on Question 1, which appears later in the form."*
+  - The form inspector immediately flags Question 2 with an error badge: _"Depends on Question 1, which appears later in the form."_
   - `publishForm` executes pure validator `validateFormForPublish`. The publish transaction aborts with `HTTP 422 INVALID_FORM` specifying `{ questionId: "q2", error: "FORWARD_DEPENDENCY" }`.
 
 ### 2.2. Parent Question or Option Deleted
+
 - **Hazard:** Question 2 depends on Option "opt-yes" of Question 1. Admin deletes Option "opt-yes" or Question 1.
 - **Resolution Strategy:**
   - System retains Question 2's condition metadata pointing to `q1` / `opt-yes`.
-  - The UI highlights the broken dependency in red: *"Condition references a deleted question/option. Click to repair."*
+  - The UI highlights the broken dependency in red: _"Condition references a deleted question/option. Click to repair."_
   - Conditions never silently retarget to the first remaining option.
   - Publish is blocked until the condition is either deleted or pointed to a valid parent.
 
 ### 2.3. Parent Changed from Yes -> No -> Yes (Answer Pruning)
-- **Hazard:** 
+
+- **Hazard:**
   1. Patient selects "Yes" to "Do you smoke?" (Q1).
   2. Patient enters "10 cigarettes per day" in dependent question (Q2).
   3. Patient changes Q1 to "No".
@@ -89,6 +96,7 @@ This document details critical race conditions, integrity hazards, and algorithm
 ## 3. Patient Submission & Resume Hazards
 
 ### 3.1. Concurrent Duplicate Submissions (Double-Click / Retry)
+
 - **Hazard:** Patient taps "Submit" twice rapidly on a mobile device, or a mobile network drops the connection after commit and retries automatically.
 - **Resolution Strategy:**
   - The `submissions` table enforces `UNIQUE(session_id)`.
@@ -110,6 +118,7 @@ This document details critical race conditions, integrity hazards, and algorithm
   - Both requests return the identical submission ID and timestamp.
 
 ### 3.2. Malicious Client Injecting Hidden or Invalid Answers
+
 - **Hazard:** An attacker intercepts the network request and injects answers for questions that were hidden, non-existent choice IDs, or strings exceeding maximum limits.
 - **Resolution Strategy:**
   - The server evaluates `pruneHiddenAnswers(answers, pinnedVersion.questions)` before validation. Any answer for a question not currently visible is discarded.
@@ -122,8 +131,8 @@ This document details critical race conditions, integrity hazards, and algorithm
   - Any violation immediately rejects the submission with `HTTP 422 INVALID_ANSWER`.
 
 ### 3.3. Two Patient Tabs Saving Stale Answers
+
 - **Hazard:** Patient opens the intake on their phone in two tabs. Tab A answers Q1. Tab B (opened earlier) answers Q2 and autosaves.
 - **Resolution Strategy:**
   - Patient progress saves enforce monotonic `expectedSessionRevision`.
   - Tab B's save fails with `HTTP 409 Conflict`, prompting the user to refresh the latest saved progress rather than silently overwriting Tab A's answers.
-

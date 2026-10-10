@@ -20,7 +20,11 @@ export function verifyRequestOrigin(request: NextRequest): void {
     // Allow non-browser server-to-server or test requests if origin is omitted,
     // but reject if origin is explicitly provided and mismatched.
     if (!origin) return;
-    throw new AppError("FORBIDDEN", "Cross-site mutation rejected: Missing host header.", 403);
+    throw new AppError(
+      "FORBIDDEN",
+      "Cross-site mutation rejected: Missing host header.",
+      403,
+    );
   }
 
   try {
@@ -29,10 +33,14 @@ export function verifyRequestOrigin(request: NextRequest): void {
       throw new AppError(
         "FORBIDDEN",
         `Cross-site mutation rejected: Origin '${originUrl.host}' does not match host '${host}'.`,
-        403
+        403,
       );
     }
   } catch {
-    throw new AppError("FORBIDDEN", "Cross-site mutation rejected: Malformed origin header.", 403);
+    throw new AppError(
+      "FORBIDDEN",
+      "Cross-site mutation rejected: Malformed origin header.",
+      403,
+    );
   }
 }

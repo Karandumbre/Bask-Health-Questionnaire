@@ -38,7 +38,12 @@ export class AppError extends Error {
   public readonly status: number;
   public readonly details?: SafeErrorDetails;
 
-  constructor(code: ErrorCodeType, message: string, status: number = 400, details?: SafeErrorDetails) {
+  constructor(
+    code: ErrorCodeType,
+    message: string,
+    status: number = 400,
+    details?: SafeErrorDetails,
+  ) {
     super(message);
     this.name = "AppError";
     this.code = code;
@@ -61,7 +66,7 @@ export class AppError extends Error {
   public static revisionConflict(
     expected: number | bigint,
     current: number | bigint,
-    message: string = "Revision conflict: the resource was updated by another request"
+    message: string = "Revision conflict: the resource was updated by another request",
   ): AppError {
     return new AppError(ErrorCode.REVISION_CONFLICT, message, 409, {
       expectedRevision: expected,
@@ -71,7 +76,7 @@ export class AppError extends Error {
 
   public static invalidForm(
     errors: Array<{ questionId?: string; issue: string; code?: string }>,
-    message: string = "Form definition does not meet publish requirements"
+    message: string = "Form definition does not meet publish requirements",
   ): AppError {
     return new AppError(ErrorCode.INVALID_FORM, message, 422, {
       validationErrors: errors,
@@ -80,18 +85,22 @@ export class AppError extends Error {
 
   public static invalidAnswer(
     errors: Array<{ questionId?: string; issue: string; code?: string }>,
-    message: string = "One or more answers failed validation"
+    message: string = "One or more answers failed validation",
   ): AppError {
     return new AppError(ErrorCode.INVALID_ANSWER, message, 422, {
       validationErrors: errors,
     });
   }
 
-  public static sessionUnauthorized(message: string = "Invalid or expired session credentials"): AppError {
+  public static sessionUnauthorized(
+    message: string = "Invalid or expired session credentials",
+  ): AppError {
     return new AppError(ErrorCode.SESSION_UNAUTHORIZED, message, 401);
   }
 
-  public static sessionCompleted(message: string = "Session has already been finalized"): AppError {
+  public static sessionCompleted(
+    message: string = "Session has already been finalized",
+  ): AppError {
     return new AppError(ErrorCode.SESSION_COMPLETED, message, 409);
   }
 
@@ -100,8 +109,7 @@ export class AppError extends Error {
       ErrorCode.RESUME_RATE_LIMITED,
       "Too many recovery attempts. Please try again later.",
       429,
-      { retryAfterSeconds }
+      { retryAfterSeconds },
     );
   }
 }
-

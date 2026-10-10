@@ -23,12 +23,13 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
-    ? undefined
-    : {
-        command: "npm run dev",
-        url: "http://localhost:3000/admin/login",
-        reuseExistingServer: !process.env.CI,
-        timeout: 120000,
-      },
+  webServer: {
+    command: "npx next start -p 3000",
+    url: "http://localhost:3000",
+    reuseExistingServer: true,
+    timeout: 30000,
+    env: {
+      ALLOW_TEST_AUTH: "true",
+    },
+  },
 });

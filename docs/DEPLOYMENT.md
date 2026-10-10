@@ -31,15 +31,16 @@ This document outlines the deployment topology, environment isolation, and datab
 
 ## 2. Environment Isolation & Guardrails
 
-| Setting / Variable | Vercel Preview (PR Branches) | Vercel Production (`main`) |
-|---|---|---|
-| `NEXT_PUBLIC_APP_URL` | Ephemeral Vercel Preview URL | Custom domain / Production Vercel URL |
-| `DATABASE_URL` | Development/Staging Supabase project | Dedicated Production Supabase project |
-| `DATABASE_DIRECT_URL` | Staging direct connection | Production direct connection |
-| `APP_SESSION_PEPPER` | Development secret | Production cryptographically random 32-byte secret |
-| Access | Team reviewers only | Public patient access + private admin login |
+| Setting / Variable    | Vercel Preview (PR Branches)         | Vercel Production (`main`)                         |
+| --------------------- | ------------------------------------ | -------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL` | Ephemeral Vercel Preview URL         | Custom domain / Production Vercel URL              |
+| `DATABASE_URL`        | Development/Staging Supabase project | Dedicated Production Supabase project              |
+| `DATABASE_DIRECT_URL` | Staging direct connection            | Production direct connection                       |
+| `APP_SESSION_PEPPER`  | Development secret                   | Production cryptographically random 32-byte secret |
+| Access                | Team reviewers only                  | Public patient access + private admin login        |
 
 ### Critical Rule: No Production Data in Previews
+
 Preview deployments must NEVER point to the production PostgreSQL database. Connecting preview builds to production risks data corruption from experimental branches and violates patient data isolation.
 
 ---
@@ -49,11 +50,14 @@ Preview deployments must NEVER point to the production PostgreSQL database. Conn
 Database migrations are located in `db/migrations/` as numbered SQL scripts and managed via Drizzle ORM (`drizzle-kit`).
 
 ### Policy: Migrations Are NEVER Run by Vercel Build Commands
+
 Running `drizzle-kit migrate` during Vercel's `npm run build` is strictly prohibited:
+
 1. Every preview branch would attempt to execute migrations against the database.
 2. Concurrent builds could create race conditions and schema locks.
 
 ### Execution Procedure:
+
 1. **Local Development / PR:**
    - Author schema changes in `src/lib/db/schema.ts`.
    - Generate SQL migration: `npm run db:generate`.
@@ -79,4 +83,3 @@ Running `drizzle-kit migrate` during Vercel's `npm run build` is strictly prohib
 3. **Storage & Egress Limits:**
    - Free tier includes 500MB database storage.
    - Using JSONB aggregates with lean schemas ensures thousands of intakes easily fit within quota.
-

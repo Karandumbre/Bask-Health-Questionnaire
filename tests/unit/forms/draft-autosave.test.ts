@@ -5,7 +5,10 @@ import { ApiError } from "@/lib/http/api-client";
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
   return { promise, resolve, reject };
 }
 
@@ -16,7 +19,10 @@ describe("draft autosave", () => {
   it("saves edits made during a slow request with its acknowledged revision", async () => {
     const first = deferred<number>();
     const second = deferred<number>();
-    const save = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const save = vi
+      .fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
     const autosave = new DraftAutosave<string>("initial", 3, save);
     autosave.update("first edit");
     const done = autosave.flush();
@@ -31,7 +37,10 @@ describe("draft autosave", () => {
     expect(autosave.getSnapshot().status).toBe("saving");
     second.resolve(5);
     expect(await done).toBe(true);
-    expect(autosave.getSnapshot()).toMatchObject({ revision: 5, status: "saved" });
+    expect(autosave.getSnapshot()).toMatchObject({
+      revision: 5,
+      status: "saved",
+    });
     await vi.advanceTimersByTimeAsync(1000);
     expect(save).toHaveBeenCalledTimes(2);
   });
@@ -52,7 +61,10 @@ describe("draft autosave", () => {
   });
 
   it("keeps failed edits dirty so manual retry sends the latest snapshot", async () => {
-    const save = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(8);
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(8);
     const autosave = new DraftAutosave<string>("initial", 7, save);
     autosave.update("unsaved");
     expect(await autosave.flush()).toBe(false);
@@ -62,7 +74,14 @@ describe("draft autosave", () => {
   });
 
   it("pauses writes on conflict until the user explicitly keeps their edits", async () => {
-    const save = vi.fn().mockRejectedValueOnce(new ApiError("Changed elsewhere", 409, "REVISION_CONFLICT", { currentRevision: 6 })).mockResolvedValueOnce(7);
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError("Changed elsewhere", 409, "REVISION_CONFLICT", {
+          currentRevision: 6,
+        }),
+      )
+      .mockResolvedValueOnce(7);
     const autosave = new DraftAutosave<string>("initial", 2, save);
     autosave.update("local edit");
     expect(await autosave.flush()).toBe(false);
@@ -70,7 +89,10 @@ describe("draft autosave", () => {
     await vi.advanceTimersByTimeAsync(2000);
     expect(await autosave.flush()).toBe(false);
     expect(save).toHaveBeenCalledTimes(1);
-    expect(autosave.getSnapshot().conflict).toMatchObject({ serverRevision: 6, localRevision: 2 });
+    expect(autosave.getSnapshot().conflict).toMatchObject({
+      serverRevision: 6,
+      localRevision: 2,
+    });
     expect(await autosave.forceSave(6)).toBe(true);
     expect(save.mock.calls[1]?.slice(0, 2)).toEqual(["newer local edit", 6]);
   });
@@ -83,7 +105,10 @@ describe("draft autosave", () => {
     await vi.advanceTimersByTimeAsync(2000);
     expect(save).not.toHaveBeenCalled();
     expect(await autosave.flush()).toBe(true);
-    expect(autosave.getSnapshot()).toMatchObject({ revision: 9, status: "saved" });
+    expect(autosave.getSnapshot()).toMatchObject({
+      revision: 9,
+      status: "saved",
+    });
   });
 
   it("cancels pending saves on unmount and ignores an aborted response", async () => {
@@ -108,6 +133,9 @@ describe("draft autosave", () => {
     const autosave = new DraftAutosave<string>("initial", 2, async () => 2);
     autosave.update("pending");
     expect(await autosave.flush()).toBe(false);
-    expect(autosave.getSnapshot()).toMatchObject({ revision: 2, status: "failed" });
+    expect(autosave.getSnapshot()).toMatchObject({
+      revision: 2,
+      status: "failed",
+    });
   });
 });

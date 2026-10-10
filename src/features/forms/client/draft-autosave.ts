@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/http/api-client";
 
-export type SaveStatus = "saved" | "editing" | "saving" | "failed" | "conflict" | "offline";
+export type SaveStatus =
+  "saved" | "editing" | "saving" | "failed" | "conflict" | "offline";
 export interface ConflictDetails {
   serverRevision: number;
   localRevision: number;
@@ -25,15 +26,32 @@ export class DraftAutosave<T> {
   private listeners = new Set<() => void>();
   private state: AutosaveState;
 
-  constructor(initial: T, revision: number, private readonly save: (snapshot: T, revision: number, signal: AbortSignal) => Promise<number>, private readonly delay = 800, private readonly isEqual: (left: T, right: T) => boolean = Object.is) {
+  constructor(
+    initial: T,
+    revision: number,
+    private readonly save: (
+      snapshot: T,
+      revision: number,
+      signal: AbortSignal,
+    ) => Promise<number>,
+    private readonly delay = 800,
+    private readonly isEqual: (left: T, right: T) => boolean = Object.is,
+  ) {
     this.latest = initial;
-    this.state = { revision, status: "saved", lastSavedAt: null, conflict: null };
+    this.state = {
+      revision,
+      status: "saved",
+      lastSavedAt: null,
+      conflict: null,
+    };
   }
 
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); };
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
 
   private notify(patch: Partial<AutosaveState>) {
@@ -53,14 +71,19 @@ export class DraftAutosave<T> {
     this.clearTimer();
     if (this.state.conflict) return;
     this.notify({ status: this.running ? "saving" : "editing" });
-    if (this.active) this.timer = setTimeout(() => { void this.flush(); }, this.delay);
+    if (this.active)
+      this.timer = setTimeout(() => {
+        void this.flush();
+      }, this.delay);
   }
 
   flush = (): Promise<boolean> => {
     this.clearTimer();
     if (this.running) return this.running;
     if (!this.active || this.state.conflict) return Promise.resolve(false);
-    this.running = this.drain().finally(() => { this.running = null; });
+    this.running = this.drain().finally(() => {
+      this.running = null;
+    });
     return this.running;
   };
 
@@ -73,10 +96,16 @@ export class DraftAutosave<T> {
       this.request = request;
       this.notify({ status: "saving" });
       try {
-        const revision = await this.save(snapshot, expectedRevision, request.signal);
+        const revision = await this.save(
+          snapshot,
+          expectedRevision,
+          request.signal,
+        );
         if (request.signal.aborted) return false;
         if (!Number.isSafeInteger(revision) || revision <= expectedRevision) {
-          throw new Error("The save response did not advance the draft revision.");
+          throw new Error(
+            "The save response did not advance the draft revision.",
+          );
         }
         this.savedVersion = version;
         this.notify({ revision, lastSavedAt: new Date() });
@@ -89,7 +118,10 @@ export class DraftAutosave<T> {
           this.notify({
             status: "conflict",
             conflict: {
-              serverRevision: typeof currentRevision === "number" ? currentRevision : expectedRevision,
+              serverRevision:
+                typeof currentRevision === "number"
+                  ? currentRevision
+                  : expectedRevision,
               localRevision: expectedRevision,
               message: error.message,
             },
@@ -120,11 +152,20 @@ export class DraftAutosave<T> {
     this.latest = snapshot;
     this.editVersion++;
     this.savedVersion = this.editVersion;
-    this.notify({ revision, status: "saved", conflict: null, lastSavedAt: new Date() });
+    this.notify({
+      revision,
+      status: "saved",
+      conflict: null,
+      lastSavedAt: new Date(),
+    });
   }
 
-  fail() { this.notify({ status: "failed" }); }
-  resume() { this.active = true; }
+  fail() {
+    this.notify({ status: "failed" });
+  }
+  resume() {
+    this.active = true;
+  }
   pause() {
     this.active = false;
     this.clearTimer();

@@ -49,7 +49,9 @@ try {
 const MIGRATION_ADVISORY_LOCK_ID = 8493021;
 
 async function main() {
-  console.log(`Connecting to database at ${sanitizedHost} (db: ${sanitizedDb})...`);
+  console.log(
+    `Connecting to database at ${sanitizedHost} (db: ${sanitizedDb})...`,
+  );
   const sql = postgres(directUrl, { max: 1, idle_timeout: 10 });
 
   try {
@@ -72,7 +74,8 @@ async function main() {
     `;
 
     // 3. Fetch existing migration records
-    const existing = await sql`SELECT "name", "checksum" FROM "_schema_migrations";`;
+    const existing =
+      await sql`SELECT "name", "checksum" FROM "_schema_migrations";`;
     const existingMap = new Map(existing.map((r) => [r.name, r.checksum]));
 
     const migrationsDir = path.resolve(process.cwd(), "db/migrations");
@@ -90,15 +93,18 @@ async function main() {
     for (const file of files) {
       const filePath = path.join(migrationsDir, file);
       const sqlContent = fs.readFileSync(filePath, "utf8");
-      const currentChecksum = crypto.createHash("sha256").update(sqlContent).digest("hex");
+      const currentChecksum = crypto
+        .createHash("sha256")
+        .update(sqlContent)
+        .digest("hex");
 
       if (existingMap.has(file)) {
         const storedChecksum = existingMap.get(file);
         if (storedChecksum && storedChecksum !== currentChecksum) {
           throw new Error(
             `Migration integrity error: Checksum mismatch for already applied migration "${file}". ` +
-            `Stored: ${storedChecksum}, Current: ${currentChecksum}. ` +
-            `Migrations must be append-only and never modified after deployment.`
+              `Stored: ${storedChecksum}, Current: ${currentChecksum}. ` +
+              `Migrations must be append-only and never modified after deployment.`,
           );
         } else if (!storedChecksum) {
           // Backfill checksum for migrations applied prior to checksum tracking
@@ -109,7 +115,9 @@ async function main() {
         continue;
       }
 
-      console.log(`[APPLYING] ${file} (checksum: ${currentChecksum.slice(0, 8)}...)...`);
+      console.log(
+        `[APPLYING] ${file} (checksum: ${currentChecksum.slice(0, 8)}...)...`,
+      );
 
       // Transactional migration application
       await sql.begin(async (tx) => {
@@ -124,7 +132,9 @@ async function main() {
       appliedCount++;
     }
 
-    console.log(`Migration execution completed. ${appliedCount} new migration(s) applied.`);
+    console.log(
+      `Migration execution completed. ${appliedCount} new migration(s) applied.`,
+    );
   } catch (err) {
     console.error("Migration failed:", err);
     process.exit(1);

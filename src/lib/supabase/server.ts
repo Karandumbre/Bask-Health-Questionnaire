@@ -20,10 +20,16 @@ export async function createClient(): Promise<SupabaseClient> {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
+      setAll(
+        cookiesToSet: Array<{
+          name: string;
+          value: string;
+          options: CookieOptions;
+        }>,
+      ) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, options),
           );
         } catch {
           // Ignored if called from a Server Component (where cookies cannot be set)
@@ -47,7 +53,7 @@ export interface VerifiedAuthUser {
  * NEVER trusts auth.getSession() alone because getSession() does not verify token signatures.
  */
 export async function getServerVerifiedUser(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<VerifiedAuthUser | null> {
   // 1. Try auth.getClaims() first (Supabase modern claims validation)
   try {
@@ -56,8 +62,10 @@ export async function getServerVerifiedUser(
       if (!error && data?.claims && typeof data.claims.sub === "string") {
         return {
           id: data.claims.sub,
-          email: typeof data.claims.email === "string" ? data.claims.email : null,
-          role: typeof data.claims.role === "string" ? data.claims.role : undefined,
+          email:
+            typeof data.claims.email === "string" ? data.claims.email : null,
+          role:
+            typeof data.claims.role === "string" ? data.claims.role : undefined,
           claims: data.claims,
         };
       }
@@ -78,9 +86,36 @@ export async function getServerVerifiedUser(
       };
     }
   } catch {
-    return null;
+    // Continue to test fixture fallback if non-production
+  }
+
+  // 3. Isolated test fixture fallback (strictly non-production for automated E2E tests)
+  const isProduction =
+    process.env.APP_ENV === "production" ||
+    process.env.VERCEL_ENV === "production";
+  if (
+    !isProduction &&
+    (process.env.NODE_ENV !== "production" ||
+      process.env.ALLOW_TEST_AUTH === "true")
+  ) {
+    try {
+      const cookieStore = await cookies();
+      const testUserCookie = cookieStore.get("bask_test_user");
+      if (testUserCookie?.value) {
+        const parsed = JSON.parse(testUserCookie.value);
+        if (parsed?.id) {
+          return {
+            id: parsed.id,
+            email: parsed.email ?? "reviewer@baskhealth.com",
+            role: "authenticated",
+            claims: { sub: parsed.id, email: parsed.email },
+          };
+        }
+      }
+    } catch {
+      // Ignored
+    }
   }
 
   return null;
 }
-

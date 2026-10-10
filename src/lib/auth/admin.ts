@@ -2,7 +2,11 @@ import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { adminMemberships, forms, workspaces } from "@/lib/db/schema";
-import { createClient, getServerVerifiedUser, type VerifiedAuthUser } from "@/lib/supabase/server";
+import {
+  createClient,
+  getServerVerifiedUser,
+  type VerifiedAuthUser,
+} from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 
 export type AdminRole = "owner" | "editor";
@@ -25,7 +29,11 @@ export async function requireAdmin(): Promise<VerifiedAuthUser> {
   const user = await getServerVerifiedUser(supabase);
 
   if (!user) {
-    throw new AppError("UNAUTHORIZED", "Authentication required for administrative access.", 401);
+    throw new AppError(
+      "UNAUTHORIZED",
+      "Authentication required for administrative access.",
+      401,
+    );
   }
 
   return user;
@@ -38,7 +46,7 @@ export async function requireAdmin(): Promise<VerifiedAuthUser> {
 export async function requireWorkspaceMembership(
   userId: string,
   workspaceId: string,
-  requiredRole?: AdminRole
+  requiredRole?: AdminRole,
 ): Promise<WorkspaceMembershipRecord> {
   const [membership] = await db
     .select()
@@ -47,8 +55,8 @@ export async function requireWorkspaceMembership(
       and(
         eq(adminMemberships.userId, userId),
         eq(adminMemberships.workspaceId, workspaceId),
-        isNull(adminMemberships.revokedAt)
-      )
+        isNull(adminMemberships.revokedAt),
+      ),
     )
     .limit(1);
 
@@ -57,7 +65,7 @@ export async function requireWorkspaceMembership(
       "FORBIDDEN",
       "Access denied: You are not a member of this workspace.",
       403,
-      { resourceType: "workspace" }
+      { resourceType: "workspace" },
     );
   }
 
@@ -66,7 +74,7 @@ export async function requireWorkspaceMembership(
       "FORBIDDEN",
       "Access denied: Owner privileges required for this action.",
       403,
-      { resourceType: "workspace" }
+      { resourceType: "workspace" },
     );
   }
 
@@ -80,7 +88,7 @@ export async function requireWorkspaceMembership(
 export async function requireFormWorkspaceAccess(
   formId: string,
   userId: string,
-  requiredRole?: AdminRole
+  requiredRole?: AdminRole,
 ) {
   const [form] = await db
     .select()
@@ -89,10 +97,16 @@ export async function requireFormWorkspaceAccess(
     .limit(1);
 
   if (!form) {
-    throw new AppError("NOT_FOUND", "Form not found.", 404, { resourceType: "form" });
+    throw new AppError("NOT_FOUND", "Form not found.", 404, {
+      resourceType: "form",
+    });
   }
 
-  const membership = await requireWorkspaceMembership(userId, form.workspaceId, requiredRole);
+  const membership = await requireWorkspaceMembership(
+    userId,
+    form.workspaceId,
+    requiredRole,
+  );
 
   return { form, membership };
 }
@@ -102,10 +116,14 @@ export async function requireFormWorkspaceAccess(
  */
 export async function requireAdminWorkspaceAccess(
   workspaceId: string,
-  requiredRole?: AdminRole
+  requiredRole?: AdminRole,
 ): Promise<{ user: VerifiedAuthUser; membership: WorkspaceMembershipRecord }> {
   const user = await requireAdmin();
-  const membership = await requireWorkspaceMembership(user.id, workspaceId, requiredRole);
+  const membership = await requireWorkspaceMembership(
+    user.id,
+    workspaceId,
+    requiredRole,
+  );
   return { user, membership };
 }
 
@@ -116,8 +134,15 @@ export async function requireAdminWorkspaceAccess(
  */
 export async function getUserWorkspaces(
   userId: string,
-  userEmail?: string | null
-): Promise<Array<{ workspaceId: string; role: AdminRole; workspaceName: string; createdAt: Date }>> {
+  userEmail?: string | null,
+): Promise<
+  Array<{
+    workspaceId: string;
+    role: AdminRole;
+    workspaceName: string;
+    createdAt: Date;
+  }>
+> {
   const memberships = await db
     .select({
       workspaceId: adminMemberships.workspaceId,
@@ -130,23 +155,34 @@ export async function getUserWorkspaces(
     .where(
       and(
         eq(adminMemberships.userId, userId),
-        isNull(adminMemberships.revokedAt)
-      )
+        isNull(adminMemberships.revokedAt),
+      ),
     );
 
   if (memberships.length > 0) {
-    return memberships as Array<{ workspaceId: string; role: AdminRole; workspaceName: string; createdAt: Date }>;
+    return memberships as Array<{
+      workspaceId: string;
+      role: AdminRole;
+      workspaceName: string;
+      createdAt: Date;
+    }>;
   }
 
   // Provision initial workspace for first-time admin / reviewer
-  const defaultName = userEmail ? `${userEmail.split("@")[0]}'s Clinic` : "Clinical Workspace";
+  const defaultName = userEmail
+    ? `${userEmail.split("@")[0]}'s Clinic`
+    : "Clinical Workspace";
   const [newWorkspace] = await db
     .insert(workspaces)
     .values({ name: defaultName })
     .returning();
 
   if (!newWorkspace) {
-    throw new AppError("INTERNAL_ERROR", "Failed to initialize workspace.", 500);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "Failed to initialize workspace.",
+      500,
+    );
   }
 
   await db.insert(adminMemberships).values({
@@ -164,5 +200,3 @@ export async function getUserWorkspaces(
     },
   ];
 }
-
-

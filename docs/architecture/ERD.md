@@ -18,7 +18,7 @@ erDiagram
 
     published_versions ||--o{ patient_sessions : "instances"
     published_versions ||--o{ submissions : "receives"
-    
+
     patient_sessions ||--o| submissions : "results in"
 
     workspaces {
@@ -122,13 +122,16 @@ erDiagram
 ## Relational Constraints & Retention Rules
 
 ### 1. Retention & Non-Cascading Deletion
+
 Clinical compliance mandates that patient responses and historical forms cannot be deleted implicitly:
+
 - `forms` table references `workspaces(id)` with `ON DELETE RESTRICT`.
 - `published_versions` table references `forms(id)` with `ON DELETE RESTRICT`. Forms with published versions cannot be deleted via SQL `DELETE`; they must be flagged as `archived_at = NOW()`.
 - `submissions` references `patient_sessions(id)` and `published_versions(id)` with `ON DELETE RESTRICT`.
 - `patient_sessions` references `published_versions(id)` with `ON DELETE RESTRICT`.
 
 ### 2. Unique Constraints & Concurrency Indexes
+
 - `published_versions`: `UNIQUE(form_id, version_number)` prevents split-brain duplicate versions.
 - `published_versions`: `UNIQUE(public_slug)` guarantees unguessable, one-to-one public URLs.
 - `submissions`: `UNIQUE(session_id)` ensures that even if concurrent requests attempt insertion, exactly one row can ever exist for a session.
@@ -138,6 +141,7 @@ Clinical compliance mandates that patient responses and historical forms cannot 
 ### 3. Database Triggers for Absolute Immutability
 
 #### Published Versions Immutability Trigger
+
 ```sql
 CREATE OR REPLACE FUNCTION prevent_published_version_mutation()
 RETURNS TRIGGER AS $$
@@ -152,6 +156,7 @@ FOR EACH ROW EXECUTE FUNCTION prevent_published_version_mutation();
 ```
 
 #### Submissions Immutability Trigger
+
 ```sql
 CREATE OR REPLACE FUNCTION prevent_submission_mutation()
 RETURNS TRIGGER AS $$
@@ -181,4 +186,3 @@ FOR EACH ROW EXECUTE FUNCTION prevent_submission_mutation();
    - `idx_submissions_version_date`: Composite index on `(published_version_id, submitted_at DESC)` for admin response pagination.
 5. **`audit_events`**:
    - `idx_audit_events_workspace_time`: Composite index on `(workspace_id, occurred_at DESC)` for security review logs.
-

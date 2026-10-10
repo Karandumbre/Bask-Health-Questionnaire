@@ -24,7 +24,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const searchParams = request.nextUrl.searchParams;
     const submissionId = searchParams.get("submissionId");
-    const limit = Math.min(Math.max(Number(searchParams.get("limit") || 50), 1), 100);
+    const limit = Math.min(
+      Math.max(Number(searchParams.get("limit") || 50), 1),
+      100,
+    );
     const offset = Math.max(Number(searchParams.get("offset") || 0), 0);
 
     if (submissionId) {

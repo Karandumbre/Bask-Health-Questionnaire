@@ -41,7 +41,10 @@ describe("Patient Server-Side Validation", () => {
       type: "single_select",
       label: "Are you currently pregnant?",
       required: true,
-      visibility: { parentQuestionId: "q_gender", equalsOptionId: "opt_female" },
+      visibility: {
+        parentQuestionId: "q_gender",
+        equalsOptionId: "opt_female",
+      },
       options: [
         { id: "opt_preg_yes", label: "Yes" },
         { id: "opt_preg_no", label: "No" },
@@ -83,7 +86,7 @@ describe("Patient Server-Side Validation", () => {
         expect.objectContaining({
           questionId: "q_name",
           code: "REQUIRED_TEXT_BLANK",
-        })
+        }),
       );
     });
 
@@ -101,29 +104,47 @@ describe("Patient Server-Side Validation", () => {
         expect.objectContaining({
           questionId: "q_name",
           code: "MIN_LENGTH_VIOLATION",
-        })
+        }),
       );
     });
 
     it("rejects invalid, decimal, or out-of-bounds numbers", () => {
       // Decimal in integer-only
       const res1 = validateSessionSubmission(
-        { q_name: "Alice", q_age: 25.5, q_gender: "opt_female", q_pregnant: "opt_preg_no", q_consent: true },
-        formQuestions
+        {
+          q_name: "Alice",
+          q_age: 25.5,
+          q_gender: "opt_female",
+          q_pregnant: "opt_preg_no",
+          q_consent: true,
+        },
+        formQuestions,
       );
       expect(res1.valid).toBe(false);
       expect(res1.errors).toContainEqual(
-        expect.objectContaining({ questionId: "q_age", code: "INTEGER_ONLY_VIOLATION" })
+        expect.objectContaining({
+          questionId: "q_age",
+          code: "INTEGER_ONLY_VIOLATION",
+        }),
       );
 
       // Under minimum
       const res2 = validateSessionSubmission(
-        { q_name: "Alice", q_age: 16, q_gender: "opt_female", q_pregnant: "opt_preg_no", q_consent: true },
-        formQuestions
+        {
+          q_name: "Alice",
+          q_age: 16,
+          q_gender: "opt_female",
+          q_pregnant: "opt_preg_no",
+          q_consent: true,
+        },
+        formQuestions,
       );
       expect(res2.valid).toBe(false);
       expect(res2.errors).toContainEqual(
-        expect.objectContaining({ questionId: "q_age", code: "MIN_VALUE_VIOLATION" })
+        expect.objectContaining({
+          questionId: "q_age",
+          code: "MIN_VALUE_VIOLATION",
+        }),
       );
     });
 
@@ -141,7 +162,7 @@ describe("Patient Server-Side Validation", () => {
         expect.objectContaining({
           questionId: "q_consent",
           code: "REQUIRED_CHECKBOX_UNCHECKED",
-        })
+        }),
       );
     });
 
@@ -159,7 +180,7 @@ describe("Patient Server-Side Validation", () => {
         expect.objectContaining({
           questionId: "q_gender",
           code: "UNKNOWN_OPTION_ID",
-        })
+        }),
       );
     });
 
@@ -178,7 +199,7 @@ describe("Patient Server-Side Validation", () => {
         expect.objectContaining({
           questionId: "q_symptoms",
           code: "DUPLICATE_SELECTION",
-        })
+        }),
       );
     });
 
@@ -222,9 +243,8 @@ describe("Patient Server-Side Validation", () => {
         expect.objectContaining({
           questionId: "q_age",
           code: "MAX_VALUE_VIOLATION",
-        })
+        }),
       );
     });
   });
 });
-

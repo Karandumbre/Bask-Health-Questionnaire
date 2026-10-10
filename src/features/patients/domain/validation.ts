@@ -16,7 +16,7 @@ export interface AnswerValidationError {
  */
 export function validateSessionProgress(
   incomingAnswers: PatientAnswers,
-  questions: Question[]
+  questions: Question[],
 ): {
   valid: boolean;
   errors: AnswerValidationError[];
@@ -66,7 +66,7 @@ export function validateSessionProgress(
  */
 export function validateSessionSubmission(
   incomingAnswers: PatientAnswers,
-  questions: Question[]
+  questions: Question[],
 ): {
   valid: boolean;
   errors: AnswerValidationError[];
@@ -152,7 +152,7 @@ export function validateSessionSubmission(
 
 function validateValueTypeAndBounds(
   q: Question,
-  value: CanonicalAnswer
+  value: CanonicalAnswer,
 ): AnswerValidationError[] {
   const errors: AnswerValidationError[] = [];
 
@@ -170,7 +170,11 @@ function validateValueTypeAndBounds(
       const trimmed = value.trim();
       if (q.validation) {
         const { minLength, maxLength } = q.validation;
-        if (minLength !== undefined && trimmed.length > 0 && trimmed.length < minLength) {
+        if (
+          minLength !== undefined &&
+          trimmed.length > 0 &&
+          trimmed.length < minLength
+        ) {
           errors.push({
             questionId: q.id,
             issue: `Text must be at least ${minLength} characters`,
@@ -189,7 +193,11 @@ function validateValueTypeAndBounds(
     }
 
     case "number": {
-      if (typeof value !== "number" || !Number.isFinite(value) || Number.isNaN(value)) {
+      if (
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        Number.isNaN(value)
+      ) {
         errors.push({
           questionId: q.id,
           issue: "Value must be a valid, finite number",

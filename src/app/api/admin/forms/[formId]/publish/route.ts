@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       throw new AppError(
         "INVALID_FORM",
         "expectedRevision (integer) is required to publish a draft snapshot.",
-        400
+        400,
       );
     }
 

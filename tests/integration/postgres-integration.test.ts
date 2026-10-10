@@ -108,7 +108,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       process.env.VERCEL_ENV === "production"
     ) {
       throw new Error(
-        "CRITICAL SAFETY ABORT: Integration tests are forbidden from executing against a production environment!"
+        "CRITICAL SAFETY ABORT: Integration tests are forbidden from executing against a production environment!",
       );
     }
 
@@ -272,7 +272,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         definition: { ...testFormDefinition, title: "Stale Overwrite" },
         theme: defaultTheme,
         userId: editorUserId1,
-      })
+      }),
     ).rejects.toThrowError(AppError);
 
     // Verify current revision is still 1
@@ -311,7 +311,10 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       userId: editorUserId2,
     });
 
-    const results = await Promise.allSettled([publishPromise1, publishPromise2]);
+    const results = await Promise.allSettled([
+      publishPromise1,
+      publishPromise2,
+    ]);
     const fulfilled = results.filter((r) => r.status === "fulfilled");
     const rejected = results.filter((r) => r.status === "rejected");
 
@@ -490,7 +493,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         definition: testFormDefinition,
         theme: defaultTheme,
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -503,7 +506,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         expectedRevision: 0,
         operationId: crypto.randomUUID(),
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -537,7 +540,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         capabilityToken: "forged-invalid-capability-token-hex",
         expectedSessionRevision: 0,
         answers: { "q-conditions": "opt-no" },
-      })
+      }),
     ).rejects.toMatchObject({
       code: "SESSION_UNAUTHORIZED",
       status: 401,
@@ -549,7 +552,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         sessionId: session.sessionId,
         capabilityToken: "forged-invalid-capability-token-hex",
         answers: { "q-conditions": "opt-no", "q-age": 30 },
-      })
+      }),
     ).rejects.toMatchObject({
       code: "SESSION_UNAUTHORIZED",
       status: 401,
@@ -596,7 +599,9 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
     expect(rejected.length).toBe(1);
 
     // The winner received a rotated recovery code
-    const winnerResult = (fulfilled[0] as PromiseFulfilledResult<Awaited<typeof resume1>>).value;
+    const winnerResult = (
+      fulfilled[0] as PromiseFulfilledResult<Awaited<typeof resume1>>
+    ).value;
     expect(winnerResult.newRecoveryCode).not.toBe(session.recoveryCode);
 
     // Old code is now permanently rejected
@@ -604,7 +609,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       resumePatientSession({
         sessionReference: session.sessionReference,
         recoveryCode: session.recoveryCode,
-      })
+      }),
     ).rejects.toThrowError(AppError);
   });
 
@@ -825,7 +830,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
 
     // Attempt hard deletion: must be blocked because published versions exist
     await expect(
-      deleteUnpublishedForm(form.id, ownerUserId)
+      deleteUnpublishedForm(form.id, ownerUserId),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -865,7 +870,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         sessionId: session.sessionId,
         capabilityToken: session.capabilityToken,
         answers: invalidAnswers,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "INVALID_ANSWER",
       status: 422,
@@ -930,14 +935,16 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       userId: editorUserId1,
     });
     expect(detail.id).toBe(submission.submissionId);
-    expect((detail.answerSnapshot as Record<string, unknown>)["q-age"]).toBe(32);
+    expect((detail.answerSnapshot as Record<string, unknown>)["q-age"]).toBe(
+      32,
+    );
 
     // Unauthorized user cannot list submissions
     await expect(
       listFormSubmissions({
         formId: form.id,
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -949,7 +956,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         formId: form.id,
         submissionId: submission.submissionId,
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,

@@ -64,7 +64,8 @@ describe("Administrator Form Builder Smoke Workflow (Full Lifecycle)", () => {
     const parentQ: SingleSelectQuestion = {
       id: "q_glp1_history",
       type: "single_select",
-      label: "Have you previously taken Semaglutide, Tirzepatide, or other GLP-1 receptor agonists?",
+      label:
+        "Have you previously taken Semaglutide, Tirzepatide, or other GLP-1 receptor agonists?",
       required: true,
       visibility: null,
       options: [
@@ -76,7 +77,8 @@ describe("Administrator Form Builder Smoke Workflow (Full Lifecycle)", () => {
     const childQ: ShortTextQuestion = {
       id: "q_glp1_dose",
       type: "short_text",
-      label: "What was your highest tolerated weekly dose and last injection date?",
+      label:
+        "What was your highest tolerated weekly dose and last injection date?",
       required: true,
       visibility: null,
       placeholder: "e.g. 1.0 mg weekly, last taken 2 weeks ago",
@@ -149,7 +151,9 @@ describe("Administrator Form Builder Smoke Workflow (Full Lifecycle)", () => {
     const brokenPublishValidation = validateFormForPublish(brokenDefinition);
     expect(brokenPublishValidation.valid).toBe(false);
     expect(
-      brokenPublishValidation.errors.some((err) => err.code === "MISSING_PARENT_OPTION")
+      brokenPublishValidation.errors.some(
+        (err) => err.code === "MISSING_PARENT_OPTION",
+      ),
     ).toBe(true);
 
     // -------------------------------------------------------------------------

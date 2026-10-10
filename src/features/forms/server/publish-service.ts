@@ -31,13 +31,15 @@ export interface PublishResult {
 }
 
 function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "form";
+  return (
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "form"
+  );
 }
 
 /**
@@ -49,7 +51,9 @@ function slugify(text: string): string {
  * 4. Clinical validation of all questions, choice sets, and visibility conditions.
  * 5. Rejection of stale drafts with HTTP 409 PUBLISH_CONFLICT.
  */
-export async function publishForm(params: PublishFormParams): Promise<PublishResult> {
+export async function publishForm(
+  params: PublishFormParams,
+): Promise<PublishResult> {
   const { formId, expectedRevision, operationId, userId } = params;
 
   // 1. Authorize workspace editor
@@ -67,7 +71,7 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
     .from(publicationOperations)
     .innerJoin(
       publishedVersions,
-      eq(publicationOperations.publishedVersionId, publishedVersions.id)
+      eq(publicationOperations.publishedVersionId, publishedVersions.id),
     )
     .where(eq(publicationOperations.operationId, operationId))
     .limit(1);
@@ -94,9 +98,14 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
       .limit(1);
 
     if (!lockedForm || lockedForm.archivedAt) {
-      throw new AppError("NOT_FOUND", "Form not found or has been archived.", 404, {
-        resourceType: "form",
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "Form not found or has been archived.",
+        404,
+        {
+          resourceType: "form",
+        },
+      );
     }
 
     // Lock the draft row
@@ -108,9 +117,14 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
       .limit(1);
 
     if (!lockedDraft) {
-      throw new AppError("NOT_FOUND", "Working draft not found for this form.", 404, {
-        resourceType: "draft",
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        "Working draft not found for this form.",
+        404,
+        {
+          resourceType: "draft",
+        },
+      );
     }
 
     // Stale revision check (CAS)
@@ -122,7 +136,7 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
         {
           expectedRevision,
           currentRevision: lockedDraft.revision,
-        }
+        },
       );
     }
 
@@ -156,7 +170,11 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
       .returning();
 
     if (!version) {
-      throw new AppError("INTERNAL_ERROR", "Failed to create published version snapshot.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "Failed to create published version snapshot.",
+        500,
+      );
     }
 
     // Register idempotency operation
@@ -210,4 +228,3 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
     };
   });
 }
-

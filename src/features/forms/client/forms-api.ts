@@ -23,9 +23,16 @@ const publishedSchema = successSchema.extend({
 
 const formUrl = (id: string) => `/api/admin/forms/${encodeURIComponent(id)}`;
 
-export async function saveFormDraft(id: string, snapshot: DraftSnapshot, revision: number, signal?: AbortSignal) {
+export async function saveFormDraft(
+  id: string,
+  snapshot: DraftSnapshot,
+  revision: number,
+  signal?: AbortSignal,
+) {
   const data = await apiRequest(formUrl(id), saveSchema, {
-    method: "PATCH", json: { ...snapshot, expectedRevision: revision }, signal,
+    method: "PATCH",
+    json: { ...snapshot, expectedRevision: revision },
+    signal,
   });
   return data.revision;
 }
@@ -35,11 +42,17 @@ export function loadFormDraft(id: string) {
 }
 
 export function createForm(name: string) {
-  return apiRequest("/api/admin/forms", formSchema, { method: "POST", json: { name } });
+  return apiRequest("/api/admin/forms", formSchema, {
+    method: "POST",
+    json: { name },
+  });
 }
 
 export function renameForm(id: string, name: string) {
-  return apiRequest(formUrl(id), formSchema, { method: "PATCH", json: { name } });
+  return apiRequest(formUrl(id), formSchema, {
+    method: "PATCH",
+    json: { name },
+  });
 }
 
 export function deleteForm(id: string) {
@@ -48,6 +61,7 @@ export function deleteForm(id: string) {
 
 export function publishForm(id: string, revision: number, operationId: string) {
   return apiRequest(`${formUrl(id)}/publish`, publishedSchema, {
-    method: "POST", json: { expectedRevision: revision, operationId },
+    method: "POST",
+    json: { expectedRevision: revision, operationId },
   });
 }

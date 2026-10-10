@@ -25,29 +25,31 @@ All API errors return a standard envelope with a machine-readable error code. **
 
 ### Error Code Catalog
 
-| Code | HTTP Status | Description | Safe Details Returned |
-|---|---|---|---|
-| `UNAUTHORIZED` | 401 | Missing or invalid administrative credentials. | None |
-| `FORBIDDEN` | 403 | User does not have access to the target workspace or resource. | `resourceType` |
-| `NOT_FOUND` | 404 | Form, draft, version, or session not found. | `resourceType` |
-| `REVISION_CONFLICT` | 409 | CAS failed: target revision does not match current server revision. | `expectedRevision`, `currentRevision` |
-| `INVALID_FORM` | 422 | Form schema or dependency validation failed on publish. | Array of `{ questionId, issue, code }` |
-| `INVALID_ANSWER` | 422 | Field-level validation failed on progress save or submission. | Array of `{ questionId, issue }` |
-| `PUBLISH_CONFLICT` | 409 | Publish requested against stale revision or concurrent publish in flight. | `currentRevision` |
-| `SESSION_UNAUTHORIZED` | 401 | Invalid patient capability cookie or missing recovery credentials. | None |
-| `SESSION_EXPIRED` | 410 | Patient intake session has expired. | `expiresAt` |
-| `SESSION_COMPLETED` | 409 | Attempted to alter an already finalized intake session. | `submittedAt` |
-| `RESUME_RATE_LIMITED` | 429 | Exceeded maximum attempts for recovery code verification. | `retryAfterSeconds` |
-| `INTERNAL_ERROR` | 500 | Unexpected server error. Detailed logs retained server-side only. | None |
+| Code                   | HTTP Status | Description                                                               | Safe Details Returned                  |
+| ---------------------- | ----------- | ------------------------------------------------------------------------- | -------------------------------------- |
+| `UNAUTHORIZED`         | 401         | Missing or invalid administrative credentials.                            | None                                   |
+| `FORBIDDEN`            | 403         | User does not have access to the target workspace or resource.            | `resourceType`                         |
+| `NOT_FOUND`            | 404         | Form, draft, version, or session not found.                               | `resourceType`                         |
+| `REVISION_CONFLICT`    | 409         | CAS failed: target revision does not match current server revision.       | `expectedRevision`, `currentRevision`  |
+| `INVALID_FORM`         | 422         | Form schema or dependency validation failed on publish.                   | Array of `{ questionId, issue, code }` |
+| `INVALID_ANSWER`       | 422         | Field-level validation failed on progress save or submission.             | Array of `{ questionId, issue }`       |
+| `PUBLISH_CONFLICT`     | 409         | Publish requested against stale revision or concurrent publish in flight. | `currentRevision`                      |
+| `SESSION_UNAUTHORIZED` | 401         | Invalid patient capability cookie or missing recovery credentials.        | None                                   |
+| `SESSION_EXPIRED`      | 410         | Patient intake session has expired.                                       | `expiresAt`                            |
+| `SESSION_COMPLETED`    | 409         | Attempted to alter an already finalized intake session.                   | `submittedAt`                          |
+| `RESUME_RATE_LIMITED`  | 429         | Exceeded maximum attempts for recovery code verification.                 | `retryAfterSeconds`                    |
+| `INTERNAL_ERROR`       | 500         | Unexpected server error. Detailed logs retained server-side only.         | None                                   |
 
 ---
 
 ## 2. Admin Workspace & Draft Contracts
 
 ### 2.1. List Forms
+
 - **Endpoint:** `GET /api/admin/forms`
 - **Auth:** Supabase Auth JWT (`sb-access-token`) + Workspace Member
 - **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -67,15 +69,19 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 2.2. Create Form
+
 - **Endpoint:** `POST /api/admin/forms`
 - **Request Body:**
+
 ```json
 {
   "workspaceId": "w11d4fae-7dec-11d0-a765-00a0c91e6bf6",
   "name": "Cardiology Screening"
 }
 ```
+
 - **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -89,8 +95,10 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 2.3. Get Draft Aggregate
+
 - **Endpoint:** `GET /api/admin/forms/:formId/draft`
 - **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -128,8 +136,10 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 2.4. Autosave Draft (Compare-and-Swap)
+
 - **Endpoint:** `PUT /api/admin/forms/:formId/draft`
 - **Request Body:**
+
 ```json
 {
   "expectedRevision": 3,
@@ -153,7 +163,9 @@ All API errors return a standard envelope with a machine-readable error code. **
   "theme": { ... }
 }
 ```
+
 - **Response (200 OK - Win):**
+
 ```json
 {
   "success": true,
@@ -163,7 +175,9 @@ All API errors return a standard envelope with a machine-readable error code. **
   }
 }
 ```
+
 - **Response (409 Conflict - Lose):**
+
 ```json
 {
   "success": false,
@@ -180,15 +194,19 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 2.5. Transactional Publish Form
+
 - **Endpoint:** `POST /api/admin/forms/:formId/publish`
 - **Request Body:**
+
 ```json
 {
   "expectedRevision": 4,
   "operationId": "op-91e6bf6-7dec-11d0-a765-00a0c91e6bf6"
 }
 ```
+
 - **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -207,9 +225,11 @@ All API errors return a standard envelope with a machine-readable error code. **
 ## 3. Patient Intake Contracts
 
 ### 3.1. Initialize Patient Session
+
 - **Endpoint:** `POST /api/patient/intake/:publicSlug/session`
 - **Response (201 Created):**
 - **Set-Cookie Header:** `bask_session_token=CAP_TOKEN_HASHED_JWT; Path=/api/patient; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000`
+
 ```json
 {
   "success": true,
@@ -229,16 +249,20 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 3.2. Cross-Browser Session Resumption
+
 - **Endpoint:** `POST /api/patient/session/resume`
 - **Request Body:**
+
 ```json
 {
   "sessionReference": "BKS-9A4F-71KQ",
   "recoveryCode": "BK-7M4P-88XZ-11QR"
 }
 ```
+
 - **Response (200 OK):**
 - **Set-Cookie Header:** Sets fresh `bask_session_token` cookie.
+
 ```json
 {
   "success": true,
@@ -253,7 +277,9 @@ All API errors return a standard envelope with a machine-readable error code. **
   }
 }
 ```
+
 - **Response (429 Too Many Requests):**
+
 ```json
 {
   "success": false,
@@ -268,9 +294,11 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 3.3. Save Progress (CAS In-Progress Autosave)
+
 - **Endpoint:** `PUT /api/patient/session/progress`
 - **Auth:** Capability Cookie
 - **Request Body:**
+
 ```json
 {
   "expectedSessionRevision": 3,
@@ -280,7 +308,9 @@ All API errors return a standard envelope with a machine-readable error code. **
   }
 }
 ```
+
 - **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -295,9 +325,11 @@ All API errors return a standard envelope with a machine-readable error code. **
 ```
 
 ### 3.4. Final Submission (Exact-Once)
+
 - **Endpoint:** `POST /api/patient/session/submit`
 - **Auth:** Capability Cookie
 - **Request Body:**
+
 ```json
 {
   "answers": {
@@ -307,7 +339,9 @@ All API errors return a standard envelope with a machine-readable error code. **
   }
 }
 ```
+
 - **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -318,4 +352,3 @@ All API errors return a standard envelope with a machine-readable error code. **
   }
 }
 ```
-

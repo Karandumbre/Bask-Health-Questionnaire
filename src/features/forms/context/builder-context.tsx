@@ -18,7 +18,11 @@ import { validateFormForPublish } from "@/features/forms/domain/validation";
 
 import { useDraftAutosave } from "../hooks/use-draft-autosave";
 import { loadFormDraft } from "../client/forms-api";
-import { generateId, createDefaultQuestion, cloneQuestionWithNewId } from "../client/question-operations";
+import {
+  generateId,
+  createDefaultQuestion,
+  cloneQuestionWithNewId,
+} from "../client/question-operations";
 import type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 export type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 
@@ -75,17 +79,25 @@ export function BuilderProvider({
   children: ReactNode;
 }) {
   const [formName, setFormName] = useState(initialName);
-  const [definition, setDefinition] = useState<FormDefinition>(initialDefinition);
+  const [definition, setDefinition] =
+    useState<FormDefinition>(initialDefinition);
   const [theme, setTheme] = useState<ThemeDefinition>(initialTheme);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
-    initialDefinition.questions[0]?.id ?? null
+    initialDefinition.questions[0]?.id ?? null,
   );
 
-  const { autosave, revision: draftRevision, status: saveStatus, lastSavedAt, conflict: conflictDetails } =
-    useDraftAutosave(formId, initialRevision, { definition, theme });
+  const {
+    autosave,
+    revision: draftRevision,
+    status: saveStatus,
+    lastSavedAt,
+    conflict: conflictDetails,
+  } = useDraftAutosave(formId, initialRevision, { definition, theme });
 
   const [activeMode, setActiveMode] = useState<"editor" | "preview">("editor");
-  const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
+  const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">(
+    "desktop",
+  );
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
   // Question manipulation
@@ -95,14 +107,14 @@ export function BuilderProvider({
 
   const addQuestion = useCallback(
     (type: FieldType) => {
-      setDefinition((prev) => {
-        const newQ = createDefaultQuestion(type, prev.questions.length);
-        const nextQuestions = [...prev.questions, newQ];
-        setSelectedQuestionId(newQ.id);
-        return { ...prev, questions: nextQuestions };
-      });
+      const newQ = createDefaultQuestion(type, definition.questions.length);
+      setDefinition((prev) => ({
+        ...prev,
+        questions: [...prev.questions, newQ],
+      }));
+      setSelectedQuestionId(newQ.id);
     },
-    []
+    [definition.questions.length],
   );
 
   const updateQuestion = useCallback(
@@ -117,28 +129,28 @@ export function BuilderProvider({
         return { ...prev, questions: nextQuestions };
       });
     },
-    []
+    [],
   );
 
   const duplicateQuestion = useCallback(
     (id: string) => {
+      const index = definition.questions.findIndex((q) => q.id === id);
+      if (index === -1) return;
+
+      const source = definition.questions[index];
+      if (!source) return;
+
+      const newId = generateId("q");
+      const clonedQuestion = cloneQuestionWithNewId(source, newId);
+
       setDefinition((prev) => {
-        const index = prev.questions.findIndex((q) => q.id === id);
-        if (index === -1) return prev;
-
-        const source = prev.questions[index];
-        if (!source) return prev;
-
-        const newId = generateId("q");
-        const clonedQuestion = cloneQuestionWithNewId(source, newId);
-
         const nextQuestions = [...prev.questions];
         nextQuestions.splice(index + 1, 0, clonedQuestion);
-        setSelectedQuestionId(newId);
         return { ...prev, questions: nextQuestions };
       });
+      setSelectedQuestionId(newId);
     },
-    []
+    [definition.questions],
   );
 
   const deleteQuestion = useCallback(
@@ -155,7 +167,7 @@ export function BuilderProvider({
         return { ...prev, questions: nextQuestions };
       });
     },
-    [selectedQuestionId]
+    [selectedQuestionId],
   );
 
   const reorderQuestion = useCallback(
@@ -165,7 +177,8 @@ export function BuilderProvider({
         if (index === -1) return prev;
 
         const targetIndex = direction === "up" ? index - 1 : index + 1;
-        if (targetIndex < 0 || targetIndex >= prev.questions.length) return prev;
+        if (targetIndex < 0 || targetIndex >= prev.questions.length)
+          return prev;
 
         const nextQuestions = [...prev.questions];
         const moved = nextQuestions[index];
@@ -177,7 +190,7 @@ export function BuilderProvider({
         return { ...prev, questions: nextQuestions };
       });
     },
-    []
+    [],
   );
 
   const updateFormMeta = useCallback(
@@ -190,23 +203,24 @@ export function BuilderProvider({
         return nextDef;
       });
     },
-    []
+    [],
   );
 
-  const updateTheme = useCallback(
-    (newTheme: ThemeDefinition) => {
-      setTheme(newTheme);
-    },
-    []
-  );
+  const updateTheme = useCallback((newTheme: ThemeDefinition) => {
+    setTheme(newTheme);
+  }, []);
 
   const saveNow = autosave.flush;
-  const saveForPublish = async () => await autosave.flush() ? autosave.getSnapshot().revision : null;
+  const saveForPublish = async () =>
+    (await autosave.flush()) ? autosave.getSnapshot().revision : null;
 
   const resolveConflictReload = async () => {
     try {
       const data = await loadFormDraft(formId);
-      autosave.reset({ definition: data.definition, theme: data.theme }, data.draft.revision);
+      autosave.reset(
+        { definition: data.definition, theme: data.theme },
+        data.draft.revision,
+      );
       setDefinition(data.definition);
       setTheme(data.theme);
       setFormName(data.definition.title);
@@ -216,7 +230,8 @@ export function BuilderProvider({
   };
 
   const resolveConflictForce = async () => {
-    if (conflictDetails) await autosave.forceSave(conflictDetails.serverRevision);
+    if (conflictDetails)
+      await autosave.forceSave(conflictDetails.serverRevision);
   };
 
   // Warn on tab close or page reload when there are unsaved edits

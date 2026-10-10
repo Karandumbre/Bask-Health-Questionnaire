@@ -57,4 +57,3 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: "https://vjstbqhzfnwrkksgavfv.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
           APP_SESSION_PEPPER: "placeholder-32-byte-secret-for-ci-build"
-

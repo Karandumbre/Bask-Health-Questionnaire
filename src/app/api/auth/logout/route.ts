@@ -13,10 +13,12 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     await supabase.auth.signOut();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: "Session ended successfully.",
     });
+    response.cookies.delete("bask_test_user");
+    return response;
   } catch (error) {
     return handleRouteError(error);
   }

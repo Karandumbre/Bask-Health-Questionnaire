@@ -35,6 +35,7 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 ## 2. Unit Testing Suite (Vitest)
 
 ### Executed & Verified:
+
 1. **Form Publish Rules (`tests/unit/domain/form-validation.test.ts`):**
    - Blank form title rejection.
    - Zero-question form rejection.
@@ -51,8 +52,8 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 
 2. **Patient Visibility & Hidden Answer Pruning (`tests/unit/domain/patient-visibility.test.ts`):**
    - Visibility evaluation for unconditional vs conditional questions.
-   - Active pruning: when parent switches from *Yes* to *No*, dependent answers are removed immediately.
-   - Prevention of state resurrection: changing back from *No* to *Yes* leaves dependent question blank.
+   - Active pruning: when parent switches from _Yes_ to _No_, dependent answers are removed immediately.
+   - Prevention of state resurrection: changing back from _No_ to _Yes_ leaves dependent question blank.
    - Dropping unknown/injected questions.
 
 3. **Server-Side Validation (`tests/unit/domain/patient-validation.test.ts`):**
@@ -82,17 +83,20 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 
 ## 3. Database Concurrency Integration Test Plan (PostgreSQL)
 
-*Note: Execution requires live PostgreSQL connection string (`DATABASE_URL`).*
+_Note: Execution requires live PostgreSQL connection string (`DATABASE_URL`)._
 
 ### 3.1. Optimistic Concurrency CAS Test
+
 - **Scenario:** Two worker threads attempt to update `form_drafts` with the same `expectedRevision = 5`.
 - **Expected Outcome:** Exactly one worker succeeds, incrementing `revision = 6`. The other receives row count 0 and returns `HTTP 409 REVISION_CONFLICT`.
 
 ### 3.2. Idempotent Transactional Publish
+
 - **Scenario:** Two simultaneous calls to `publishForm` with identical `operationId`.
 - **Expected Outcome:** One worker executes the publish transaction; the second worker reads `publication_operations` and returns the identical `published_version_id` without creating version $N+1$.
 
 ### 3.3. Database Immutability Triggers
+
 - **Scenario:** Direct SQL execution:
   ```sql
   UPDATE published_versions SET public_slug = 'hacked' WHERE id = '...';
@@ -101,6 +105,7 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 - **Expected Outcome:** PostgreSQL aborts the transaction with trigger exception: `"Table ... is immutable. UPDATE and DELETE operations are forbidden."`
 
 ### 3.4. Exactly-Once Submission Under Parallel Load
+
 - **Scenario:** 5 concurrent HTTP requests fire `submitPatientSession` with the same session token.
 - **Expected Outcome:** The first request acquires `SELECT ... FOR UPDATE`, completes the session, and writes to `submissions`. The remaining 4 requests wait on the row lock, discover `status = 'completed'`, and return the existing submission record. Exactly 1 row exists in `submissions`.
 
@@ -109,6 +114,7 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 ## 4. Playwright End-to-End (E2E) Test Plan
 
 ### Test Scenarios:
+
 1. **Admin Authoring Lifecycle:**
    - Log in with Supabase reviewer credentials.
    - Create new form -> Rename form -> Add Short Text, Number, Single-Select, Multi-Select, Checkbox.
@@ -128,7 +134,7 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
    - Set viewport to mobile ($375 \times 812$).
    - Load public version URL.
    - Verify modal/screen displays one-time recovery code (`BK-XXXX-XXXX-XXXX-XXXX`).
-   - Answer parent question *Yes* -> Fill dependent details -> Navigate back -> Change parent to *No*.
+   - Answer parent question _Yes_ -> Fill dependent details -> Navigate back -> Change parent to _No_.
    - Submit form -> Check admin response detail: dependent question is recorded as blank/omitted.
 
 4. **Cross-Browser Session Resumption:**
@@ -155,4 +161,3 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
   - Autosave payload size: $< 150\text{KB}$ uncompressed.
   - Server validation time: $< 25\text{ms}$.
 - **Profiling Setup:** Chrome Performance Profiler in Next.js production build (`npm run build && npm run start`) with 4x CPU throttling.
-

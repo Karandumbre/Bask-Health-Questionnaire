@@ -11,7 +11,10 @@ const MIGRATION_ADVISORY_LOCK_ID = 8493021;
  * against the direct database / session pooler connection and tracks applied migrations
  * with SHA-256 checksums and session-level advisory locks.
  */
-export async function runMigrations(): Promise<{ applied: string[]; skipped: string[] }> {
+export async function runMigrations(): Promise<{
+  applied: string[];
+  skipped: string[];
+}> {
   const sql = getDirectClient();
   const applied: string[] = [];
   const skipped: string[] = [];
@@ -38,7 +41,9 @@ export async function runMigrations(): Promise<{ applied: string[]; skipped: str
     const existing = await sql<{ name: string; checksum: string | null }[]>`
       SELECT "name", "checksum" FROM "_schema_migrations";
     `;
-    const existingMap = new Map(existing.map((row) => [row.name, row.checksum]));
+    const existingMap = new Map(
+      existing.map((row) => [row.name, row.checksum]),
+    );
 
     // 4. Locate migration files
     const migrationsDir = path.resolve(process.cwd(), "db/migrations");
@@ -55,13 +60,16 @@ export async function runMigrations(): Promise<{ applied: string[]; skipped: str
     for (const file of files) {
       const filePath = path.join(migrationsDir, file);
       const sqlContent = fs.readFileSync(filePath, "utf8");
-      const currentChecksum = crypto.createHash("sha256").update(sqlContent).digest("hex");
+      const currentChecksum = crypto
+        .createHash("sha256")
+        .update(sqlContent)
+        .digest("hex");
 
       if (existingMap.has(file)) {
         const storedChecksum = existingMap.get(file);
         if (storedChecksum && storedChecksum !== currentChecksum) {
           throw new Error(
-            `Migration checksum mismatch for "${file}". Stored: ${storedChecksum}, Current: ${currentChecksum}.`
+            `Migration checksum mismatch for "${file}". Stored: ${storedChecksum}, Current: ${currentChecksum}.`,
           );
         } else if (!storedChecksum) {
           await sql`UPDATE "_schema_migrations" SET "checksum" = ${currentChecksum} WHERE "name" = ${file};`;

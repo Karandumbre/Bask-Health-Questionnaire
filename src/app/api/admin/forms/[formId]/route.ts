@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       throw new AppError(
         "INVALID_FORM",
         "expectedRevision (integer) is required for autosave mutations.",
-        400
+        400,
       );
     }
 
@@ -79,7 +79,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       throw new AppError(
         "INVALID_FORM",
         "Both 'definition' and 'theme' objects must be provided for draft updates.",
-        400
+        400,
       );
     }
 
@@ -113,12 +113,20 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     if (action === "archive") {
       const archived = await archiveForm(formId, user.id);
-      return NextResponse.json({ success: true, action: "archived", form: archived });
+      return NextResponse.json({
+        success: true,
+        action: "archived",
+        form: archived,
+      });
     }
 
     try {
       const deleted = await deleteUnpublishedForm(formId, user.id);
-      return NextResponse.json({ success: true, action: "deleted", form: deleted });
+      return NextResponse.json({
+        success: true,
+        action: "deleted",
+        form: deleted,
+      });
     } catch (err) {
       // If the form cannot be deleted due to published history, fall back to archival
       if (err instanceof AppError && err.code === "FORBIDDEN") {

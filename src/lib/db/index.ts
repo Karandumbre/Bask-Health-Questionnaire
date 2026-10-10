@@ -35,10 +35,12 @@ function createPooledClient(): postgres.Sql {
 }
 
 export const client: postgres.Sql =
-  globalThis.__postgresClient ?? (globalThis.__postgresClient = createPooledClient());
+  globalThis.__postgresClient ??
+  (globalThis.__postgresClient = createPooledClient());
 
 export const db =
-  globalThis.__drizzleDb ?? (globalThis.__drizzleDb = drizzle(client, { schema }));
+  globalThis.__drizzleDb ??
+  (globalThis.__drizzleDb = drizzle(client, { schema }));
 
 /**
  * Creates a dedicated direct/session-pooler client for DDL, migrations,

@@ -17,7 +17,8 @@ import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
 import { validateSessionProgress } from "../domain/validation";
 
-const SESSION_PEPPER = process.env.APP_SESSION_PEPPER || "intake-studio-default-pepper-key-32b";
+const SESSION_PEPPER =
+  process.env.APP_SESSION_PEPPER || "intake-studio-default-pepper-key-32b";
 
 export interface CreateSessionParams {
   publicSlug: string;
@@ -67,7 +68,7 @@ export interface SaveProgressParams {
  * and a high-entropy one-time recovery code.
  */
 export async function createPatientSession(
-  params: CreateSessionParams
+  params: CreateSessionParams,
 ): Promise<CreateSessionResult> {
   const { publicSlug } = params;
 
@@ -82,15 +83,20 @@ export async function createPatientSession(
     .where(
       and(
         eq(publishedVersions.publicSlug, publicSlug),
-        isNull(forms.archivedAt)
-      )
+        isNull(forms.archivedAt),
+      ),
     )
     .limit(1);
 
   if (!versionWithForm) {
-    throw new AppError("NOT_FOUND", "Intake form not found or is no longer accepting submissions.", 404, {
-      resourceType: "published_version",
-    });
+    throw new AppError(
+      "NOT_FOUND",
+      "Intake form not found or is no longer accepting submissions.",
+      404,
+      {
+        resourceType: "published_version",
+      },
+    );
   }
 
   const { version } = versionWithForm;
@@ -101,7 +107,10 @@ export async function createPatientSession(
   const capabilityToken = generateCapabilityToken();
 
   const credentialHash = hashCapabilityToken(capabilityToken, SESSION_PEPPER);
-  const recoveryHash = hashRecoveryCode(normalizeRecoveryCode(recoveryCode), SESSION_PEPPER);
+  const recoveryHash = hashRecoveryCode(
+    normalizeRecoveryCode(recoveryCode),
+    SESSION_PEPPER,
+  );
 
   const now = new Date();
   const recoveryExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -125,7 +134,11 @@ export async function createPatientSession(
     .returning();
 
   if (!session) {
-    throw new AppError("INTERNAL_ERROR", "Failed to initialize patient session.", 500);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "Failed to initialize patient session.",
+      500,
+    );
   }
 
   return {
@@ -147,7 +160,7 @@ export async function createPatientSession(
  */
 export async function authenticatePatientSession(
   sessionId: string,
-  capabilityToken: string
+  capabilityToken: string,
 ) {
   const [session] = await db
     .select()
@@ -163,7 +176,11 @@ export async function authenticatePatientSession(
     throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
   }
 
-  const isValid = verifyCapabilityToken(capabilityToken, session.credentialHash, SESSION_PEPPER);
+  const isValid = verifyCapabilityToken(
+    capabilityToken,
+    session.credentialHash,
+    SESSION_PEPPER,
+  );
   if (!isValid) {
     throw AppError.sessionUnauthorized("Invalid session credentials.");
   }
@@ -180,7 +197,7 @@ export async function authenticatePatientSession(
  * 4. Issue of a fresh capability token for the new browser session
  */
 export async function resumePatientSession(
-  params: ResumeSessionParams
+  params: ResumeSessionParams,
 ): Promise<ResumeSessionResult> {
   const { sessionReference, recoveryCode } = params;
 
@@ -192,19 +209,26 @@ export async function resumePatientSession(
         version: publishedVersions,
       })
       .from(patientSessions)
-      .innerJoin(publishedVersions, eq(patientSessions.publishedVersionId, publishedVersions.id))
+      .innerJoin(
+        publishedVersions,
+        eq(patientSessions.publishedVersionId, publishedVersions.id),
+      )
       .where(eq(patientSessions.sessionReference, sessionReference))
       .for("update")
       .limit(1);
 
     if (!sessionWithVersion) {
-      throw AppError.sessionUnauthorized("Invalid session reference or recovery code.");
+      throw AppError.sessionUnauthorized(
+        "Invalid session reference or recovery code.",
+      );
     }
 
     const { session, version } = sessionWithVersion;
 
     if (session.status === "completed") {
-      throw AppError.sessionCompleted("Intake session has already been completed.");
+      throw AppError.sessionCompleted(
+        "Intake session has already been completed.",
+      );
     }
 
     const now = Date.now();
@@ -227,7 +251,11 @@ export async function resumePatientSession(
     }
 
     // 3. Constant-time recovery code verification
-    const isValid = verifyRecoveryCode(recoveryCode, session.recoveryHash, SESSION_PEPPER);
+    const isValid = verifyRecoveryCode(
+      recoveryCode,
+      session.recoveryHash,
+      SESSION_PEPPER,
+    );
 
     if (!isValid) {
       // Record failed attempt
@@ -240,15 +268,23 @@ export async function resumePatientSession(
         })
         .where(eq(patientSessions.id, session.id));
 
-      throw AppError.sessionUnauthorized("Invalid session reference or recovery code.");
+      throw AppError.sessionUnauthorized(
+        "Invalid session reference or recovery code.",
+      );
     }
 
     // 4. Atomic rotation: issue fresh recovery code & fresh capability token
     const newRecoveryCode = generateRecoveryCode();
     const newCapabilityToken = generateCapabilityToken();
 
-    const newRecoveryHash = hashRecoveryCode(normalizeRecoveryCode(newRecoveryCode), SESSION_PEPPER);
-    const newCredentialHash = hashCapabilityToken(newCapabilityToken, SESSION_PEPPER);
+    const newRecoveryHash = hashRecoveryCode(
+      normalizeRecoveryCode(newRecoveryCode),
+      SESSION_PEPPER,
+    );
+    const newCredentialHash = hashCapabilityToken(
+      newCapabilityToken,
+      SESSION_PEPPER,
+    );
 
     const [updatedSession] = await tx
       .update(patientSessions)
@@ -263,7 +299,11 @@ export async function resumePatientSession(
       .returning();
 
     if (!updatedSession) {
-      throw new AppError("INTERNAL_ERROR", "Failed to rotate recovery credentials.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "Failed to rotate recovery credentials.",
+        500,
+      );
     }
 
     return {
@@ -286,13 +326,16 @@ export async function resumePatientSession(
  * Prunes answers for any questions that became hidden when parent answers changed.
  */
 export async function savePatientProgress(params: SaveProgressParams) {
-  const { sessionId, capabilityToken, expectedSessionRevision, answers } = params;
+  const { sessionId, capabilityToken, expectedSessionRevision, answers } =
+    params;
 
   // 1. Authenticate capability cookie
   const session = await authenticatePatientSession(sessionId, capabilityToken);
 
   if (session.status === "completed") {
-    throw AppError.sessionCompleted("Cannot modify answers for a completed intake session.");
+    throw AppError.sessionCompleted(
+      "Cannot modify answers for a completed intake session.",
+    );
   }
 
   // 2. Fetch published version questions
@@ -303,7 +346,11 @@ export async function savePatientProgress(params: SaveProgressParams) {
     .limit(1);
 
   if (!version) {
-    throw new AppError("NOT_FOUND", "Associated published version not found.", 404);
+    throw new AppError(
+      "NOT_FOUND",
+      "Associated published version not found.",
+      404,
+    );
   }
 
   const definition = version.definitionSnapshot as FormDefinition;
@@ -326,8 +373,8 @@ export async function savePatientProgress(params: SaveProgressParams) {
       and(
         eq(patientSessions.id, sessionId),
         eq(patientSessions.revision, expectedSessionRevision),
-        eq(patientSessions.status, "in_progress")
-      )
+        eq(patientSessions.status, "in_progress"),
+      ),
     )
     .returning();
 
@@ -342,7 +389,7 @@ export async function savePatientProgress(params: SaveProgressParams) {
     throw AppError.revisionConflict(
       expectedSessionRevision,
       currentRev,
-      "Patient session was updated by another request. Please reload."
+      "Patient session was updated by another request. Please reload.",
     );
   }
 
@@ -352,4 +399,3 @@ export async function savePatientProgress(params: SaveProgressParams) {
     sanitizedAnswers: validation.sanitizedAnswers,
   };
 }
-

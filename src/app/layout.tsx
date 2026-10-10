@@ -7,15 +7,10 @@ export const metadata: Metadata = {
   description: "Clinical form authoring and patient intake engine.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>{children}</body>
     </html>
   );
 }
-

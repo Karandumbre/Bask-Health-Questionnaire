@@ -20,6 +20,6 @@ export function handleRouteError(error: unknown): NextResponse {
         message: "An internal server error occurred.",
       },
     },
-    { status: 500 }
+    { status: 500 },
   );
 }

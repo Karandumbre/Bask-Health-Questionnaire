@@ -1,9 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { GET as formsGetHandler, POST as formsPostHandler } from "@/app/api/admin/forms/route";
 import {
-  PATCH as formPatchHandler,
-} from "@/app/api/admin/forms/[formId]/route";
+  GET as formsGetHandler,
+  POST as formsPostHandler,
+} from "@/app/api/admin/forms/route";
+import { PATCH as formPatchHandler } from "@/app/api/admin/forms/[formId]/route";
 import { POST as publishHandler } from "@/app/api/admin/forms/[formId]/publish/route";
 import { GET as responsesGetHandler } from "@/app/api/admin/forms/[formId]/responses/route";
 
@@ -39,9 +40,14 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
       body?: unknown;
       origin?: string;
       host?: string;
-    } = {}
+    } = {},
   ) => {
-    const { method = "GET", body, origin = "http://localhost:3000", host = "localhost:3000" } = options;
+    const {
+      method = "GET",
+      body,
+      origin = "http://localhost:3000",
+      host = "localhost:3000",
+    } = options;
     const headers = new Headers();
     if (host) headers.set("host", host);
     if (origin) headers.set("origin", origin);
@@ -91,7 +97,11 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
   describe("Authentication Enforcement (SEC-04)", () => {
     it("rejects unauthenticated user from listing forms (401 UNAUTHORIZED)", async () => {
       vi.mocked(requireAdmin).mockRejectedValueOnce(
-        new AppError("UNAUTHORIZED", "Authentication required for administrative access.", 401)
+        new AppError(
+          "UNAUTHORIZED",
+          "Authentication required for administrative access.",
+          401,
+        ),
       );
 
       const request = createRequest("/api/admin/forms");
@@ -105,7 +115,11 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
 
     it("rejects unauthenticated user from autosaving draft (401 UNAUTHORIZED)", async () => {
       vi.mocked(requireAdmin).mockRejectedValueOnce(
-        new AppError("UNAUTHORIZED", "Authentication required for administrative access.", 401)
+        new AppError(
+          "UNAUTHORIZED",
+          "Authentication required for administrative access.",
+          401,
+        ),
       );
 
       const request = createRequest("/api/admin/forms/f_1", {
@@ -123,7 +137,11 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
 
     it("rejects unauthenticated user from publishing form (401 UNAUTHORIZED)", async () => {
       vi.mocked(requireAdmin).mockRejectedValueOnce(
-        new AppError("UNAUTHORIZED", "Authentication required for administrative access.", 401)
+        new AppError(
+          "UNAUTHORIZED",
+          "Authentication required for administrative access.",
+          401,
+        ),
       );
 
       const request = createRequest("/api/admin/forms/f_1/publish", {
@@ -139,7 +157,11 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
 
     it("rejects unauthenticated user from accessing patient responses (401 UNAUTHORIZED)", async () => {
       vi.mocked(requireAdmin).mockRejectedValueOnce(
-        new AppError("UNAUTHORIZED", "Authentication required for administrative access.", 401)
+        new AppError(
+          "UNAUTHORIZED",
+          "Authentication required for administrative access.",
+          401,
+        ),
       );
 
       const request = createRequest("/api/admin/forms/f_1/responses");
@@ -162,9 +184,14 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
         claims: { sub: "usr_attacker" },
       });
       vi.mocked(requireWorkspaceMembership).mockRejectedValueOnce(
-        new AppError("FORBIDDEN", "Access denied: You are not a member of this workspace.", 403, {
-          resourceType: "workspace",
-        })
+        new AppError(
+          "FORBIDDEN",
+          "Access denied: You are not a member of this workspace.",
+          403,
+          {
+            resourceType: "workspace",
+          },
+        ),
       );
 
       const request = createRequest("/api/admin/forms?workspaceId=ws_foreign");
@@ -185,9 +212,14 @@ describe("HTTP Administrative Mutation & Response Security Boundaries", () => {
         claims: { sub: "usr_cross_tenant" },
       });
       vi.mocked(requireFormWorkspaceAccess).mockRejectedValueOnce(
-        new AppError("FORBIDDEN", "Access denied: You are not a member of this workspace.", 403, {
-          resourceType: "workspace",
-        })
+        new AppError(
+          "FORBIDDEN",
+          "Access denied: You are not a member of this workspace.",
+          403,
+          {
+            resourceType: "workspace",
+          },
+        ),
       );
 
       const request = createRequest("/api/admin/forms/f_victim/responses");

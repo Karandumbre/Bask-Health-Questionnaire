@@ -1,7 +1,11 @@
 "use client";
 
 import { Dialog } from "@/components/ui/dialog";
-import { apiErrorMessage, apiRequest, successSchema } from "@/lib/http/api-client";
+import {
+  apiErrorMessage,
+  apiRequest,
+  successSchema,
+} from "@/lib/http/api-client";
 import { createForm, deleteForm, renameForm } from "../client/forms-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +55,7 @@ export function FormDashboard({
   const [renamingName, setRenamingName] = useState("");
 
   const filteredForms = formsList.filter((f) =>
-    f.name.toLowerCase().includes(searchQuery.toLowerCase())
+    f.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleCreateForm = async (e: FormEvent) => {
@@ -95,7 +99,11 @@ export function FormDashboard({
 
     try {
       await renameForm(formId, renamingName.trim());
-      setFormsList((prev) => prev.map((f) => f.id === formId ? { ...f, name: renamingName.trim() } : f));
+      setFormsList((prev) =>
+        prev.map((f) =>
+          f.id === formId ? { ...f, name: renamingName.trim() } : f,
+        ),
+      );
       setRenamingFormId(null);
     } catch (error) {
       setErrorMessage(apiErrorMessage(error, "Network error renaming form."));
@@ -129,7 +137,9 @@ export function FormDashboard({
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-600 hidden sm:inline">{userEmail}</span>
+          <span className="text-xs text-gray-600 hidden sm:inline">
+            {userEmail}
+          </span>
           <Button
             onClick={handleLogout}
             className="text-xs text-gray-500 hover:text-gray-900 font-medium px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -144,7 +154,9 @@ export function FormDashboard({
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Clinical Intake Forms</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Clinical Intake Forms
+            </h2>
             <p className="text-xs text-gray-500 mt-0.5">
               Author, publish, and review versioned patient questionnaires.
             </p>
@@ -155,14 +167,19 @@ export function FormDashboard({
               setNewFormName("");
               setIsCreateModalOpen(true);
             }}
-            variant="primary" className="gap-2"
+            variant="primary"
+            className="gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             <span>Create New Form</span>
           </Button>
         </div>
 
-        {errorMessage && !isCreateModalOpen && <p role="alert" className="text-xs text-red-600">{errorMessage}</p>}
+        {errorMessage && !isCreateModalOpen && (
+          <p role="alert" className="text-xs text-red-600">
+            {errorMessage}
+          </p>
+        )}
 
         {/* Search & Filter */}
         <div className="relative max-w-md">
@@ -183,7 +200,9 @@ export function FormDashboard({
             <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
               <PlusIcon className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-bold text-gray-900">No clinical forms found</h3>
+            <h3 className="text-sm font-bold text-gray-900">
+              No clinical forms found
+            </h3>
             <p className="text-xs text-gray-500 max-w-xs mx-auto">
               Get started by creating your first patient intake questionnaire.
             </p>
@@ -208,7 +227,10 @@ export function FormDashboard({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredForms.map((form) => (
-                  <tr key={form.id} className="hover:bg-gray-50/70 transition-colors group">
+                  <tr
+                    key={form.id}
+                    className="hover:bg-gray-50/70 transition-colors group"
+                  >
                     {/* Title */}
                     <td className="py-3.5 px-4 font-medium text-gray-900">
                       {renamingFormId === form.id ? (
@@ -308,65 +330,81 @@ export function FormDashboard({
 
       {/* Create New Form Modal */}
       {isCreateModalOpen && (
-        <Dialog open titleId="create-form-title" onClose={isCreating ? undefined : () => setIsCreateModalOpen(false)} className="max-w-md space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 id="create-form-title" className="text-base font-bold text-gray-900">Create Clinical Form</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Initializes a new draft container ready for question authoring.
-                </p>
-              </div>
-              <Button
-                disabled={isCreating}
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+        <Dialog
+          open
+          titleId="create-form-title"
+          onClose={isCreating ? undefined : () => setIsCreateModalOpen(false)}
+          className="max-w-md space-y-4"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <h3
+                id="create-form-title"
+                className="text-base font-bold text-gray-900"
               >
-                ✕
-              </Button>
+                Create Clinical Form
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Initializes a new draft container ready for question authoring.
+              </p>
+            </div>
+            <Button
+              disabled={isCreating}
+              onClick={() => setIsCreateModalOpen(false)}
+              aria-label="Close create form dialog"
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </Button>
+          </div>
+
+          <form onSubmit={handleCreateForm} className="space-y-4">
+            <div>
+              <label
+                htmlFor="new-form-name"
+                className="block text-xs font-semibold text-gray-700 mb-1"
+              >
+                Form Title <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                required
+                id="new-form-name"
+                placeholder="e.g. Adult ADHD Initial Screening"
+                value={newFormName}
+                onChange={(e) => setNewFormName(e.target.value)}
+
+                autoFocus
+              />
             </div>
 
-            <form onSubmit={handleCreateForm} className="space-y-4">
-              <div>
-                <label htmlFor="new-form-name" className="block text-xs font-semibold text-gray-700 mb-1">
-                  Form Title <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="text"
-                  required
-                  id="new-form-name"
-                  placeholder="e.g. Adult ADHD Initial Screening"
-                  value={newFormName}
-                  onChange={(e) => setNewFormName(e.target.value)}
-
-                  autoFocus
-                />
+            {errorMessage && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 flex items-center gap-1.5">
+                <AlertTriangleIcon className="w-4 h-4 text-red-500 shrink-0" />
+                <span>{errorMessage}</span>
               </div>
+            )}
 
-              {errorMessage && (
-                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 flex items-center gap-1.5">
-                  <AlertTriangleIcon className="w-4 h-4 text-red-500 shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  type="button"
-                  disabled={isCreating}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                disabled={isCreating}
                 onClick={() => setIsCreateModalOpen(false)}
-                  variant="secondary" className="py-2"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isCreating || !newFormName.trim()}
-                  variant="primary" className="py-2"
-                >
-                  {isCreating ? "Creating..." : "Create & Open"}
-                </Button>
-              </div>
-            </form>
+                variant="secondary"
+                className="py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isCreating || !newFormName.trim()}
+                variant="primary"
+                className="py-2"
+              >
+                {isCreating ? "Creating..." : "Create & Open"}
+              </Button>
+            </div>
+          </form>
         </Dialog>
       )}
     </div>

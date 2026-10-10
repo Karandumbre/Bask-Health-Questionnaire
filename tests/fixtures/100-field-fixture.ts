@@ -78,8 +78,8 @@ export function generate100FieldFixture(): FormDefinition {
   return {
     schemaVersion: 1,
     title: "Comprehensive 100-Field Clinical Intake Benchmark",
-    description: "Benchmark intake form containing 100 fields with real conditional dependencies.",
+    description:
+      "Benchmark intake form containing 100 fields with real conditional dependencies.",
     questions,
   };
 }
-

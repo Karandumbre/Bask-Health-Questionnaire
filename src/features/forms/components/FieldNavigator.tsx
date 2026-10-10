@@ -22,7 +22,11 @@ import {
 
 const QUESTION_TYPE_CONFIG: Record<
   FieldType,
-  { label: string; description: string; icon: ComponentType<{ className?: string }> }
+  {
+    label: string;
+    description: string;
+    icon: ComponentType<{ className?: string }>;
+  }
 > = {
   short_text: {
     label: "Short Text",
@@ -84,7 +88,8 @@ export function FieldNavigator() {
             Form Questions
           </h2>
           <p className="text-[11px] text-gray-400 mt-0.5">
-            {definition.questions.length} {definition.questions.length === 1 ? "field" : "fields"}
+            {definition.questions.length}{" "}
+            {definition.questions.length === 1 ? "field" : "fields"}
           </p>
         </div>
 
@@ -111,30 +116,32 @@ export function FieldNavigator() {
                 <div className="px-3 py-1.5 border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                   Select Field Type
                 </div>
-                {(Object.keys(QUESTION_TYPE_CONFIG) as FieldType[]).map((type) => {
-                  const conf = QUESTION_TYPE_CONFIG[type];
-                  if (!conf) return null;
-                  const Icon = conf.icon;
-                  return (
-                    <Button
-                      key={type}
-                      onClick={() => handleAddType(type)}
-                      className="w-full text-left px-3 py-2 hover:bg-blue-50/70 flex items-start gap-2.5 transition-colors group"
-                    >
-                      <div className="p-1 rounded bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors mt-0.5">
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-medium text-gray-900 group-hover:text-blue-700">
-                          {conf.label}
+                {(Object.keys(QUESTION_TYPE_CONFIG) as FieldType[]).map(
+                  (type) => {
+                    const conf = QUESTION_TYPE_CONFIG[type];
+                    if (!conf) return null;
+                    const Icon = conf.icon;
+                    return (
+                      <Button
+                        key={type}
+                        onClick={() => handleAddType(type)}
+                        className="w-full text-left px-3 py-2 hover:bg-blue-50/70 flex items-start gap-2.5 transition-colors group"
+                      >
+                        <div className="p-1 rounded bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors mt-0.5">
+                          <Icon className="w-3.5 h-3.5" />
                         </div>
-                        <div className="text-[11px] text-gray-400 truncate">
-                          {conf.description}
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium text-gray-900 group-hover:text-blue-700">
+                            {conf.label}
+                          </div>
+                          <div className="text-[11px] text-gray-400 truncate">
+                            {conf.description}
+                          </div>
                         </div>
-                      </div>
-                    </Button>
-                  );
-                })}
+                      </Button>
+                    );
+                  },
+                )}
               </div>
             </>
           )}
@@ -145,9 +152,12 @@ export function FieldNavigator() {
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {definition.questions.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-gray-200 rounded-lg m-2">
-            <p className="text-xs font-medium text-gray-600">No questions added yet</p>
+            <p className="text-xs font-medium text-gray-600">
+              No questions added yet
+            </p>
             <p className="text-[11px] text-gray-400 mt-1">
-              Click &quot;Add Field&quot; above to create clinical intake questions.
+              Click &quot;Add Field&quot; above to create clinical intake
+              questions.
             </p>
           </div>
         ) : (
@@ -158,7 +168,7 @@ export function FieldNavigator() {
             const Icon = typeConf.icon;
 
             const hasError = publishValidationErrors.some(
-              (err) => err.questionId === q.id
+              (err) => err.questionId === q.id,
             );
 
             return (
@@ -182,7 +192,11 @@ export function FieldNavigator() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-gray-900 truncate">
-                        {q.label || <span className="italic text-gray-400">Untitled Question</span>}
+                        {q.label || (
+                          <span className="italic text-gray-400">
+                            Untitled Question
+                          </span>
+                        )}
                       </p>
 
                       {/* Badges */}
@@ -219,7 +233,9 @@ export function FieldNavigator() {
                   {/* Right Actions: Reorder, Duplicate, Delete */}
                   <div
                     className={`flex items-center gap-0.5 ${
-                      isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
                     } transition-opacity`}
                     onClick={(e) => e.stopPropagation()}
                   >

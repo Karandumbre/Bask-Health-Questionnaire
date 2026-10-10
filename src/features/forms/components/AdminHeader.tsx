@@ -63,7 +63,11 @@ export function AdminHeader() {
           href="/admin/forms"
           onClick={(e) => {
             if (hasUnsavedChanges) {
-              if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+              if (
+                !window.confirm(
+                  "You have unsaved changes. Are you sure you want to leave?",
+                )
+              ) {
                 e.preventDefault();
               }
             }
@@ -98,7 +102,9 @@ export function AdminHeader() {
               className="group flex items-center gap-1.5 text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate text-left"
               title="Click to rename"
             >
-              <span className="truncate max-w-[280px] sm:max-w-[400px]">{formName}</span>
+              <span className="truncate max-w-[280px] sm:max-w-[400px]">
+                {formName}
+              </span>
               <EditIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
           )}
@@ -166,7 +172,11 @@ export function AdminHeader() {
         )}
 
         {/* Autosave Indicator */}
-        <div className="flex items-center gap-1.5" role="status" aria-live="polite">
+        <div
+          className="flex items-center gap-1.5"
+          role="status"
+          aria-live="polite"
+        >
           {saveStatus === "saved" && (
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
               <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />

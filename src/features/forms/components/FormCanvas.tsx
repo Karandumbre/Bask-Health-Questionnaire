@@ -7,7 +7,10 @@ import { useState } from "react";
 import { useBuilder } from "../context/builder-context";
 import { evaluateQuestionVisibility } from "@/features/patients/domain/visibility";
 import type { Question } from "@/features/forms/domain/types";
-import type { PatientAnswers, CanonicalAnswer } from "@/features/patients/domain/types";
+import type {
+  PatientAnswers,
+  CanonicalAnswer,
+} from "@/features/patients/domain/types";
 import {
   DuplicateIcon,
   DeleteIcon,
@@ -32,7 +35,10 @@ export function FormCanvas() {
   // Preview mode answers state
   const [previewAnswers, setPreviewAnswers] = useState<PatientAnswers>({});
 
-  const handlePreviewAnswerChange = (questionId: string, val: CanonicalAnswer | undefined) => {
+  const handlePreviewAnswerChange = (
+    questionId: string,
+    val: CanonicalAnswer | undefined,
+  ) => {
     setPreviewAnswers((prev) => {
       const next: PatientAnswers = { ...prev };
       if (val === undefined) {
@@ -65,7 +71,9 @@ export function FormCanvas() {
               #{index + 1}
             </span>
             <span className="text-sm font-semibold text-gray-900">
-              {q.label || <span className="text-gray-400 italic">Untitled Question</span>}
+              {q.label || (
+                <span className="text-gray-400 italic">Untitled Question</span>
+              )}
             </span>
             {q.required && <span className="text-red-500 font-bold">*</span>}
           </div>
@@ -180,7 +188,9 @@ export function FormCanvas() {
           {q.type === "checkbox" && (
             <div className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
               <div className="w-4 h-4 rounded border border-gray-300 bg-white mt-0.5" />
-              <span className="text-xs text-gray-700 font-medium">{q.label}</span>
+              <span className="text-xs text-gray-700 font-medium">
+                {q.label}
+              </span>
             </div>
           )}
         </div>
@@ -189,7 +199,9 @@ export function FormCanvas() {
         {q.visibility && (
           <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center gap-1.5 text-[11px] text-purple-700">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-            <span>Conditional: Displays only when parent condition is satisfied</span>
+            <span>
+              Conditional: Displays only when parent condition is satisfied
+            </span>
           </div>
         )}
       </div>
@@ -202,7 +214,11 @@ export function FormCanvas() {
     for (const item of definition.questions) {
       questionMap.set(item.id, item);
     }
-    const isVisible = evaluateQuestionVisibility(q, previewAnswers, questionMap);
+    const isVisible = evaluateQuestionVisibility(
+      q,
+      previewAnswers,
+      questionMap,
+    );
     if (!isVisible) return null;
 
     const currentVal = previewAnswers[q.id];
@@ -250,7 +266,7 @@ export function FormCanvas() {
               onChange={(e) =>
                 handlePreviewAnswerChange(
                   q.id,
-                  e.target.value === "" ? undefined : Number(e.target.value)
+                  e.target.value === "" ? undefined : Number(e.target.value),
                 )
               }
               placeholder={q.placeholder || "0"}
@@ -280,7 +296,9 @@ export function FormCanvas() {
                           : "border-gray-300 bg-white"
                       }`}
                     >
-                      {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      {isSelected && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
                     </div>
                     <span className="text-xs">{opt.label}</span>
                   </Button>
@@ -292,7 +310,9 @@ export function FormCanvas() {
           {q.type === "multi_select" && (
             <div className="space-y-2">
               {q.options.map((opt) => {
-                const selectedList = Array.isArray(currentVal) ? (currentVal as string[]) : [];
+                const selectedList = Array.isArray(currentVal)
+                  ? (currentVal as string[])
+                  : [];
                 const isChecked = selectedList.includes(opt.id);
                 return (
                   <Button
@@ -317,7 +337,9 @@ export function FormCanvas() {
                           : "border-gray-300 bg-white"
                       }`}
                     >
-                      {isChecked && <CheckIcon className="w-3 h-3 text-white" />}
+                      {isChecked && (
+                        <CheckIcon className="w-3 h-3 text-white" />
+                      )}
                     </div>
                     <span className="text-xs">{opt.label}</span>
                   </Button>
@@ -339,9 +361,13 @@ export function FormCanvas() {
                     : "border-gray-300 bg-white"
                 }`}
               >
-                {currentVal === true && <CheckIcon className="w-3 h-3 text-white" />}
+                {currentVal === true && (
+                  <CheckIcon className="w-3 h-3 text-white" />
+                )}
               </div>
-              <span className="text-xs text-gray-800 leading-snug">{q.label}</span>
+              <span className="text-xs text-gray-800 leading-snug">
+                {q.label}
+              </span>
             </Button>
           )}
         </div>
@@ -356,9 +382,13 @@ export function FormCanvas() {
         <div className="w-full max-w-2xl space-y-4 pb-20">
           {/* Form Header Card */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-2xs">
-            <h1 className="text-xl font-bold text-gray-900">{definition.title}</h1>
+            <h1 className="text-xl font-bold text-gray-900">
+              {definition.title}
+            </h1>
             {definition.description && (
-              <p className="text-xs text-gray-500 mt-1">{definition.description}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {definition.description}
+              </p>
             )}
             <div className="mt-3 flex items-center gap-3 text-[11px] text-gray-400">
               <span>Theme: {theme.presetName}</span>
@@ -385,16 +415,21 @@ export function FormCanvas() {
               Interactive Patient Simulator
             </p>
             <p className="text-[11px] text-blue-700 mt-0.5">
-              Testing live conditions & visibility. Responses here are not saved to the database.
+              Testing live conditions & visibility. Responses here are not saved
+              to the database.
             </p>
           </div>
 
           <div className="space-y-4">
             {/* Clinical Header */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-xs">
-              <h1 className="text-lg font-bold text-gray-900">{definition.title}</h1>
+              <h1 className="text-lg font-bold text-gray-900">
+                {definition.title}
+              </h1>
               {definition.description && (
-                <p className="text-xs text-gray-500 mt-1">{definition.description}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {definition.description}
+                </p>
               )}
             </div>
 

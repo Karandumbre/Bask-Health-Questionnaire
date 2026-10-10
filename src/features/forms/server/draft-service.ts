@@ -1,8 +1,16 @@
 import "server-only";
 import { eq, and, isNull, desc, count } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { forms, formDrafts, publishedVersions, auditEvents } from "@/lib/db/schema";
-import { requireWorkspaceMembership, requireFormWorkspaceAccess } from "@/lib/auth/admin";
+import {
+  forms,
+  formDrafts,
+  publishedVersions,
+  auditEvents,
+} from "@/lib/db/schema";
+import {
+  requireWorkspaceMembership,
+  requireFormWorkspaceAccess,
+} from "@/lib/auth/admin";
 import { AppError } from "@/lib/errors";
 import {
   FormDefinition,
@@ -99,7 +107,11 @@ export async function createForm(params: CreateFormParams) {
       .returning();
 
     if (!form) {
-      throw new AppError("INTERNAL_ERROR", "Failed to create form container.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "Failed to create form container.",
+        500,
+      );
     }
 
     // 3. Insert initial working draft
@@ -169,9 +181,14 @@ export async function getFormDraft(formId: string, userId: string) {
     .limit(1);
 
   if (!draft) {
-    throw new AppError("NOT_FOUND", "Working draft not found for this form.", 404, {
-      resourceType: "draft",
-    });
+    throw new AppError(
+      "NOT_FOUND",
+      "Working draft not found for this form.",
+      404,
+      {
+        resourceType: "draft",
+      },
+    );
   }
 
   return {
@@ -255,8 +272,8 @@ export async function updateDraft(params: UpdateDraftParams) {
     .where(
       and(
         eq(formDrafts.formId, formId),
-        eq(formDrafts.revision, expectedRevision)
-      )
+        eq(formDrafts.revision, expectedRevision),
+      ),
     )
     .returning();
 
@@ -272,7 +289,7 @@ export async function updateDraft(params: UpdateDraftParams) {
     throw AppError.revisionConflict(
       expectedRevision,
       currentRev,
-      "Draft has been updated by another administrator. Please reload to review changes."
+      "Draft has been updated by another administrator. Please reload to review changes.",
     );
   }
 
@@ -337,13 +354,16 @@ export async function deleteUnpublishedForm(formId: string, userId: string) {
       "FORBIDDEN",
       "Forms with published versions cannot be deleted. Archive the form instead to preserve audit records.",
       403,
-      { resourceType: "form" }
+      { resourceType: "form" },
     );
   }
 
   return await db.transaction(async (tx) => {
     await tx.delete(formDrafts).where(eq(formDrafts.formId, formId));
-    const [deletedForm] = await tx.delete(forms).where(eq(forms.id, formId)).returning();
+    const [deletedForm] = await tx
+      .delete(forms)
+      .where(eq(forms.id, formId))
+      .returning();
     return deletedForm;
   });
 }

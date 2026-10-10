@@ -47,4 +47,3 @@ export const ResumeSessionPayloadSchema = z.object({
   recoveryCode: z.string().min(1, "Recovery code is required"),
 });
 export type ResumeSessionPayload = z.infer<typeof ResumeSessionPayloadSchema>;
-

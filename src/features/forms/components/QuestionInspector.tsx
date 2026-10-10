@@ -13,7 +13,7 @@ export function QuestionInspector() {
   const { definition, selectedQuestionId, updateQuestion } = useBuilder();
 
   const selectedQuestion = definition.questions.find(
-    (q) => q.id === selectedQuestionId
+    (q) => q.id === selectedQuestionId,
   );
 
   if (!selectedQuestion) {
@@ -21,7 +21,8 @@ export function QuestionInspector() {
       <aside className="w-88 shrink-0 border-l border-gray-200 bg-white p-6 flex flex-col items-center justify-center text-center text-gray-400 select-none">
         <p className="text-xs font-medium text-gray-500">No field selected</p>
         <p className="text-[11px] text-gray-400 mt-1">
-          Select a question from the navigator or canvas to configure its properties.
+          Select a question from the navigator or canvas to configure its
+          properties.
         </p>
       </aside>
     );
@@ -47,7 +48,8 @@ export function QuestionInspector() {
 
   // Option management for single/multi select
   const isSelect =
-    selectedQuestion.type === "single_select" || selectedQuestion.type === "multi_select";
+    selectedQuestion.type === "single_select" ||
+    selectedQuestion.type === "multi_select";
   const selectOptions = isSelect ? selectedQuestion.options : [];
 
   const handleAddOption = () => {
@@ -65,7 +67,7 @@ export function QuestionInspector() {
   const handleUpdateOptionLabel = (optId: string, label: string) => {
     if (!isSelect) return;
     const updatedOptions = selectOptions.map((opt) =>
-      opt.id === optId ? { ...opt, label } : opt
+      opt.id === optId ? { ...opt, label } : opt,
     );
     updateQuestion(selectedQuestion.id, { options: updatedOptions });
   };
@@ -84,21 +86,28 @@ export function QuestionInspector() {
           <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
             {selectedQuestion.type.replace("_", " ")}
           </span>
-          <h3 className="text-xs font-bold text-gray-900 mt-1.5">Question Settings</h3>
+          <h3 className="text-xs font-bold text-gray-900 mt-1.5">
+            Question Settings
+          </h3>
         </div>
-        <span className="text-[10px] font-mono text-gray-400">ID: {selectedQuestion.id}</span>
+        <span className="text-[10px] font-mono text-gray-400">
+          ID: {selectedQuestion.id}
+        </span>
       </div>
 
       <div className="p-4 space-y-5 flex-1">
         {/* Label input */}
         <div>
-          <label htmlFor="question-label-input" className="block text-xs font-semibold text-gray-800 mb-1">
+          <label
+            htmlFor="question-label-input"
+            className="block text-xs font-semibold text-gray-800 mb-1"
+          >
             Question Label <span className="text-red-500">*</span>
           </label>
           <Input
             id="question-label-input"
             type="text"
-                  value={selectedQuestion.label}
+            value={selectedQuestion.label}
             onChange={(e) => handleLabelChange(e.target.value)}
             placeholder="e.g. Do you have any allergies?"
             className="rounded-md p-2"
@@ -107,12 +116,15 @@ export function QuestionInspector() {
 
         {/* Description / Instructions */}
         <div>
-          <label htmlFor="question-description-input" className="block text-xs font-semibold text-gray-800 mb-1">
+          <label
+            htmlFor="question-description-input"
+            className="block text-xs font-semibold text-gray-800 mb-1"
+          >
             Help Text / Instructions
           </label>
           <Textarea
             id="question-description-input"
-                  value={selectedQuestion.description || ""}
+            value={selectedQuestion.description || ""}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Additional guidance for the patient..."
             rows={2}
@@ -123,13 +135,16 @@ export function QuestionInspector() {
         {/* Placeholder (if applicable) */}
         {"placeholder" in selectedQuestion && (
           <div>
-            <label htmlFor="question-placeholder-input" className="block text-xs font-semibold text-gray-800 mb-1">
+            <label
+              htmlFor="question-placeholder-input"
+              className="block text-xs font-semibold text-gray-800 mb-1"
+            >
               Field Placeholder
             </label>
             <Input
               id="question-placeholder-input"
               type="text"
-                    value={selectedQuestion.placeholder || ""}
+              value={selectedQuestion.placeholder || ""}
               onChange={(e) => handlePlaceholderChange(e.target.value)}
               placeholder="e.g. Type your answer..."
               className="rounded-md p-2"
@@ -140,7 +155,10 @@ export function QuestionInspector() {
         {/* Required switch */}
         <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-gray-50/50">
           <div>
-            <label htmlFor="question-required-toggle" className="text-xs font-semibold text-gray-900 cursor-pointer block">
+            <label
+              htmlFor="question-required-toggle"
+              className="text-xs font-semibold text-gray-900 cursor-pointer block"
+            >
               Required Response
             </label>
             <p className="text-[11px] text-gray-400">
@@ -184,7 +202,9 @@ export function QuestionInspector() {
                     type="text"
                     aria-label={`Choice ${optIndex + 1}`}
                     value={opt.label}
-                    onChange={(e) => handleUpdateOptionLabel(opt.id, e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateOptionLabel(opt.id, e.target.value)
+                    }
                     className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                   />
                   <Button
@@ -216,10 +236,17 @@ export function QuestionInspector() {
         {/* Numeric Bounds (if number) */}
         {selectedQuestion.type === "number" && (
           <div className="space-y-3 pt-2 border-t border-gray-200">
-            <label className="text-xs font-semibold text-gray-900">Numeric Bounds</label>
+            <label className="text-xs font-semibold text-gray-900">
+              Numeric Bounds
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label htmlFor={`min-${selectedQuestion.id}`} className="block text-[11px] text-gray-600 mb-0.5">Min Value</label>
+                <label
+                  htmlFor={`min-${selectedQuestion.id}`}
+                  className="block text-[11px] text-gray-600 mb-0.5"
+                >
+                  Min Value
+                </label>
                 <Input
                   type="number"
                   id={`min-${selectedQuestion.id}`}
@@ -228,7 +255,10 @@ export function QuestionInspector() {
                     updateQuestion(selectedQuestion.id, {
                       validation: {
                         ...selectedQuestion.validation,
-                        min: e.target.value === "" ? undefined : Number(e.target.value),
+                        min:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
                       },
                     })
                   }
@@ -237,7 +267,12 @@ export function QuestionInspector() {
                 />
               </div>
               <div>
-                <label htmlFor={`max-${selectedQuestion.id}`} className="block text-[11px] text-gray-600 mb-0.5">Max Value</label>
+                <label
+                  htmlFor={`max-${selectedQuestion.id}`}
+                  className="block text-[11px] text-gray-600 mb-0.5"
+                >
+                  Max Value
+                </label>
                 <Input
                   type="number"
                   id={`max-${selectedQuestion.id}`}
@@ -246,7 +281,10 @@ export function QuestionInspector() {
                     updateQuestion(selectedQuestion.id, {
                       validation: {
                         ...selectedQuestion.validation,
-                        max: e.target.value === "" ? undefined : Number(e.target.value),
+                        max:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
                       },
                     })
                   }
@@ -257,7 +295,9 @@ export function QuestionInspector() {
             </div>
 
             <div className="flex items-center justify-between p-2 rounded bg-gray-50 border border-gray-200">
-              <span className="text-[11px] font-medium text-gray-700">Whole numbers only</span>
+              <span className="text-[11px] font-medium text-gray-700">
+                Whole numbers only
+              </span>
               <Input
                 type="checkbox"
                 aria-label="Whole numbers only"
@@ -277,12 +317,20 @@ export function QuestionInspector() {
         )}
 
         {/* Text Length Bounds (if text) */}
-        {(selectedQuestion.type === "short_text" || selectedQuestion.type === "long_text") && (
+        {(selectedQuestion.type === "short_text" ||
+          selectedQuestion.type === "long_text") && (
           <div className="space-y-3 pt-2 border-t border-gray-200">
-            <label className="text-xs font-semibold text-gray-900">Length Limits</label>
+            <label className="text-xs font-semibold text-gray-900">
+              Length Limits
+            </label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label htmlFor={`min-length-${selectedQuestion.id}`} className="block text-[11px] text-gray-600 mb-0.5">Min Length</label>
+                <label
+                  htmlFor={`min-length-${selectedQuestion.id}`}
+                  className="block text-[11px] text-gray-600 mb-0.5"
+                >
+                  Min Length
+                </label>
                 <Input
                   type="number"
                   id={`min-length-${selectedQuestion.id}`}
@@ -291,7 +339,10 @@ export function QuestionInspector() {
                     updateQuestion(selectedQuestion.id, {
                       validation: {
                         ...selectedQuestion.validation,
-                        minLength: e.target.value === "" ? undefined : Number(e.target.value),
+                        minLength:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
                       },
                     })
                   }
@@ -300,7 +351,12 @@ export function QuestionInspector() {
                 />
               </div>
               <div>
-                <label htmlFor={`max-length-${selectedQuestion.id}`} className="block text-[11px] text-gray-600 mb-0.5">Max Length</label>
+                <label
+                  htmlFor={`max-length-${selectedQuestion.id}`}
+                  className="block text-[11px] text-gray-600 mb-0.5"
+                >
+                  Max Length
+                </label>
                 <Input
                   type="number"
                   id={`max-length-${selectedQuestion.id}`}
@@ -309,7 +365,10 @@ export function QuestionInspector() {
                     updateQuestion(selectedQuestion.id, {
                       validation: {
                         ...selectedQuestion.validation,
-                        maxLength: e.target.value === "" ? undefined : Number(e.target.value),
+                        maxLength:
+                          e.target.value === ""
+                            ? undefined
+                            : Number(e.target.value),
                       },
                     })
                   }

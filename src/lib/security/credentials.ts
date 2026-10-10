@@ -7,8 +7,16 @@ const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // 32 characters,
  */
 export function generateSessionReference(): string {
   const bytes = randomBytes(4);
-  const part1 = bytes.readUInt16BE(0).toString(16).toUpperCase().padStart(4, "0");
-  const part2 = bytes.readUInt16BE(2).toString(16).toUpperCase().padStart(4, "0");
+  const part1 = bytes
+    .readUInt16BE(0)
+    .toString(16)
+    .toUpperCase()
+    .padStart(4, "0");
+  const part2 = bytes
+    .readUInt16BE(2)
+    .toString(16)
+    .toUpperCase()
+    .padStart(4, "0");
   return `BKS-${part1}-${part2}`;
 }
 
@@ -39,7 +47,10 @@ export function normalizeRecoveryCode(code: string): string {
 /**
  * Computes the HMAC-SHA256 digest of a normalized recovery code.
  */
-export function hashRecoveryCode(normalizedCode: string, pepper: string): string {
+export function hashRecoveryCode(
+  normalizedCode: string,
+  pepper: string,
+): string {
   return createHmac("sha256", pepper).update(normalizedCode).digest("hex");
 }
 
@@ -49,7 +60,7 @@ export function hashRecoveryCode(normalizedCode: string, pepper: string): string
 export function verifyRecoveryCode(
   incomingCode: string,
   storedHash: string,
-  pepper: string
+  pepper: string,
 ): boolean {
   const normalized = normalizeRecoveryCode(incomingCode);
   const computedHash = hashRecoveryCode(normalized, pepper);
@@ -83,7 +94,7 @@ export function hashCapabilityToken(token: string, pepper: string): string {
 export function verifyCapabilityToken(
   incomingToken: string,
   storedHash: string,
-  pepper: string
+  pepper: string,
 ): boolean {
   const computedHash = hashCapabilityToken(incomingToken, pepper);
   const bufA = Buffer.from(computedHash, "hex");
@@ -95,5 +106,3 @@ export function verifyCapabilityToken(
 
   return timingSafeEqual(bufA, bufB);
 }
-
-

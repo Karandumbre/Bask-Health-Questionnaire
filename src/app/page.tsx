@@ -13,7 +13,8 @@ export default function HomePage() {
             Bask Health — Intake Studio
           </h1>
           <p className="text-xs text-gray-500 mt-1.5">
-            Clinical form authoring, versioned publishing & responsive patient intake engine.
+            Clinical form authoring, versioned publishing & responsive patient
+            intake engine.
           </p>
         </div>
 
@@ -34,7 +35,8 @@ export default function HomePage() {
         </div>
 
         <div className="pt-4 border-t border-gray-100 text-[11px] text-gray-400">
-          Built with Next.js 16 (App Router), Supabase PostgreSQL, and Polaris Icons.
+          Built with Next.js 16 (App Router), Supabase PostgreSQL, and Polaris
+          Icons.
         </div>
       </div>
     </div>

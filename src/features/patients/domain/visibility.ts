@@ -8,7 +8,7 @@ import { PatientAnswers } from "./types";
 export function evaluateQuestionVisibility(
   question: Question,
   answers: PatientAnswers,
-  questionMap: Map<string, Question>
+  questionMap: Map<string, Question>,
 ): boolean {
   // Unconditional questions are always visible
   if (!question.visibility) {
@@ -24,7 +24,10 @@ export function evaluateQuestionVisibility(
   }
 
   // If parent itself has conditions and is hidden, child is hidden
-  if (parent.visibility && !evaluateQuestionVisibility(parent, answers, questionMap)) {
+  if (
+    parent.visibility &&
+    !evaluateQuestionVisibility(parent, answers, questionMap)
+  ) {
     return false;
   }
 
@@ -43,14 +46,16 @@ export function evaluateQuestionVisibility(
  */
 export function getVisibleQuestions(
   questions: Question[],
-  answers: PatientAnswers
+  answers: PatientAnswers,
 ): Question[] {
   const questionMap = new Map<string, Question>();
   for (const q of questions) {
     questionMap.set(q.id, q);
   }
 
-  return questions.filter((q) => evaluateQuestionVisibility(q, answers, questionMap));
+  return questions.filter((q) =>
+    evaluateQuestionVisibility(q, answers, questionMap),
+  );
 }
 
 /**
@@ -63,7 +68,7 @@ export function getVisibleQuestions(
  */
 export function pruneHiddenAnswers(
   answers: PatientAnswers,
-  questions: Question[]
+  questions: Question[],
 ): PatientAnswers {
   const questionMap = new Map<string, Question>();
   for (const q of questions) {

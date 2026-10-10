@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { requireAdmin, getUserWorkspaces } from "@/lib/auth/admin";
 import { listWorkspaceForms } from "@/features/forms/server/draft-service";
-import { FormDashboard, type FormListItem } from "@/features/forms/components/FormDashboard";
+import {
+  FormDashboard,
+  type FormListItem,
+} from "@/features/forms/components/FormDashboard";
 
 export default async function AdminFormsPage() {
   let user;

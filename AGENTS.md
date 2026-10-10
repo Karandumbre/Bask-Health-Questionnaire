@@ -5,7 +5,7 @@
 - This is a Next.js App Router app using React, strict TypeScript, Tailwind v4, Supabase Auth, and Drizzle/PostgreSQL.
 - Keep shared UI primitives in `src/components/ui/`. Reuse `Button`, `Input`, `Textarea`, `Select`, and `Dialog` before adding inline controls or copying Tailwind styles. Keep feature composition in `src/features/<feature>/components/`.
 - Use native input props and refs. Associate labels with controls, give icon-only controls accessible names, and use the shared modal dialog for keyboard/focus behavior.
-- Use `src/lib/http/api-client.ts` for browser API requests. Validate responses with Zod; put feature-specific endpoint helpers in the feature's `client/` directory. Keep browser code separate from server-only services.
+- Use `src/lib/http/api-client.ts` for browser API requests. Its shared Axios instance uses interceptors for headers and error normalization; retain AbortSignal cancellation and avoid automatic mutation retries. Validate responses with Zod; put feature-specific endpoint helpers in the feature's `client/` directory. Keep browser code separate from server-only services.
 - Keep pure domain rules in `domain/`, persistence in `server/`, and React behavior in `hooks/` or context. Avoid combining network, persistence, and presentation in one component.
 - The builder context composes editing state. `DraftAutosave` handles serialized revision-aware saves. Never mark newer edits saved when an older request completes, retry a conflict implicitly, or guess a successful revision.
 - Keep reusable question factories and IDs in `src/features/forms/client/question-operations.ts`. Preserve published question and option IDs; regenerate IDs only when creating or duplicating fields.

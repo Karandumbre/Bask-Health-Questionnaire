@@ -7,7 +7,10 @@ export function generateId(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function createDefaultQuestion(type: FieldType, index: number): Question {
+export function createDefaultQuestion(
+  type: FieldType,
+  index: number,
+): Question {
   const base = {
     id: generateId("q"),
     required: false,
@@ -66,7 +69,10 @@ export function createDefaultQuestion(type: FieldType, index: number): Question 
   }
 }
 
-export function cloneQuestionWithNewId(source: Question, newId: string): Question {
+export function cloneQuestionWithNewId(
+  source: Question,
+  newId: string,
+): Question {
   const newLabel = `${source.label} (Copy)`;
   const vis = source.visibility ? { ...source.visibility } : null;
 
@@ -77,7 +83,10 @@ export function cloneQuestionWithNewId(source: Question, newId: string): Questio
         ...source,
         id: newId,
         label: newLabel,
-        options: source.options.map((opt) => ({ ...opt, id: generateId("opt") })),
+        options: source.options.map((opt) => ({
+          ...opt,
+          id: generateId("opt"),
+        })),
         visibility: vis,
       };
     case "short_text":

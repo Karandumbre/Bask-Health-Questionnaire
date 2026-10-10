@@ -6,7 +6,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * Intercepts incoming requests at the network edge, refreshes expired Supabase Auth tokens,
  * and passes the updated cookie headers along to both the downstream route and the client browser response.
  */
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export async function updateSession(
+  request: NextRequest,
+): Promise<NextResponse> {
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -26,15 +28,17 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
         return request.cookies.getAll();
       },
       setAll(cookiesToSet, headers) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
         supabaseResponse = NextResponse.next({
           request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set(name, value, options),
         );
         Object.entries(headers).forEach(([name, value]) =>
-          supabaseResponse.headers.set(name, value)
+          supabaseResponse.headers.set(name, value),
         );
       },
     },
