@@ -1,0 +1,56 @@
+name: CI Quality Gate & Build Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Lint, Types & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint verification
+        run: npm run lint
+
+      - name: TypeScript strict verification
+        run: npx tsc --noEmit
+
+      - name: Run Vitest unit & domain benchmark suite
+        run: npm run test:unit
+
+      - name: Run PostgreSQL integration tests (when DB secrets provided)
+        if: env.DATABASE_URL != ''
+        run: npm run test:integration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_DIRECT_URL: ${{ secrets.DATABASE_DIRECT_URL }}
+          APP_SESSION_PEPPER: ${{ secrets.APP_SESSION_PEPPER }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Verify build artifact
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://vjstbqhzfnwrkksgavfv.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
+          APP_SESSION_PEPPER: "placeholder-32-byte-secret-for-ci-build"
+
