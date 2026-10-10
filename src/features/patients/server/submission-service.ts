@@ -1,14 +1,17 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { patientSessions, publishedVersions, submissions } from "@/lib/db/schema";
+import {
+  patientSessions,
+  publishedVersions,
+  submissions,
+} from "@/lib/db/schema";
 import { AppError } from "@/lib/errors";
-import { verifyCapabilityToken } from "@/lib/security/credentials";
+import { verifySessionAccess } from "./session-policy";
 import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
 import { validateSessionSubmission } from "../domain/validation";
-
-const SESSION_PEPPER = process.env.APP_SESSION_PEPPER || "intake-studio-default-pepper-key-32b";
 
 export interface SubmitSessionParams {
   sessionId: string;
@@ -37,7 +40,7 @@ export interface SubmissionResult {
  * 6. Historical immutability protected by database triggers.
  */
 export async function submitPatientSession(
-  params: SubmitSessionParams
+  params: SubmitSessionParams,
 ): Promise<SubmissionResult> {
   const { sessionId, capabilityToken, answers } = params;
 
@@ -51,22 +54,10 @@ export async function submitPatientSession(
       .limit(1);
 
     if (!lockedSession) {
-      throw AppError.sessionUnauthorized("Session not found.");
+      throw AppError.sessionUnauthorized(APP_MESSAGES.SESSION_NOT_FOUND);
     }
 
-    // 2. Validate capability cookie token
-    const isValid = verifyCapabilityToken(
-      capabilityToken,
-      lockedSession.credentialHash,
-      SESSION_PEPPER
-    );
-    if (!isValid) {
-      throw AppError.sessionUnauthorized("Invalid session credentials.");
-    }
-
-    if (new Date() > lockedSession.expiresAt) {
-      throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
-    }
+    verifySessionAccess(lockedSession, capabilityToken);
 
     // 3. Idempotent replay check: If already completed, fetch existing submission
     if (lockedSession.status === "completed") {
@@ -97,7 +88,11 @@ export async function submitPatientSession(
       .limit(1);
 
     if (!version) {
-      throw new AppError("NOT_FOUND", "Associated published version not found.", 404);
+      throw new AppError(
+        "NOT_FOUND",
+        APP_MESSAGES.ASSOCIATED_PUBLISHED_VERSION_NOT_FOUND,
+        404,
+      );
     }
 
     const definition = version.definitionSnapshot as FormDefinition;
@@ -122,7 +117,11 @@ export async function submitPatientSession(
       .returning();
 
     if (!submission) {
-      throw new AppError("INTERNAL_ERROR", "Failed to record submission.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        APP_MESSAGES.FAILED_TO_RECORD_SUBMISSION,
+        500,
+      );
     }
 
     // 7. Transition session status to completed
@@ -147,4 +146,3 @@ export async function submitPatientSession(
     };
   });
 }
-

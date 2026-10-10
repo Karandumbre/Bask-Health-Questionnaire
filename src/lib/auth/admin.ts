@@ -1,8 +1,13 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { adminMemberships, forms } from "@/lib/db/schema";
-import { createClient, getServerVerifiedUser, type VerifiedAuthUser } from "@/lib/supabase/server";
+import {
+  createClient,
+  getServerVerifiedUser,
+  type VerifiedAuthUser,
+} from "@/lib/supabase/server";
 import { AppError } from "@/lib/errors";
 
 export type AdminRole = "owner" | "editor";
@@ -25,7 +30,11 @@ export async function requireAdmin(): Promise<VerifiedAuthUser> {
   const user = await getServerVerifiedUser(supabase);
 
   if (!user) {
-    throw new AppError("UNAUTHORIZED", "Authentication required for administrative access.", 401);
+    throw new AppError(
+      "UNAUTHORIZED",
+      APP_MESSAGES.AUTHENTICATION_REQUIRED_FOR_ADMINISTRATIVE_ACCESS,
+      401,
+    );
   }
 
   return user;
@@ -38,7 +47,7 @@ export async function requireAdmin(): Promise<VerifiedAuthUser> {
 export async function requireWorkspaceMembership(
   userId: string,
   workspaceId: string,
-  requiredRole?: AdminRole
+  requiredRole?: AdminRole,
 ): Promise<WorkspaceMembershipRecord> {
   const [membership] = await db
     .select()
@@ -47,26 +56,26 @@ export async function requireWorkspaceMembership(
       and(
         eq(adminMemberships.userId, userId),
         eq(adminMemberships.workspaceId, workspaceId),
-        isNull(adminMemberships.revokedAt)
-      )
+        isNull(adminMemberships.revokedAt),
+      ),
     )
     .limit(1);
 
   if (!membership) {
     throw new AppError(
       "FORBIDDEN",
-      "Access denied: You are not a member of this workspace.",
+      APP_MESSAGES.ACCESS_DENIED_YOU_ARE_NOT_A_MEMBER_OF_THIS,
       403,
-      { resourceType: "workspace" }
+      { resourceType: "workspace" },
     );
   }
 
   if (requiredRole === "owner" && membership.role !== "owner") {
     throw new AppError(
       "FORBIDDEN",
-      "Access denied: Owner privileges required for this action.",
+      APP_MESSAGES.ACCESS_DENIED_OWNER_PRIVILEGES_REQUIRED_FOR_THIS_ACTION,
       403,
-      { resourceType: "workspace" }
+      { resourceType: "workspace" },
     );
   }
 
@@ -80,7 +89,7 @@ export async function requireWorkspaceMembership(
 export async function requireFormWorkspaceAccess(
   formId: string,
   userId: string,
-  requiredRole?: AdminRole
+  requiredRole?: AdminRole,
 ) {
   const [form] = await db
     .select()
@@ -89,10 +98,16 @@ export async function requireFormWorkspaceAccess(
     .limit(1);
 
   if (!form) {
-    throw new AppError("NOT_FOUND", "Form not found.", 404, { resourceType: "form" });
+    throw new AppError("NOT_FOUND", APP_MESSAGES.FORM_NOT_FOUND, 404, {
+      resourceType: "form",
+    });
   }
 
-  const membership = await requireWorkspaceMembership(userId, form.workspaceId, requiredRole);
+  const membership = await requireWorkspaceMembership(
+    userId,
+    form.workspaceId,
+    requiredRole,
+  );
 
   return { form, membership };
 }
@@ -102,10 +117,15 @@ export async function requireFormWorkspaceAccess(
  */
 export async function requireAdminWorkspaceAccess(
   workspaceId: string,
-  requiredRole?: AdminRole
+  requiredRole?: AdminRole,
 ): Promise<{ user: VerifiedAuthUser; membership: WorkspaceMembershipRecord }> {
   const user = await requireAdmin();
-  const membership = await requireWorkspaceMembership(user.id, workspaceId, requiredRole);
+  const membership = await requireWorkspaceMembership(
+    user.id,
+    workspaceId,
+    requiredRole,
+  );
   return { user, membership };
 }
 
+export { getUserWorkspaces } from "@/features/workspaces/server/workspace-service";

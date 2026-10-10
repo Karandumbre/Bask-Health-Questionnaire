@@ -1,9 +1,14 @@
-export default function HomePage() {
-  return (
-    <main>
-      <h1>Intake Studio — Bask Health</h1>
-      <p>Architecture & foundation ready. Phase 1 complete.</p>
-    </main>
-  );
-}
+import { ROUTES } from "@/lib/constants/application";
+import { redirect } from "next/navigation";
+import { createClient, getServerVerifiedUser } from "@/lib/supabase/server";
 
+export default async function HomePage() {
+  const supabase = await createClient();
+  const user = await getServerVerifiedUser(supabase);
+
+  if (user) {
+    redirect(ROUTES.adminForms);
+  }
+
+  redirect(ROUTES.adminLogin);
+}

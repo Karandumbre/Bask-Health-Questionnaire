@@ -1,7 +1,13 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { submissions, patientSessions, publishedVersions } from "@/lib/db/schema";
+import {
+  submissions,
+  patientSessions,
+  publishedVersions,
+  forms,
+} from "@/lib/db/schema";
 import { requireFormWorkspaceAccess } from "@/lib/auth/admin";
 import { AppError } from "@/lib/errors";
 
@@ -12,10 +18,36 @@ export interface ListSubmissionsParams {
   offset?: number;
 }
 
+export interface CountSubmissionsParams {
+  formId: string;
+  userId: string;
+}
+
 export interface GetSubmissionDetailParams {
   formId: string;
   submissionId: string;
   userId: string;
+}
+
+/**
+ * Counts total clinical submissions for a form within an authorized workspace.
+ */
+export async function countFormSubmissions(
+  params: CountSubmissionsParams,
+): Promise<number> {
+  const { formId, userId } = params;
+  await requireFormWorkspaceAccess(formId, userId, "editor");
+
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(submissions)
+    .innerJoin(
+      publishedVersions,
+      eq(submissions.publishedVersionId, publishedVersions.id),
+    )
+    .where(eq(publishedVersions.formId, formId));
+
+  return Number(row?.count ?? 0);
 }
 
 /**
@@ -35,20 +67,20 @@ export async function listFormSubmissions(params: ListSubmissionsParams) {
       id: submissions.id,
       sessionId: submissions.sessionId,
       sessionReference: patientSessions.sessionReference,
+      formName: forms.name,
       publishedVersionId: submissions.publishedVersionId,
       versionNumber: publishedVersions.versionNumber,
       answerSnapshot: submissions.answerSnapshot,
+      status: patientSessions.status,
       submittedAt: submissions.submittedAt,
     })
     .from(submissions)
     .innerJoin(
       publishedVersions,
-      eq(submissions.publishedVersionId, publishedVersions.id)
+      eq(submissions.publishedVersionId, publishedVersions.id),
     )
-    .innerJoin(
-      patientSessions,
-      eq(submissions.sessionId, patientSessions.id)
-    )
+    .innerJoin(forms, eq(publishedVersions.formId, forms.id))
+    .innerJoin(patientSessions, eq(submissions.sessionId, patientSessions.id))
     .where(eq(publishedVersions.formId, formId))
     .orderBy(desc(submissions.submittedAt))
     .limit(limit)
@@ -73,36 +105,40 @@ export async function getSubmissionDetail(params: GetSubmissionDetailParams) {
       id: submissions.id,
       sessionId: submissions.sessionId,
       sessionReference: patientSessions.sessionReference,
+      formName: forms.name,
       publishedVersionId: submissions.publishedVersionId,
       versionNumber: publishedVersions.versionNumber,
       definitionSnapshot: publishedVersions.definitionSnapshot,
       themeSnapshot: publishedVersions.themeSnapshot,
       answerSnapshot: submissions.answerSnapshot,
+      status: patientSessions.status,
       submittedAt: submissions.submittedAt,
     })
     .from(submissions)
     .innerJoin(
       publishedVersions,
-      eq(submissions.publishedVersionId, publishedVersions.id)
+      eq(submissions.publishedVersionId, publishedVersions.id),
     )
-    .innerJoin(
-      patientSessions,
-      eq(submissions.sessionId, patientSessions.id)
-    )
+    .innerJoin(forms, eq(publishedVersions.formId, forms.id))
+    .innerJoin(patientSessions, eq(submissions.sessionId, patientSessions.id))
     .where(
       and(
         eq(submissions.id, submissionId),
-        eq(publishedVersions.formId, formId)
-      )
+        eq(publishedVersions.formId, formId),
+      ),
     )
     .limit(1);
 
   if (!detail) {
-    throw new AppError("NOT_FOUND", "Submission record not found.", 404, {
-      resourceType: "submission",
-    });
+    throw new AppError(
+      "NOT_FOUND",
+      APP_MESSAGES.SUBMISSION_RECORD_NOT_FOUND,
+      404,
+      {
+        resourceType: "submission",
+      },
+    );
   }
 
   return detail;
 }
-

@@ -1,3 +1,4 @@
+import { getSupabaseConfig } from "./config";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -6,19 +7,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * Intercepts incoming requests at the network edge, refreshes expired Supabase Auth tokens,
  * and passes the updated cookie headers along to both the downstream route and the client browser response.
  */
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export async function updateSession(
+  request: NextRequest,
+): Promise<NextResponse> {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return supabaseResponse;
-  }
+  const config = getSupabaseConfig();
+  if (!config) return supabaseResponse;
+  const { url: supabaseUrl, key: supabaseKey } = config;
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
@@ -26,15 +24,17 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
         return request.cookies.getAll();
       },
       setAll(cookiesToSet, headers) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
         supabaseResponse = NextResponse.next({
           request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set(name, value, options),
         );
         Object.entries(headers).forEach(([name, value]) =>
-          supabaseResponse.headers.set(name, value)
+          supabaseResponse.headers.set(name, value),
         );
       },
     },
@@ -43,7 +43,12 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // Re-validate or refresh session using server verification
   // IMPORTANT: Do NOT use auth.getSession() here for authorization decisions.
   // getUser() sends a request to Supabase Auth to refresh token if necessary.
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // Refresh is best-effort here. Protected pages and API handlers still
+    // verify identity themselves; a refresh outage must not block public pages.
+  }
 
   return supabaseResponse;
 }

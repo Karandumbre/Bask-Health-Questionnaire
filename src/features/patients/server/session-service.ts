@@ -1,3 +1,5 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -11,13 +13,21 @@ import {
   verifyRecoveryCode,
   generateCapabilityToken,
   hashCapabilityToken,
-  verifyCapabilityToken,
+  encryptRecoveryReplay,
+  decryptRecoveryReplay,
 } from "@/lib/security/credentials";
 import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
 import { validateSessionProgress } from "../domain/validation";
 
-const SESSION_PEPPER = process.env.APP_SESSION_PEPPER || "intake-studio-default-pepper-key-32b";
+import {
+  getSessionPepper,
+  verifySessionAccess,
+  SESSION_DURATION_MS,
+  RECOVERY_DURATION_MS,
+  RECOVERY_MAX_ATTEMPTS,
+  RECOVERY_LOCKOUT_MS,
+} from "./session-policy";
 
 export interface CreateSessionParams {
   publicSlug: string;
@@ -67,7 +77,7 @@ export interface SaveProgressParams {
  * and a high-entropy one-time recovery code.
  */
 export async function createPatientSession(
-  params: CreateSessionParams
+  params: CreateSessionParams,
 ): Promise<CreateSessionResult> {
   const { publicSlug } = params;
 
@@ -82,15 +92,20 @@ export async function createPatientSession(
     .where(
       and(
         eq(publishedVersions.publicSlug, publicSlug),
-        isNull(forms.archivedAt)
-      )
+        isNull(forms.archivedAt),
+      ),
     )
     .limit(1);
 
   if (!versionWithForm) {
-    throw new AppError("NOT_FOUND", "Intake form not found or is no longer accepting submissions.", 404, {
-      resourceType: "published_version",
-    });
+    throw new AppError(
+      "NOT_FOUND",
+      APP_MESSAGES.INTAKE_FORM_NOT_FOUND_OR_IS_NO_LONGER_ACCEPTING,
+      404,
+      {
+        resourceType: "published_version",
+      },
+    );
   }
 
   const { version } = versionWithForm;
@@ -100,12 +115,18 @@ export async function createPatientSession(
   const recoveryCode = generateRecoveryCode();
   const capabilityToken = generateCapabilityToken();
 
-  const credentialHash = hashCapabilityToken(capabilityToken, SESSION_PEPPER);
-  const recoveryHash = hashRecoveryCode(normalizeRecoveryCode(recoveryCode), SESSION_PEPPER);
+  const credentialHash = hashCapabilityToken(
+    capabilityToken,
+    getSessionPepper(),
+  );
+  const recoveryHash = hashRecoveryCode(
+    normalizeRecoveryCode(recoveryCode),
+    getSessionPepper(),
+  );
 
   const now = new Date();
-  const recoveryExpiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const recoveryExpiresAt = new Date(now.getTime() + RECOVERY_DURATION_MS); // 7 days
+  const expiresAt = new Date(now.getTime() + SESSION_DURATION_MS); // 30 days
 
   // 3. Persist session
   const [session] = await db
@@ -125,7 +146,11 @@ export async function createPatientSession(
     .returning();
 
   if (!session) {
-    throw new AppError("INTERNAL_ERROR", "Failed to initialize patient session.", 500);
+    throw new AppError(
+      "INTERNAL_ERROR",
+      APP_MESSAGES.FAILED_TO_INITIALIZE_PATIENT_SESSION,
+      500,
+    );
   }
 
   return {
@@ -147,7 +172,7 @@ export async function createPatientSession(
  */
 export async function authenticatePatientSession(
   sessionId: string,
-  capabilityToken: string
+  capabilityToken: string,
 ) {
   const [session] = await db
     .select()
@@ -156,17 +181,10 @@ export async function authenticatePatientSession(
     .limit(1);
 
   if (!session) {
-    throw AppError.sessionUnauthorized("Session not found.");
+    throw AppError.sessionUnauthorized(APP_MESSAGES.SESSION_NOT_FOUND);
   }
 
-  if (new Date() > session.expiresAt) {
-    throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
-  }
-
-  const isValid = verifyCapabilityToken(capabilityToken, session.credentialHash, SESSION_PEPPER);
-  if (!isValid) {
-    throw AppError.sessionUnauthorized("Invalid session credentials.");
-  }
+  verifySessionAccess(session, capabilityToken);
 
   return session;
 }
@@ -180,11 +198,11 @@ export async function authenticatePatientSession(
  * 4. Issue of a fresh capability token for the new browser session
  */
 export async function resumePatientSession(
-  params: ResumeSessionParams
+  params: ResumeSessionParams,
 ): Promise<ResumeSessionResult> {
   const { sessionReference, recoveryCode } = params;
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // 1. Locate and lock session row FOR UPDATE
     const [sessionWithVersion] = await tx
       .select({
@@ -192,63 +210,142 @@ export async function resumePatientSession(
         version: publishedVersions,
       })
       .from(patientSessions)
-      .innerJoin(publishedVersions, eq(patientSessions.publishedVersionId, publishedVersions.id))
+      .innerJoin(
+        publishedVersions,
+        eq(patientSessions.publishedVersionId, publishedVersions.id),
+      )
       .where(eq(patientSessions.sessionReference, sessionReference))
       .for("update")
       .limit(1);
 
     if (!sessionWithVersion) {
-      throw AppError.sessionUnauthorized("Invalid session reference or recovery code.");
+      throw AppError.sessionUnauthorized(
+        APP_MESSAGES.INVALID_SESSION_REFERENCE_OR_RECOVERY_CODE,
+      );
     }
 
     const { session, version } = sessionWithVersion;
 
     if (session.status === "completed") {
-      throw AppError.sessionCompleted("Intake session has already been completed.");
+      throw AppError.sessionCompleted(
+        APP_MESSAGES.INTAKE_SESSION_HAS_ALREADY_BEEN_COMPLETED,
+      );
     }
 
     const now = Date.now();
     if (new Date() > session.expiresAt) {
-      throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
+      throw new AppError(
+        "SESSION_EXPIRED",
+        APP_MESSAGES.INTAKE_SESSION_HAS_EXPIRED,
+        410,
+      );
     }
 
-    // 2. Sliding window rate limiting check
-    const MAX_ATTEMPTS = 5;
-    const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+    if (now >= session.recoveryExpiresAt.getTime()) {
+      throw new AppError(
+        "SESSION_EXPIRED",
+        APP_MESSAGES.RECOVERY_CODE_HAS_EXPIRED,
+        410,
+      );
+    }
 
-    if (session.recoveryAttemptsCount >= MAX_ATTEMPTS) {
-      if (session.recoveryLastAttemptAt) {
-        const elapsed = now - session.recoveryLastAttemptAt.getTime();
-        if (elapsed < LOCKOUT_MS) {
-          const retryAfterSeconds = Math.ceil((LOCKOUT_MS - elapsed) / 1000);
-          throw AppError.resumeRateLimited(retryAfterSeconds);
-        }
-      }
+    // 2. Sliding window rate limiting check (bounded 15-minute cooldown, not permanent)
+    const MAX_ATTEMPTS = RECOVERY_MAX_ATTEMPTS;
+    const LOCKOUT_MS = RECOVERY_LOCKOUT_MS; // 15 minutes bounded cooldown
+    const lastAttempt = session.recoveryLastAttemptAt ?? session.updatedAt;
+    const isWithinCooldown =
+      lastAttempt !== null && now - lastAttempt.getTime() < LOCKOUT_MS;
+
+    if (session.recoveryAttemptsCount >= MAX_ATTEMPTS && isWithinCooldown) {
+      const elapsed = lastAttempt ? now - lastAttempt.getTime() : 0;
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((LOCKOUT_MS - elapsed) / 1000),
+      );
+      throw AppError.resumeRateLimited(retryAfterSeconds);
     }
 
     // 3. Constant-time recovery code verification
-    const isValid = verifyRecoveryCode(recoveryCode, session.recoveryHash, SESSION_PEPPER);
+    const isValid = verifyRecoveryCode(
+      recoveryCode,
+      session.recoveryHash,
+      getSessionPepper(),
+    );
 
     if (!isValid) {
-      // Record failed attempt
+      // Check for safe retry within bounded replay window (2 minutes)
+      const RECOVERY_REPLAY_WINDOW_MS = 2 * 60 * 1000;
+      const replayElapsed = session.previousRecoveryRotatedAt
+        ? now - session.previousRecoveryRotatedAt.getTime()
+        : Infinity;
+
+      if (
+        session.previousRecoveryHash &&
+        session.recoveryReplayPayload &&
+        replayElapsed >= 0 &&
+        replayElapsed < RECOVERY_REPLAY_WINDOW_MS &&
+        verifyRecoveryCode(
+          recoveryCode,
+          session.previousRecoveryHash,
+          getSessionPepper(),
+        )
+      ) {
+        const replayed = decryptRecoveryReplay(
+          session.recoveryReplayPayload,
+          getSessionPepper(),
+        );
+        if (replayed) {
+          return {
+            sessionId: session.id,
+            sessionReference: session.sessionReference,
+            newRecoveryCode: replayed.newRecoveryCode,
+            newCapabilityToken: replayed.newCapabilityToken,
+            publicSlug: version.publicSlug,
+            versionNumber: version.versionNumber,
+            definition: version.definitionSnapshot as FormDefinition,
+            theme: version.themeSnapshot,
+            currentAnswers: session.answerJson as PatientAnswers,
+            sessionRevision: session.revision,
+          };
+        }
+      }
+
+      // Record failed attempt with bounded atomic counter (resets if outside cooldown window)
       await tx
         .update(patientSessions)
         .set({
-          recoveryAttemptsCount: session.recoveryAttemptsCount + 1,
+          recoveryAttemptsCount:
+            (isWithinCooldown ? session.recoveryAttemptsCount : 0) + 1,
           recoveryLastAttemptAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(patientSessions.id, session.id));
 
-      throw AppError.sessionUnauthorized("Invalid session reference or recovery code.");
+      // Return identical generic failure so attempt counter commits before throwing (no session enumeration)
+      return {
+        error: AppError.sessionUnauthorized(
+          APP_MESSAGES.INVALID_SESSION_REFERENCE_OR_RECOVERY_CODE,
+        ),
+      };
     }
 
     // 4. Atomic rotation: issue fresh recovery code & fresh capability token
     const newRecoveryCode = generateRecoveryCode();
     const newCapabilityToken = generateCapabilityToken();
 
-    const newRecoveryHash = hashRecoveryCode(normalizeRecoveryCode(newRecoveryCode), SESSION_PEPPER);
-    const newCredentialHash = hashCapabilityToken(newCapabilityToken, SESSION_PEPPER);
+    const newRecoveryHash = hashRecoveryCode(
+      normalizeRecoveryCode(newRecoveryCode),
+      getSessionPepper(),
+    );
+    const newCredentialHash = hashCapabilityToken(
+      newCapabilityToken,
+      getSessionPepper(),
+    );
+
+    const replayPayload = encryptRecoveryReplay(
+      { newRecoveryCode, newCapabilityToken },
+      getSessionPepper(),
+    );
 
     const [updatedSession] = await tx
       .update(patientSessions)
@@ -256,14 +353,22 @@ export async function resumePatientSession(
         recoveryHash: newRecoveryHash,
         recoveryAttemptsCount: 0,
         recoveryLastAttemptAt: null,
+        recoveryExpiresAt: new Date(now + RECOVERY_DURATION_MS),
         credentialHash: newCredentialHash,
+        previousRecoveryHash: session.recoveryHash,
+        previousRecoveryRotatedAt: new Date(now),
+        recoveryReplayPayload: replayPayload,
         updatedAt: new Date(),
       })
       .where(eq(patientSessions.id, session.id))
       .returning();
 
     if (!updatedSession) {
-      throw new AppError("INTERNAL_ERROR", "Failed to rotate recovery credentials.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        APP_MESSAGES.FAILED_TO_ROTATE_RECOVERY_CREDENTIALS,
+        500,
+      );
     }
 
     return {
@@ -279,6 +384,10 @@ export async function resumePatientSession(
       sessionRevision: updatedSession.revision,
     };
   });
+  if ("error" in result && result.error) throw result.error;
+  if ("error" in result)
+    throw new AppError("INTERNAL_ERROR", APP_MESSAGES.RECOVERY_FAILED, 500);
+  return result;
 }
 
 /**
@@ -286,13 +395,17 @@ export async function resumePatientSession(
  * Prunes answers for any questions that became hidden when parent answers changed.
  */
 export async function savePatientProgress(params: SaveProgressParams) {
-  const { sessionId, capabilityToken, expectedSessionRevision, answers } = params;
+  revisionSchema.parse(params.expectedSessionRevision);
+  const { sessionId, capabilityToken, expectedSessionRevision, answers } =
+    params;
 
   // 1. Authenticate capability cookie
   const session = await authenticatePatientSession(sessionId, capabilityToken);
 
   if (session.status === "completed") {
-    throw AppError.sessionCompleted("Cannot modify answers for a completed intake session.");
+    throw AppError.sessionCompleted(
+      APP_MESSAGES.CANNOT_MODIFY_ANSWERS_FOR_A_COMPLETED_INTAKE_SESSION,
+    );
   }
 
   // 2. Fetch published version questions
@@ -303,7 +416,11 @@ export async function savePatientProgress(params: SaveProgressParams) {
     .limit(1);
 
   if (!version) {
-    throw new AppError("NOT_FOUND", "Associated published version not found.", 404);
+    throw new AppError(
+      "NOT_FOUND",
+      APP_MESSAGES.ASSOCIATED_PUBLISHED_VERSION_NOT_FOUND,
+      404,
+    );
   }
 
   const definition = version.definitionSnapshot as FormDefinition;
@@ -314,7 +431,7 @@ export async function savePatientProgress(params: SaveProgressParams) {
     throw AppError.invalidAnswer(validation.errors);
   }
 
-  // 4. Atomic Compare-And-Swap update on session revision
+  // 4. Atomic Compare-And-Swap update on session revision and active credential hash
   const [updated] = await db
     .update(patientSessions)
     .set({
@@ -326,23 +443,44 @@ export async function savePatientProgress(params: SaveProgressParams) {
       and(
         eq(patientSessions.id, sessionId),
         eq(patientSessions.revision, expectedSessionRevision),
-        eq(patientSessions.status, "in_progress")
-      )
+        eq(patientSessions.status, "in_progress"),
+        eq(patientSessions.credentialHash, session.credentialHash),
+      ),
     )
     .returning();
 
   if (!updated) {
     const [current] = await db
-      .select({ revision: patientSessions.revision })
+      .select({
+        revision: patientSessions.revision,
+        credentialHash: patientSessions.credentialHash,
+        status: patientSessions.status,
+      })
       .from(patientSessions)
       .where(eq(patientSessions.id, sessionId))
       .limit(1);
 
-    const currentRev = current ? current.revision : -1;
+    if (!current) {
+      throw AppError.sessionUnauthorized(APP_MESSAGES.SESSION_NOT_FOUND);
+    }
+
+    if (current.credentialHash !== session.credentialHash) {
+      throw AppError.sessionUnauthorized(
+        APP_MESSAGES.INVALID_SESSION_CREDENTIALS,
+      );
+    }
+
+    if (current.status === "completed") {
+      throw AppError.sessionCompleted(
+        APP_MESSAGES.CANNOT_MODIFY_ANSWERS_FOR_A_COMPLETED_INTAKE_SESSION,
+      );
+    }
+
+    const currentRev = current.revision;
     throw AppError.revisionConflict(
       expectedSessionRevision,
       currentRev,
-      "Patient session was updated by another request. Please reload."
+      APP_MESSAGES.PATIENT_SESSION_WAS_UPDATED_BY_ANOTHER_REQUEST_PLEASE_RELOAD,
     );
   }
 
@@ -352,4 +490,3 @@ export async function savePatientProgress(params: SaveProgressParams) {
     sanitizedAnswers: validation.sanitizedAnswers,
   };
 }
-

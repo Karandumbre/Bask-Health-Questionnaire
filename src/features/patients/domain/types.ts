@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { z } from "zod";
 
 /**
@@ -43,8 +44,9 @@ export type SubmissionPayload = z.infer<typeof SubmissionPayloadSchema>;
  * Session verification payload for resume.
  */
 export const ResumeSessionPayloadSchema = z.object({
-  sessionReference: z.string().min(1, "Session reference is required"),
-  recoveryCode: z.string().min(1, "Recovery code is required"),
+  sessionReference: z
+    .string()
+    .min(1, APP_MESSAGES.SESSION_REFERENCE_IS_REQUIRED),
+  recoveryCode: z.string().min(1, APP_MESSAGES.RECOVERY_CODE_IS_REQUIRED),
 });
 export type ResumeSessionPayload = z.infer<typeof ResumeSessionPayloadSchema>;
-

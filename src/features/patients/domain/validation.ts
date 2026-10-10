@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Question } from "@/features/forms/domain/types";
 import { PatientAnswers, CanonicalAnswer } from "./types";
 import { pruneHiddenAnswers, getVisibleQuestions } from "./visibility";
@@ -16,7 +17,7 @@ export interface AnswerValidationError {
  */
 export function validateSessionProgress(
   incomingAnswers: PatientAnswers,
-  questions: Question[]
+  questions: Question[],
 ): {
   valid: boolean;
   errors: AnswerValidationError[];
@@ -34,7 +35,7 @@ export function validateSessionProgress(
     if (!q) {
       errors.push({
         questionId: qId,
-        issue: `Unknown question ID "${qId}"`,
+        issue: APP_MESSAGES.UNKNOWN_QUESTION_ID_FORMATTED(qId),
         code: "UNKNOWN_QUESTION",
       });
       continue;
@@ -66,7 +67,7 @@ export function validateSessionProgress(
  */
 export function validateSessionSubmission(
   incomingAnswers: PatientAnswers,
-  questions: Question[]
+  questions: Question[],
 ): {
   valid: boolean;
   errors: AnswerValidationError[];
@@ -75,17 +76,14 @@ export function validateSessionSubmission(
   const sanitizedAnswers = pruneHiddenAnswers(incomingAnswers, questions);
   const errors: AnswerValidationError[] = [];
   const visibleQuestions = getVisibleQuestions(questions, sanitizedAnswers);
-  const visibleQuestionIds = new Set(visibleQuestions.map((q) => q.id));
-
-  // Check for unknown or leaked question answers
-  for (const qId of Object.keys(sanitizedAnswers)) {
-    if (!visibleQuestionIds.has(qId)) {
+  const knownQuestionIds = new Set(questions.map((question) => question.id));
+  for (const qId of Object.keys(incomingAnswers)) {
+    if (!knownQuestionIds.has(qId))
       errors.push({
         questionId: qId,
-        issue: `Answer submitted for invisible or unknown question "${qId}"`,
+        issue: APP_MESSAGES.ANSWER_SUBMITTED_FOR_AN_UNKNOWN_QUESTION,
         code: "UNEXPECTED_ANSWER",
       });
-    }
   }
 
   // Validate each visible question
@@ -96,7 +94,7 @@ export function validateSessionSubmission(
       if (value === undefined || value === null) {
         errors.push({
           questionId: q.id,
-          issue: `Required question "${q.label}" was not answered`,
+          issue: APP_MESSAGES.REQUIRED_QUESTION_FORMATTED(q.label),
           code: "REQUIRED_FIELD_MISSING",
         });
         continue;
@@ -106,7 +104,7 @@ export function validateSessionSubmission(
         if (typeof value !== "string" || value.trim().length === 0) {
           errors.push({
             questionId: q.id,
-            issue: `Required text field "${q.label}" cannot be blank`,
+            issue: APP_MESSAGES.REQUIRED_TEXT_FIELD_FORMATTED(q.label),
             code: "REQUIRED_TEXT_BLANK",
           });
           continue;
@@ -117,7 +115,7 @@ export function validateSessionSubmission(
         if (value !== true) {
           errors.push({
             questionId: q.id,
-            issue: `Required checkbox "${q.label}" must be checked`,
+            issue: APP_MESSAGES.REQUIRED_CHECKBOX_FORMATTED(q.label),
             code: "REQUIRED_CHECKBOX_UNCHECKED",
           });
           continue;
@@ -128,7 +126,7 @@ export function validateSessionSubmission(
         if (!Array.isArray(value) || value.length === 0) {
           errors.push({
             questionId: q.id,
-            issue: `Required multi-select "${q.label}" must have at least one choice selected`,
+            issue: APP_MESSAGES.REQUIRED_MULTI_SELECT_FORMATTED(q.label),
             code: "REQUIRED_MULTISELECT_EMPTY",
           });
           continue;
@@ -152,7 +150,7 @@ export function validateSessionSubmission(
 
 function validateValueTypeAndBounds(
   q: Question,
-  value: CanonicalAnswer
+  value: CanonicalAnswer,
 ): AnswerValidationError[] {
   const errors: AnswerValidationError[] = [];
 
@@ -162,7 +160,7 @@ function validateValueTypeAndBounds(
       if (typeof value !== "string") {
         errors.push({
           questionId: q.id,
-          issue: "Value must be a string",
+          issue: APP_MESSAGES.VALUE_MUST_BE_A_STRING,
           code: "INVALID_TYPE",
         });
         return errors;
@@ -170,17 +168,21 @@ function validateValueTypeAndBounds(
       const trimmed = value.trim();
       if (q.validation) {
         const { minLength, maxLength } = q.validation;
-        if (minLength !== undefined && trimmed.length > 0 && trimmed.length < minLength) {
+        if (
+          minLength !== undefined &&
+          trimmed.length > 0 &&
+          trimmed.length < minLength
+        ) {
           errors.push({
             questionId: q.id,
-            issue: `Text must be at least ${minLength} characters`,
+            issue: APP_MESSAGES.TEXT_MUST_BE_AT_LEAST_FORMATTED(minLength),
             code: "MIN_LENGTH_VIOLATION",
           });
         }
         if (maxLength !== undefined && trimmed.length > maxLength) {
           errors.push({
             questionId: q.id,
-            issue: `Text cannot exceed ${maxLength} characters`,
+            issue: APP_MESSAGES.TEXT_CANNOT_EXCEED_FORMATTED(maxLength),
             code: "MAX_LENGTH_VIOLATION",
           });
         }
@@ -189,10 +191,14 @@ function validateValueTypeAndBounds(
     }
 
     case "number": {
-      if (typeof value !== "number" || !Number.isFinite(value) || Number.isNaN(value)) {
+      if (
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        Number.isNaN(value)
+      ) {
         errors.push({
           questionId: q.id,
-          issue: "Value must be a valid, finite number",
+          issue: APP_MESSAGES.VALUE_MUST_BE_A_VALID_FINITE_NUMBER,
           code: "INVALID_NUMBER",
         });
         return errors;
@@ -202,21 +208,21 @@ function validateValueTypeAndBounds(
         if (integerOnly && !Number.isInteger(value)) {
           errors.push({
             questionId: q.id,
-            issue: "Value must be a whole integer",
+            issue: APP_MESSAGES.VALUE_MUST_BE_A_WHOLE_INTEGER,
             code: "INTEGER_ONLY_VIOLATION",
           });
         }
         if (min !== undefined && value < min) {
           errors.push({
             questionId: q.id,
-            issue: `Number must be greater than or equal to ${min}`,
+            issue: APP_MESSAGES.NUMBER_MUST_BE_GREATER_THAN_OR_EQUAL_TO(min),
             code: "MIN_VALUE_VIOLATION",
           });
         }
         if (max !== undefined && value > max) {
           errors.push({
             questionId: q.id,
-            issue: `Number cannot exceed ${max}`,
+            issue: APP_MESSAGES.NUMBER_CANNOT_EXCEED_FORMATTED(max),
             code: "MAX_VALUE_VIOLATION",
           });
         }
@@ -228,7 +234,7 @@ function validateValueTypeAndBounds(
       if (typeof value !== "string") {
         errors.push({
           questionId: q.id,
-          issue: "Single-select answer must be an option ID string",
+          issue: APP_MESSAGES.SINGLE_SELECT_ANSWER_MUST_BE_AN_OPTION_ID,
           code: "INVALID_TYPE",
         });
         return errors;
@@ -237,7 +243,7 @@ function validateValueTypeAndBounds(
       if (!validOptionIds.has(value)) {
         errors.push({
           questionId: q.id,
-          issue: `Option ID "${value}" is not a recognized choice for this question`,
+          issue: APP_MESSAGES.OPTION_ID_FORMATTED(value),
           code: "UNKNOWN_OPTION_ID",
         });
       }
@@ -248,7 +254,7 @@ function validateValueTypeAndBounds(
       if (!Array.isArray(value)) {
         errors.push({
           questionId: q.id,
-          issue: "Multi-select answer must be an array of option IDs",
+          issue: APP_MESSAGES.MULTI_SELECT_ANSWER_MUST_BE_AN_ARRAY_OF,
           code: "INVALID_TYPE",
         });
         return errors;
@@ -259,14 +265,14 @@ function validateValueTypeAndBounds(
         if (typeof optId !== "string" || !validOptionIds.has(optId)) {
           errors.push({
             questionId: q.id,
-            issue: `Option ID "${optId}" is not a recognized choice for this question`,
+            issue: APP_MESSAGES.OPTION_ID_FORMATTED_2(optId),
             code: "UNKNOWN_OPTION_ID",
           });
         }
         if (seen.has(optId)) {
           errors.push({
             questionId: q.id,
-            issue: `Duplicate option selection "${optId}" is not permitted`,
+            issue: APP_MESSAGES.DUPLICATE_OPTION_SELECTION_FORMATTED(optId),
             code: "DUPLICATE_SELECTION",
           });
         }
@@ -279,7 +285,7 @@ function validateValueTypeAndBounds(
       if (typeof value !== "boolean") {
         errors.push({
           questionId: q.id,
-          issue: "Checkbox answer must be a boolean",
+          issue: APP_MESSAGES.CHECKBOX_ANSWER_MUST_BE_A_BOOLEAN,
           code: "INVALID_TYPE",
         });
       }

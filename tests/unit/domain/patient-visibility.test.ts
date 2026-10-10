@@ -44,17 +44,25 @@ describe("Patient Visibility & Hidden Answer Pruning", () => {
     expect(evaluateQuestionVisibility(q2, {}, questionMap)).toBe(false);
 
     // When parent is "No" -> hidden
-    expect(evaluateQuestionVisibility(q2, { q1: "opt-no" }, questionMap)).toBe(false);
+    expect(evaluateQuestionVisibility(q2, { q1: "opt-no" }, questionMap)).toBe(
+      false,
+    );
 
     // When parent is "Yes" -> visible
-    expect(evaluateQuestionVisibility(q2, { q1: "opt-yes" }, questionMap)).toBe(true);
+    expect(evaluateQuestionVisibility(q2, { q1: "opt-yes" }, questionMap)).toBe(
+      true,
+    );
   });
 
   it("returns only visible questions in getVisibleQuestions", () => {
-    const visibleWithNo = getVisibleQuestions(sampleQuestions, { q1: "opt-no" });
+    const visibleWithNo = getVisibleQuestions(sampleQuestions, {
+      q1: "opt-no",
+    });
     expect(visibleWithNo.map((q) => q.id)).toEqual(["q1", "q3"]);
 
-    const visibleWithYes = getVisibleQuestions(sampleQuestions, { q1: "opt-yes" });
+    const visibleWithYes = getVisibleQuestions(sampleQuestions, {
+      q1: "opt-yes",
+    });
     expect(visibleWithYes.map((q) => q.id)).toEqual(["q1", "q2", "q3"]);
   });
 
@@ -91,11 +99,17 @@ describe("Patient Visibility & Hidden Answer Pruning", () => {
     };
 
     // 2. Switched to No -> Prune executed
-    const step2 = pruneHiddenAnswers({ ...step1, q1: "opt-no" }, sampleQuestions);
+    const step2 = pruneHiddenAnswers(
+      { ...step1, q1: "opt-no" },
+      sampleQuestions,
+    );
     expect(step2["q2"]).toBeUndefined();
 
     // 3. Switched back to Yes -> Pruned state still has no q2
-    const step3 = pruneHiddenAnswers({ ...step2, q1: "opt-yes" }, sampleQuestions);
+    const step3 = pruneHiddenAnswers(
+      { ...step2, q1: "opt-yes" },
+      sampleQuestions,
+    );
     expect(step3["q2"]).toBeUndefined();
     expect(step3["q1"]).toBe("opt-yes");
     expect(step3["q3"]).toBe("Contact Info");
@@ -112,4 +126,3 @@ describe("Patient Visibility & Hidden Answer Pruning", () => {
     expect(pruned["injected_field"]).toBeUndefined();
   });
 });
-

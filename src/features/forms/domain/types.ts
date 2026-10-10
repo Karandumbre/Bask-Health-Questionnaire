@@ -1,11 +1,12 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { z } from "zod";
 
 /**
  * Stable Option Definition for single-select and multi-select fields.
  */
 export const OptionSchema = z.object({
-  id: z.string().min(1, "Option ID must not be empty"),
-  label: z.string().min(1, "Option label must not be empty"),
+  id: z.string().min(1, APP_MESSAGES.OPTION_ID_MUST_NOT_BE_EMPTY),
+  label: z.string(),
 });
 export type Option = z.infer<typeof OptionSchema>;
 
@@ -14,8 +15,8 @@ export type Option = z.infer<typeof OptionSchema>;
  * Single condition allowed: points to an earlier, required, unconditional single_select question.
  */
 export const VisibilityConditionSchema = z.object({
-  parentQuestionId: z.string().min(1, "Parent question ID is required"),
-  equalsOptionId: z.string().min(1, "Target option ID is required"),
+  parentQuestionId: z.string(),
+  equalsOptionId: z.string(),
 });
 export type VisibilityCondition = z.infer<typeof VisibilityConditionSchema>;
 
@@ -42,7 +43,7 @@ export type NumberValidation = z.infer<typeof NumberValidationSchema>;
  * Base Question properties shared across all types.
  */
 const BaseQuestionSchema = z.object({
-  id: z.string().min(1, "Question ID must not be empty"),
+  id: z.string().min(1, APP_MESSAGES.QUESTION_ID_MUST_NOT_BE_EMPTY),
   label: z.string().default(""),
   description: z.string().optional(),
   required: z.boolean().default(false),
@@ -109,33 +110,15 @@ export type FieldType = Question["type"];
  */
 export const FormDefinitionSchema = z.object({
   schemaVersion: z.literal(1).default(1),
-  title: z.string().default("Untitled Form"),
+  title: z.string().default(APP_MESSAGES.UNTITLED_FORM),
   description: z.string().optional(),
   questions: z.array(QuestionSchema).default([]),
 });
 export type FormDefinition = z.infer<typeof FormDefinitionSchema>;
 
-/**
- * Theme Token Palette for light and dark modes.
- */
-export const ThemeModeTokensSchema = z.object({
-  background: z.string(),
-  surface: z.string(),
-  text: z.string(),
-  textMuted: z.string().optional(),
-  border: z.string().optional(),
-  primary: z.string(),
-  primaryForeground: z.string(),
-  focusRing: z.string().optional(),
-  error: z.string().optional(),
-});
-export type ThemeModeTokens = z.infer<typeof ThemeModeTokensSchema>;
-
-export const ThemeDefinitionSchema = z.object({
-  presetName: z.string().default("Ocean"),
-  isCustomShuffle: z.boolean().default(false),
-  light: ThemeModeTokensSchema,
-  dark: ThemeModeTokensSchema,
-});
-export type ThemeDefinition = z.infer<typeof ThemeDefinitionSchema>;
-
+export {
+  ThemeModeTokensSchema,
+  type ThemeModeTokens,
+  ThemeDefinitionSchema,
+  type ThemeDefinition,
+} from "@/features/themes/domain/theme-tokens";

@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { validateFormForDraft, validateFormForPublish } from "@/features/forms/domain/validation";
+import {
+  validateFormForDraft,
+  validateFormForPublish,
+} from "@/features/forms/domain/validation";
 import { FormDefinition } from "@/features/forms/domain/types";
 
 describe("validateFormForDraft", () => {
@@ -12,7 +15,9 @@ describe("validateFormForDraft", () => {
     expect(result.valid).toBe(false);
     expect(result.data).toBeUndefined();
     expect(result.error).toContain("title:");
-    expect(result.error).toContain("questions.0.id: Question ID must not be empty");
+    expect(result.error).toContain(
+      "questions.0.id: Question ID must not be empty",
+    );
   });
 
   it("fills defaults while preserving an incomplete authoring draft", () => {
@@ -25,14 +30,16 @@ describe("validateFormForDraft", () => {
       data: {
         schemaVersion: 1,
         title: "Untitled Form",
-        questions: [{
-          id: "q1",
-          type: "single_select",
-          label: "",
-          required: false,
-          visibility: null,
-          options: [],
-        }],
+        questions: [
+          {
+            id: "q1",
+            type: "single_select",
+            label: "",
+            required: false,
+            visibility: null,
+            options: [],
+          },
+        ],
       },
     });
   });
@@ -56,7 +63,7 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "EMPTY_TITLE" })
+      expect.objectContaining({ code: "EMPTY_TITLE" }),
     );
   });
 
@@ -69,7 +76,7 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "NO_QUESTIONS" })
+      expect.objectContaining({ code: "NO_QUESTIONS" }),
     );
   });
 
@@ -90,7 +97,10 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "EMPTY_QUESTION_LABEL", questionId: "q1" })
+      expect.objectContaining({
+        code: "EMPTY_QUESTION_LABEL",
+        questionId: "q1",
+      }),
     );
   });
 
@@ -118,7 +128,7 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "DUPLICATE_QUESTION_ID" })
+      expect.objectContaining({ code: "DUPLICATE_QUESTION_ID" }),
     );
   });
 
@@ -140,7 +150,7 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "INVALID_LENGTH_RANGE" })
+      expect.objectContaining({ code: "INVALID_LENGTH_RANGE" }),
     );
   });
 
@@ -170,10 +180,13 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "INVALID_NUMBER_RANGE", questionId: "q1" })
+      expect.objectContaining({
+        code: "INVALID_NUMBER_RANGE",
+        questionId: "q1",
+      }),
     );
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "NON_INTEGER_BOUND", questionId: "q2" })
+      expect.objectContaining({ code: "NON_INTEGER_BOUND", questionId: "q2" }),
     );
   });
 
@@ -206,10 +219,16 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "INSUFFICIENT_OPTIONS", questionId: "q1" })
+      expect.objectContaining({
+        code: "INSUFFICIENT_OPTIONS",
+        questionId: "q1",
+      }),
     );
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "DUPLICATE_OPTION_LABEL", questionId: "q2" })
+      expect.objectContaining({
+        code: "DUPLICATE_OPTION_LABEL",
+        questionId: "q2",
+      }),
     );
   });
 
@@ -223,14 +242,20 @@ describe("validateFormForPublish", () => {
           type: "short_text",
           label: "Details",
           required: false,
-          visibility: { parentQuestionId: "missing-q", equalsOptionId: "opt-yes" },
+          visibility: {
+            parentQuestionId: "missing-q",
+            equalsOptionId: "opt-yes",
+          },
         },
       ],
     };
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "MISSING_PARENT_QUESTION", questionId: "q1" })
+      expect.objectContaining({
+        code: "MISSING_PARENT_QUESTION",
+        questionId: "q1",
+      }),
     );
   });
 
@@ -262,7 +287,10 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "FORWARD_OR_SELF_DEPENDENCY", questionId: "q1" })
+      expect.objectContaining({
+        code: "FORWARD_OR_SELF_DEPENDENCY",
+        questionId: "q1",
+      }),
     );
   });
 
@@ -294,7 +322,10 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "PARENT_NOT_REQUIRED", questionId: "q2" })
+      expect.objectContaining({
+        code: "PARENT_NOT_REQUIRED",
+        questionId: "q2",
+      }),
     );
   });
 
@@ -337,7 +368,10 @@ describe("validateFormForPublish", () => {
     const result = validateFormForPublish(form);
     expect(result.valid).toBe(false);
     expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "NESTED_CONDITION_FORBIDDEN", questionId: "q2" })
+      expect.objectContaining({
+        code: "NESTED_CONDITION_FORBIDDEN",
+        questionId: "q2",
+      }),
     );
   });
 
@@ -379,4 +413,3 @@ describe("validateFormForPublish", () => {
     expect(result.errors).toHaveLength(0);
   });
 });
-

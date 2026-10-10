@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 /**
  * Safe application error codes and standard error representation.
  * Designed to never leak PHI, credentials, or internal database metadata.
@@ -38,7 +39,12 @@ export class AppError extends Error {
   public readonly status: number;
   public readonly details?: SafeErrorDetails;
 
-  constructor(code: ErrorCodeType, message: string, status: number = 400, details?: SafeErrorDetails) {
+  constructor(
+    code: ErrorCodeType,
+    message: string,
+    status: number = 400,
+    details?: SafeErrorDetails,
+  ) {
     super(message);
     this.name = "AppError";
     this.code = code;
@@ -61,7 +67,7 @@ export class AppError extends Error {
   public static revisionConflict(
     expected: number | bigint,
     current: number | bigint,
-    message: string = "Revision conflict: the resource was updated by another request"
+    message: string = APP_MESSAGES.REVISION_CONFLICT_THE_RESOURCE_WAS_UPDATED_BY_ANOTHER_REQUEST,
   ): AppError {
     return new AppError(ErrorCode.REVISION_CONFLICT, message, 409, {
       expectedRevision: expected,
@@ -71,7 +77,7 @@ export class AppError extends Error {
 
   public static invalidForm(
     errors: Array<{ questionId?: string; issue: string; code?: string }>,
-    message: string = "Form definition does not meet publish requirements"
+    message: string = APP_MESSAGES.FORM_DEFINITION_DOES_NOT_MEET_PUBLISH_REQUIREMENTS,
   ): AppError {
     return new AppError(ErrorCode.INVALID_FORM, message, 422, {
       validationErrors: errors,
@@ -80,28 +86,31 @@ export class AppError extends Error {
 
   public static invalidAnswer(
     errors: Array<{ questionId?: string; issue: string; code?: string }>,
-    message: string = "One or more answers failed validation"
+    message: string = APP_MESSAGES.ONE_OR_MORE_ANSWERS_FAILED_VALIDATION,
   ): AppError {
     return new AppError(ErrorCode.INVALID_ANSWER, message, 422, {
       validationErrors: errors,
     });
   }
 
-  public static sessionUnauthorized(message: string = "Invalid or expired session credentials"): AppError {
+  public static sessionUnauthorized(
+    message: string = APP_MESSAGES.INVALID_OR_EXPIRED_SESSION_CREDENTIALS,
+  ): AppError {
     return new AppError(ErrorCode.SESSION_UNAUTHORIZED, message, 401);
   }
 
-  public static sessionCompleted(message: string = "Session has already been finalized"): AppError {
+  public static sessionCompleted(
+    message: string = APP_MESSAGES.SESSION_HAS_ALREADY_BEEN_FINALIZED,
+  ): AppError {
     return new AppError(ErrorCode.SESSION_COMPLETED, message, 409);
   }
 
   public static resumeRateLimited(retryAfterSeconds: number = 900): AppError {
     return new AppError(
       ErrorCode.RESUME_RATE_LIMITED,
-      "Too many recovery attempts. Please try again later.",
+      APP_MESSAGES.TOO_MANY_RECOVERY_ATTEMPTS_PLEASE_TRY_AGAIN_LATER,
       429,
-      { retryAfterSeconds }
+      { retryAfterSeconds },
     );
   }
 }
-

@@ -8,7 +8,7 @@ import { PatientAnswers } from "./types";
 export function evaluateQuestionVisibility(
   question: Question,
   answers: PatientAnswers,
-  questionMap: Map<string, Question>
+  questionMap: Map<string, Question>,
 ): boolean {
   // Unconditional questions are always visible
   if (!question.visibility) {
@@ -23,10 +23,14 @@ export function evaluateQuestionVisibility(
     return false;
   }
 
-  // If parent itself has conditions and is hidden, child is hidden
-  if (parent.visibility && !evaluateQuestionVisibility(parent, answers, questionMap)) {
+  // Incomplete drafts can contain cycles or invalid parent types. Fail closed.
+  if (
+    parent.type !== "single_select" ||
+    !parent.required ||
+    parent.visibility !== null ||
+    !parent.options.some((option) => option.id === equalsOptionId)
+  )
     return false;
-  }
 
   const parentAnswer = answers[parentQuestionId];
 
@@ -43,14 +47,16 @@ export function evaluateQuestionVisibility(
  */
 export function getVisibleQuestions(
   questions: Question[],
-  answers: PatientAnswers
+  answers: PatientAnswers,
 ): Question[] {
   const questionMap = new Map<string, Question>();
   for (const q of questions) {
     questionMap.set(q.id, q);
   }
 
-  return questions.filter((q) => evaluateQuestionVisibility(q, answers, questionMap));
+  return questions.filter((q) =>
+    evaluateQuestionVisibility(q, answers, questionMap),
+  );
 }
 
 /**
@@ -63,7 +69,7 @@ export function getVisibleQuestions(
  */
 export function pruneHiddenAnswers(
   answers: PatientAnswers,
-  questions: Question[]
+  questions: Question[],
 ): PatientAnswers {
   const questionMap = new Map<string, Question>();
   for (const q of questions) {

@@ -1,6 +1,9 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { lockActiveForm } from "./form-lock";
+import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   forms,
@@ -31,13 +34,15 @@ export interface PublishResult {
 }
 
 function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "form";
+  return (
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "form"
+  );
 }
 
 /**
@@ -49,7 +54,10 @@ function slugify(text: string): string {
  * 4. Clinical validation of all questions, choice sets, and visibility conditions.
  * 5. Rejection of stale drafts with HTTP 409 PUBLISH_CONFLICT.
  */
-export async function publishForm(params: PublishFormParams): Promise<PublishResult> {
+export async function publishForm(
+  params: PublishFormParams,
+): Promise<PublishResult> {
+  revisionSchema.parse(params.expectedRevision);
   const { formId, expectedRevision, operationId, userId } = params;
 
   // 1. Authorize workspace editor
@@ -59,6 +67,7 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
   const [existingOp] = await db
     .select({
       operationId: publicationOperations.operationId,
+      formId: publicationOperations.formId,
       publishedVersionId: publicationOperations.publishedVersionId,
       versionNumber: publishedVersions.versionNumber,
       publicSlug: publishedVersions.publicSlug,
@@ -67,12 +76,18 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
     .from(publicationOperations)
     .innerJoin(
       publishedVersions,
-      eq(publicationOperations.publishedVersionId, publishedVersions.id)
+      eq(publicationOperations.publishedVersionId, publishedVersions.id),
     )
     .where(eq(publicationOperations.operationId, operationId))
     .limit(1);
 
   if (existingOp) {
+    if (existingOp.formId !== formId)
+      throw new AppError(
+        "INVALID_FORM",
+        APP_MESSAGES.PUBLICATION_OPERATION_BELONGS_TO_A_DIFFERENT_FORM,
+        409,
+      );
     return {
       publishedVersionId: existingOp.publishedVersionId,
       versionNumber: existingOp.versionNumber,
@@ -85,18 +100,38 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
 
   // 3. Execute transactional publication with row locks
   return await db.transaction(async (tx) => {
-    // Lock the form container row
-    const [lockedForm] = await tx
-      .select()
-      .from(forms)
-      .where(eq(forms.id, formId))
-      .for("update")
-      .limit(1);
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${operationId}, 1))`,
+    );
+    const lockedForm = await lockActiveForm(tx, formId);
 
-    if (!lockedForm || lockedForm.archivedAt) {
-      throw new AppError("NOT_FOUND", "Form not found or has been archived.", 404, {
-        resourceType: "form",
-      });
+    const [replay] = await tx
+      .select({
+        formId: publicationOperations.formId,
+        publishedVersionId: publishedVersions.id,
+        versionNumber: publishedVersions.versionNumber,
+        publicSlug: publishedVersions.publicSlug,
+        publishedAt: publishedVersions.publishedAt,
+      })
+      .from(publicationOperations)
+      .innerJoin(
+        publishedVersions,
+        eq(publicationOperations.publishedVersionId, publishedVersions.id),
+      )
+      .where(eq(publicationOperations.operationId, operationId))
+      .limit(1);
+    if (replay) {
+      if (replay.formId !== formId)
+        throw new AppError(
+          "INVALID_FORM",
+          APP_MESSAGES.PUBLICATION_OPERATION_BELONGS_TO_A_DIFFERENT_FORM,
+          409,
+        );
+      return {
+        ...replay,
+        publicUrl: `/intake/${replay.publicSlug}`,
+        isIdempotentReplay: true,
+      };
     }
 
     // Lock the draft row
@@ -108,21 +143,26 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
       .limit(1);
 
     if (!lockedDraft) {
-      throw new AppError("NOT_FOUND", "Working draft not found for this form.", 404, {
-        resourceType: "draft",
-      });
+      throw new AppError(
+        "NOT_FOUND",
+        APP_MESSAGES.WORKING_DRAFT_NOT_FOUND_FOR_THIS_FORM,
+        404,
+        {
+          resourceType: "draft",
+        },
+      );
     }
 
     // Stale revision check (CAS)
     if (lockedDraft.revision !== expectedRevision) {
       throw new AppError(
         "PUBLISH_CONFLICT",
-        "Draft revision has changed. Please review the updated draft before publishing.",
+        APP_MESSAGES.DRAFT_REVISION_HAS_CHANGED_PLEASE_REVIEW_THE_UPDATED_DRAFT,
         409,
         {
           expectedRevision,
           currentRevision: lockedDraft.revision,
-        }
+        },
       );
     }
 
@@ -156,7 +196,11 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
       .returning();
 
     if (!version) {
-      throw new AppError("INTERNAL_ERROR", "Failed to create published version snapshot.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        APP_MESSAGES.FAILED_TO_CREATE_PUBLISHED_VERSION_SNAPSHOT,
+        500,
+      );
     }
 
     // Register idempotency operation
@@ -210,4 +254,3 @@ export async function publishForm(params: PublishFormParams): Promise<PublishRes
     };
   });
 }
-

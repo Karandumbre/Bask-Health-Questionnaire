@@ -17,8 +17,12 @@ import { relations } from "drizzle-orm";
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 /**
@@ -33,13 +37,17 @@ export const adminMemberships = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "restrict" }),
     userId: uuid("user_id").notNull(),
-    role: text("role", { enum: ["owner", "editor"] }).notNull().default("editor"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    role: text("role", { enum: ["owner", "editor"] })
+      .notNull()
+      .default("editor"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (table) => [
     index("idx_memberships_user_ws").on(table.userId, table.workspaceId),
-  ]
+  ],
 );
 
 /**
@@ -58,13 +66,15 @@ export const forms = pgTable(
       .notNull()
       .default(0),
     createdBy: uuid("created_by").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (table) => [
-    index("idx_forms_workspace").on(table.workspaceId),
-  ]
+  (table) => [index("idx_forms_workspace").on(table.workspaceId)],
 );
 
 /**
@@ -82,12 +92,14 @@ export const formDrafts = pgTable(
     themeJson: jsonb("theme_json").notNull(),
     revision: bigint("revision", { mode: "number" }).notNull().default(0),
     updatedBy: uuid("updated_by").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [
-    unique("uq_form_drafts_form_id").on(table.formId),
-  ]
+  (table) => [unique("uq_form_drafts_form_id").on(table.formId)],
 );
 
 /**
@@ -107,14 +119,16 @@ export const publishedVersions = pgTable(
     themeSnapshot: jsonb("theme_snapshot").notNull(),
     draftRevision: bigint("draft_revision", { mode: "number" }).notNull(),
     publishedBy: uuid("published_by").notNull(),
-    publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     unique("uq_pub_versions_form_ver").on(table.formId, table.versionNumber),
     unique("uq_pub_versions_slug").on(table.publicSlug),
     index("idx_pub_versions_slug").on(table.publicSlug),
     index("idx_pub_versions_form_ver").on(table.formId, table.versionNumber),
-  ]
+  ],
 );
 
 /**
@@ -131,11 +145,11 @@ export const publicationOperations = pgTable(
     publishedVersionId: uuid("published_version_id")
       .notNull()
       .references(() => publishedVersions.id, { onDelete: "restrict" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
-  (table) => [
-    unique("uq_pub_ops_version_id").on(table.publishedVersionId),
-  ]
+  (table) => [unique("uq_pub_ops_version_id").on(table.publishedVersionId)],
 );
 
 /**
@@ -157,18 +171,33 @@ export const patientSessions = pgTable(
     revision: bigint("revision", { mode: "number" }).notNull().default(0),
     credentialHash: text("credential_hash").notNull(),
     recoveryHash: text("recovery_hash").notNull(),
-    recoveryAttemptsCount: integer("recovery_attempts_count").notNull().default(0),
-    recoveryLastAttemptAt: timestamp("recovery_last_attempt_at", { withTimezone: true }),
-    recoveryExpiresAt: timestamp("recovery_expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    recoveryAttemptsCount: integer("recovery_attempts_count")
+      .notNull()
+      .default(0),
+    recoveryLastAttemptAt: timestamp("recovery_last_attempt_at", {
+      withTimezone: true,
+    }),
+    recoveryExpiresAt: timestamp("recovery_expires_at", {
+      withTimezone: true,
+    }).notNull(),
+    previousRecoveryHash: text("previous_recovery_hash"),
+    previousRecoveryRotatedAt: timestamp("previous_recovery_rotated_at", {
+      withTimezone: true,
+    }),
+    recoveryReplayPayload: text("recovery_replay_payload"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   },
   (table) => [
     unique("uq_patient_sessions_ref").on(table.sessionReference),
     index("idx_patient_sessions_ver").on(table.publishedVersionId),
-  ]
+  ],
 );
 
 /**
@@ -186,12 +215,17 @@ export const submissions = pgTable(
       .notNull()
       .references(() => publishedVersions.id, { onDelete: "restrict" }),
     answerSnapshot: jsonb("answer_snapshot").notNull(),
-    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     unique("uq_submissions_session_id").on(table.sessionId),
-    index("idx_submissions_ver_date").on(table.publishedVersionId, table.submittedAt),
-  ]
+    index("idx_submissions_ver_date").on(
+      table.publishedVersionId,
+      table.submittedAt,
+    ),
+  ],
 );
 
 /**
@@ -209,11 +243,13 @@ export const auditEvents = pgTable(
     entityType: text("entity_type").notNull(),
     entityId: uuid("entity_id"),
     metadataJson: jsonb("metadata_json").notNull().default({}),
-    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_audit_events_ws_time").on(table.workspaceId, table.occurredAt),
-  ]
+  ],
 );
 
 // Relations
@@ -235,25 +271,31 @@ export const formsRelations = relations(forms, ({ one, many }) => ({
   versions: many(publishedVersions),
 }));
 
-export const publishedVersionsRelations = relations(publishedVersions, ({ one, many }) => ({
-  form: one(forms, {
-    fields: [publishedVersions.formId],
-    references: [forms.id],
+export const publishedVersionsRelations = relations(
+  publishedVersions,
+  ({ one, many }) => ({
+    form: one(forms, {
+      fields: [publishedVersions.formId],
+      references: [forms.id],
+    }),
+    sessions: many(patientSessions),
+    submissions: many(submissions),
   }),
-  sessions: many(patientSessions),
-  submissions: many(submissions),
-}));
+);
 
-export const patientSessionsRelations = relations(patientSessions, ({ one }) => ({
-  version: one(publishedVersions, {
-    fields: [patientSessions.publishedVersionId],
-    references: [publishedVersions.id],
+export const patientSessionsRelations = relations(
+  patientSessions,
+  ({ one }) => ({
+    version: one(publishedVersions, {
+      fields: [patientSessions.publishedVersionId],
+      references: [publishedVersions.id],
+    }),
+    submission: one(submissions, {
+      fields: [patientSessions.id],
+      references: [submissions.sessionId],
+    }),
   }),
-  submission: one(submissions, {
-    fields: [patientSessions.id],
-    references: [submissions.sessionId],
-  }),
-}));
+);
 
 export const submissionsRelations = relations(submissions, ({ one }) => ({
   session: one(patientSessions, {
@@ -265,4 +307,3 @@ export const submissionsRelations = relations(submissions, ({ one }) => ({
     references: [publishedVersions.id],
   }),
 }));
-

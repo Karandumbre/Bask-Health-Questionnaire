@@ -1,6 +1,9 @@
+import { ENVIRONMENT_DEFAULTS } from "../../config/environment.mjs";
+import { THEME_PRESET_OCEAN } from "@/features/themes/domain/theme-tokens";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
+import { assertTestDatabaseIsolation } from "@/lib/db/test-db-isolation";
 import { db, getDirectClient } from "@/lib/db";
 import {
   workspaces,
@@ -13,6 +16,7 @@ import {
 } from "@/lib/db/schema";
 import {
   createForm,
+  renameForm,
   updateDraft,
   archiveForm,
   deleteUnpublishedForm,
@@ -81,36 +85,11 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
     ],
   };
 
-  const defaultTheme = {
-    presetName: "Ocean",
-    isCustomShuffle: false,
-    light: {
-      background: "#FFFFFF",
-      surface: "#F8FAFC",
-      text: "#0F172A",
-      primary: "#0284C7",
-      primaryForeground: "#FFFFFF",
-    },
-    dark: {
-      background: "#0F172A",
-      surface: "#1E293B",
-      text: "#F8FAFC",
-      primary: "#38BDF8",
-      primaryForeground: "#0F172A",
-    },
-  };
+  const defaultTheme = THEME_PRESET_OCEAN;
 
+  let initialized = false;
   beforeAll(async () => {
-    // Production safety check: Prevent tests from ever running against production
-    if (
-      process.env.NODE_ENV === "production" ||
-      process.env.APP_ENV === "production" ||
-      process.env.VERCEL_ENV === "production"
-    ) {
-      throw new Error(
-        "CRITICAL SAFETY ABORT: Integration tests are forbidden from executing against a production environment!"
-      );
-    }
+    assertTestDatabaseIsolation();
 
     // 1. Create isolated test workspace
     await db.insert(workspaces).values({
@@ -136,9 +115,11 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         role: "editor",
       },
     ]);
+    initialized = true;
   });
 
   afterAll(async () => {
+    if (!initialized) return;
     // Clean up test data safely using direct client to handle triggers
     const directSql = getDirectClient();
     try {
@@ -272,7 +253,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         definition: { ...testFormDefinition, title: "Stale Overwrite" },
         theme: defaultTheme,
         userId: editorUserId1,
-      })
+      }),
     ).rejects.toThrowError(AppError);
 
     // Verify current revision is still 1
@@ -311,7 +292,10 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       userId: editorUserId2,
     });
 
-    const results = await Promise.allSettled([publishPromise1, publishPromise2]);
+    const results = await Promise.allSettled([
+      publishPromise1,
+      publishPromise2,
+    ]);
     const fulfilled = results.filter((r) => r.status === "fulfilled");
     const rejected = results.filter((r) => r.status === "rejected");
 
@@ -400,7 +384,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       updateError = e as Error;
     }
     expect(updateError).not.toBeNull();
-    const updateMsg = `${updateError?.message} ${(updateError as { cause?: Error })?.cause?.message || ""}`;
+    const updateMsg = `${updateError?.message} ${(updateError as { cause?: Error })?.cause?.message || ENVIRONMENT_DEFAULTS.EMPTY}`;
     expect(updateMsg).toMatch(/immutable/i);
 
     // Attempt direct SQL DELETE on published_versions
@@ -413,7 +397,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       deleteError = e as Error;
     }
     expect(deleteError).not.toBeNull();
-    const deleteMsg = `${deleteError?.message} ${(deleteError as { cause?: Error })?.cause?.message || ""}`;
+    const deleteMsg = `${deleteError?.message} ${(deleteError as { cause?: Error })?.cause?.message || ENVIRONMENT_DEFAULTS.EMPTY}`;
     expect(deleteMsg).toMatch(/immutable/i);
   });
 
@@ -490,7 +474,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         definition: testFormDefinition,
         theme: defaultTheme,
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -503,7 +487,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         expectedRevision: 0,
         operationId: crypto.randomUUID(),
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -537,7 +521,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         capabilityToken: "forged-invalid-capability-token-hex",
         expectedSessionRevision: 0,
         answers: { "q-conditions": "opt-no" },
-      })
+      }),
     ).rejects.toMatchObject({
       code: "SESSION_UNAUTHORIZED",
       status: 401,
@@ -549,7 +533,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         sessionId: session.sessionId,
         capabilityToken: "forged-invalid-capability-token-hex",
         answers: { "q-conditions": "opt-no", "q-age": 30 },
-      })
+      }),
     ).rejects.toMatchObject({
       code: "SESSION_UNAUTHORIZED",
       status: 401,
@@ -596,7 +580,9 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
     expect(rejected.length).toBe(1);
 
     // The winner received a rotated recovery code
-    const winnerResult = (fulfilled[0] as PromiseFulfilledResult<Awaited<typeof resume1>>).value;
+    const winnerResult = (
+      fulfilled[0] as PromiseFulfilledResult<Awaited<typeof resume1>>
+    ).value;
     expect(winnerResult.newRecoveryCode).not.toBe(session.recoveryCode);
 
     // Old code is now permanently rejected
@@ -604,7 +590,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       resumePatientSession({
         sessionReference: session.sessionReference,
         recoveryCode: session.recoveryCode,
-      })
+      }),
     ).rejects.toThrowError(AppError);
   });
 
@@ -825,7 +811,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
 
     // Attempt hard deletion: must be blocked because published versions exist
     await expect(
-      deleteUnpublishedForm(form.id, ownerUserId)
+      deleteUnpublishedForm(form.id, ownerUserId),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -865,7 +851,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         sessionId: session.sessionId,
         capabilityToken: session.capabilityToken,
         answers: invalidAnswers,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "INVALID_ANSWER",
       status: 422,
@@ -930,14 +916,16 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       userId: editorUserId1,
     });
     expect(detail.id).toBe(submission.submissionId);
-    expect((detail.answerSnapshot as Record<string, unknown>)["q-age"]).toBe(32);
+    expect((detail.answerSnapshot as Record<string, unknown>)["q-age"]).toBe(
+      32,
+    );
 
     // Unauthorized user cannot list submissions
     await expect(
       listFormSubmissions({
         formId: form.id,
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
@@ -949,10 +937,122 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
         formId: form.id,
         submissionId: submission.submissionId,
         userId: unauthorizedUserId,
-      })
+      }),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       status: 403,
     });
+  });
+  it("rename advances the revision and rejects a stale editor save", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Before",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    await renameForm({
+      formId: form.id,
+      name: "After",
+      expectedRevision: 0,
+      userId: editorUserId1,
+    });
+    await expect(
+      updateDraft({
+        formId: form.id,
+        expectedRevision: 0,
+        definition: testFormDefinition,
+        theme: defaultTheme,
+        userId: editorUserId2,
+      }),
+    ).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
+    const [draft] = await db
+      .select()
+      .from(formDrafts)
+      .where(eq(formDrafts.formId, form.id));
+    expect(draft?.revision).toBe(1);
+    expect(draft?.definitionJson).toMatchObject({ title: "After" });
+  });
+
+  it("concurrent retries of one publication return the same version", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Retry publication",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    const request = {
+      formId: form.id,
+      expectedRevision: 0,
+      operationId: crypto.randomUUID(),
+      userId: ownerUserId,
+    };
+    const results = await Promise.all([
+      publishForm(request),
+      publishForm(request),
+    ]);
+    expect(results[0]?.publishedVersionId).toBe(results[1]?.publishedVersionId);
+    expect(results.filter((result) => result.isIdempotentReplay)).toHaveLength(
+      1,
+    );
+    const { form: other } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Other form",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    await expect(
+      publishForm({ ...request, formId: other.id }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("failed recovery attempts persist and expired recovery codes are rejected", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Recovery policy",
+      userId: ownerUserId,
+      initialDefinition: testFormDefinition,
+      initialTheme: defaultTheme,
+    });
+    const published = await publishForm({
+      formId: form.id,
+      expectedRevision: 0,
+      operationId: crypto.randomUUID(),
+      userId: ownerUserId,
+    });
+    const session = await createPatientSession({
+      publicSlug: published.publicSlug,
+    });
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await expect(
+        resumePatientSession({
+          sessionReference: session.sessionReference,
+          recoveryCode: "wrong",
+        }),
+      ).rejects.toMatchObject({ status: 401 });
+    }
+    const [saved] = await db
+      .select()
+      .from(patientSessions)
+      .where(eq(patientSessions.id, session.sessionId));
+    expect(saved?.recoveryAttemptsCount).toBe(5);
+    await expect(
+      resumePatientSession({
+        sessionReference: session.sessionReference,
+        recoveryCode: session.recoveryCode,
+      }),
+    ).rejects.toMatchObject({ status: 429 });
+    await db
+      .update(patientSessions)
+      .set({ recoveryExpiresAt: new Date(0) })
+      .where(eq(patientSessions.id, session.sessionId));
+    await expect(
+      resumePatientSession({
+        sessionReference: session.sessionReference,
+        recoveryCode: session.recoveryCode,
+      }),
+    ).rejects.toMatchObject({ code: "SESSION_EXPIRED" });
   });
 });

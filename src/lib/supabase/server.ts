@@ -1,7 +1,10 @@
+import { APPLICATION } from "@/lib/constants/application";
+import { requireSupabaseConfig } from "./config";
 import "server-only";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { verifyTestAuthCookie } from "@/lib/auth/test-auth-guard";
 
 /**
  * Creates a server-side Supabase client bound to Next.js cookies().
@@ -10,20 +13,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function createClient(): Promise<SupabaseClient> {
   const cookieStore = await cookies();
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const { url: supabaseUrl, key: supabaseKey } = requireSupabaseConfig();
 
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
+      setAll(
+        cookiesToSet: Array<{
+          name: string;
+          value: string;
+          options: CookieOptions;
+        }>,
+      ) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, options),
           );
         } catch {
           // Ignored if called from a Server Component (where cookies cannot be set)
@@ -47,7 +53,7 @@ export interface VerifiedAuthUser {
  * NEVER trusts auth.getSession() alone because getSession() does not verify token signatures.
  */
 export async function getServerVerifiedUser(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<VerifiedAuthUser | null> {
   // 1. Try auth.getClaims() first (Supabase modern claims validation)
   try {
@@ -56,8 +62,10 @@ export async function getServerVerifiedUser(
       if (!error && data?.claims && typeof data.claims.sub === "string") {
         return {
           id: data.claims.sub,
-          email: typeof data.claims.email === "string" ? data.claims.email : null,
-          role: typeof data.claims.role === "string" ? data.claims.role : undefined,
+          email:
+            typeof data.claims.email === "string" ? data.claims.email : null,
+          role:
+            typeof data.claims.role === "string" ? data.claims.role : undefined,
           claims: data.claims,
         };
       }
@@ -78,9 +86,20 @@ export async function getServerVerifiedUser(
       };
     }
   } catch {
-    return null;
+    // Continue to test fixture fallback if non-production
+  }
+
+  // 3. Isolated test fixture fallback (strictly opt-in, fail-closed, non-Vercel only)
+  try {
+    const cookieStore = await cookies();
+    const testCookie = cookieStore.get(APPLICATION.testAuthCookieName);
+    const verifiedUser = verifyTestAuthCookie(testCookie?.value);
+    if (verifiedUser) {
+      return verifiedUser;
+    }
+  } catch {
+    // Fails closed
   }
 
   return null;
 }
-

@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "../design-system/tokens.css";
+
+:root {
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: var(--motion-reduced-duration) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--motion-reduced-duration) !important;
+    scroll-behavior: auto !important;
+  }
+}
