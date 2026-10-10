@@ -311,7 +311,7 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
       expect(RECOVERY_LOCKOUT_MS).toBe(15 * 60 * 1000);
 
       const err = AppError.resumeRateLimited(900);
-      expect(err.statusCode).toBe(429);
+      expect(err.status).toBe(429);
       expect(err.code).toBe("RESUME_RATE_LIMITED");
       expect(err.message).toBe(
         APP_MESSAGES.TOO_MANY_RECOVERY_ATTEMPTS_PLEASE_TRY_AGAIN_LATER,
@@ -576,7 +576,7 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
       mockSavePatientProgress.mockRejectedValueOnce(
         new AppError(
           "SESSION_COMPLETED",
-          APP_MESSAGES.CANNOT_MODIFY_AN_ALREADY_COMPLETED_INTAKE_SESSION,
+          APP_MESSAGES.CANNOT_MODIFY_ANSWERS_FOR_A_COMPLETED_INTAKE_SESSION,
           409,
         ),
       );
@@ -606,7 +606,7 @@ describe("Patient Intake Foundation & Security Boundaries (Part E Tests)", () =>
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error.message).toBe(
-        APP_MESSAGES.CANNOT_MODIFY_AN_ALREADY_COMPLETED_INTAKE_SESSION,
+        APP_MESSAGES.CANNOT_MODIFY_ANSWERS_FOR_A_COMPLETED_INTAKE_SESSION,
       );
     });
   });
