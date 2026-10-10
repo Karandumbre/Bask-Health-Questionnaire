@@ -174,4 +174,91 @@
 2. Build Phase 2 Administrative UI: Draft management, form builder with Polaris icons, field navigator, and debounced autosave.
 3. Implement revision conflict resolution modal (HTTP 409 handler).
 
+---
+
+## Phase 1B Final: Security and Deployment Readiness Review
+
+**Date:** 2026-10-10  
+**Status:** Audit Complete & Fully Verified (52/52 Tests Passing: 37 Unit + 15 Real PostgreSQL Integration Tests, 0 Type Errors, 0 Lint Errors, Clean Build)  
+**Lead:** Staff Full-Stack Architect / AppSec Reviewer  
+
+---
+
+### 1. Audit Scope & Verification Activities
+
+1. **Authentication & Access Boundaries:**
+   - Audited `src/lib/supabase/server.ts`: Uses `auth.getClaims()` and `auth.getUser()`, strictly refusing to trust unverified `auth.getSession()`.
+   - Audited `src/lib/auth/admin.ts`: `requireAdmin()`, `requireWorkspaceMembership()`, and `requireFormWorkspaceAccess()` enforce workspace isolation on every service call.
+   - Audited `src/proxy.ts`: Next.js 16 proxy correctly calls `updateSession()`, preserving refresh cookies across Edge requests.
+   - Implemented `src/features/forms/server/response-service.ts` to guarantee responses cannot be queried without valid workspace editor/owner membership.
+2. **Patient Credential & Session Lifecycle:**
+   - Audited `src/features/patients/server/session-service.ts` and `src/lib/security/credentials.ts`: Capability tokens hashed with HMAC-SHA256, Crockford base-32 recovery codes with constant-time verification, sliding 15-minute rate-limiting, and atomic rotation in database transactions.
+   - Identified multi-session cookie collision constraint: Patient cookie handlers in Phase 3 must namespace cookies by form slug or session reference (e.g. `bask_session_${publicSlug}`).
+3. **Database Security & Grants:**
+   - Inspected live PostgreSQL roles on Supabase (`vjstbqhzfnwrkksgavfv`). Role `postgres` has `rolbypassrls = true` and owns tables. Supabase RLS is default-deny for PostgREST `anon`/`authenticated`, but backend Drizzle connections bypass RLS.
+   - Confirmed application-layer workspace filtering is the primary, authoritative authorization barrier.
+   - Confirmed PostgreSQL triggers `trg_protect_published_versions` and `trg_protect_submissions` enforce database-level immutability against updates and deletes even for table owners.
+4. **Migration Safety & Integrity:**
+   - Upgraded `scripts/migrate.mjs` and `src/lib/db/migrate.ts` with PostgreSQL session-level advisory lock (`SELECT pg_advisory_lock(8493021)`) to serialize concurrent migration runs.
+   - Added `checksum TEXT` to `_schema_migrations` and implemented SHA-256 verification to detect historical file tampering.
+5. **Integration Test Isolation:**
+   - Added production environment guard to `tests/integration/postgres-integration.test.ts` aborting execution if `NODE_ENV`, `APP_ENV`, or `VERCEL_ENV` equals `production`.
+   - Added Test 15 verifying response reading RBAC (authorized editor succeeds, unauthorized user receives HTTP 403 `FORBIDDEN`).
+6. **GitHub Actions & Deployment Workflows:**
+   - Audited `.github/workflows/ci.yml` and `.github/workflows/db-migrate.yml`: Added explicit `permissions: contents: read` and mapped `DATABASE_URL` for conditional integration test execution.
+
+---
+
+### 2. Status Breakdown: Backend vs HTTP vs UI vs Deployed
+
+| Capability / Workflow | Backend Service | Integrated HTTP Route | Tested UI Behavior | Deployed & Verified |
+|---|---|---|---|---|
+| Admin Authentication & Claims | **DONE** (`src/lib/supabase/server.ts`, `src/lib/auth/admin.ts`) | **PENDING** (Phase 2 `/api/auth/login`) | **PENDING** (Phase 2 Login UI) | **PENDING** |
+| Admin Draft CRUD & CAS | **DONE** (`src/features/forms/server/draft-service.ts`) | **PENDING** (Phase 2 `/api/admin/forms/...`) | **PENDING** (Phase 2 Builder UI) | **PENDING** |
+| Transactional Publishing | **DONE** (`src/features/forms/server/publish-service.ts`) | **PENDING** (Phase 2 `/api/admin/forms/.../publish`) | **PENDING** (Phase 2 Publish Modal) | **PENDING** |
+| Patient Session & Recovery | **DONE** (`src/features/patients/server/session-service.ts`) | **PENDING** (Phase 3 `/api/intake/.../resume`) | **PENDING** (Phase 3 Mobile Flow) | **PENDING** |
+| Exact-Once Submission | **DONE** (`src/features/patients/server/submission-service.ts`) | **PENDING** (Phase 3 `/api/intake/.../submit`) | **PENDING** (Phase 3 Submit Screen) | **PENDING** |
+| Response Administration | **DONE** (`src/features/forms/server/response-service.ts`) | **PENDING** (Phase 2/3 `/api/admin/forms/.../responses`) | **PENDING** (Phase 2/3 Responses UI) | **PENDING** |
+| Migration Concurrency & Checksums | **DONE** (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`) | N/A (CLI / Gated CI Dispatch) | N/A | **DONE** (Live Supabase DB) |
+
+---
+
+### 3. Tests Executed & Actual Results
+
+| Test Suite / Command | Execution Scope | Result | Details |
+|---|---|---|---|
+| `npm run typecheck` (`tsc --noEmit`) | Entire project (`tsconfig.json` strict) | **DONE (PASS, Exit 0)** | 0 errors. Strict TypeScript, zero `any`, zero `@ts-ignore`. |
+| `npm run lint` (`eslint .`) | ESLint 9 (`eslint.config.mjs`) | **DONE (PASS, Exit 0)** | 0 errors, 0 warnings. Next.js 16 flat config cleanly validated. |
+| `npm run test:unit` | 5 test files, 37 unit & benchmark tests | **DONE (PASS, Exit 0)** | **37 passed / 0 failed** in 0.54s (offline). |
+| `npm run test:integration` | Real Supabase PostgreSQL database | **DONE (PASS, Exit 0)** | **15 passed / 0 failed** in 88.7s against hosted Supabase instance. |
+| `npm test` | All 6 test files, 52 total tests | **DONE (PASS, Exit 0)** | **52 passed / 0 failed**. |
+| `npm run build` | Next.js 16.4.0 (Turbopack) | **DONE (PASS, Exit 0)** | Production build compiled cleanly in 728ms; static pages and `Proxy (Middleware)` generated. |
+
+---
+
+### 4. Findings Ranked by Severity
+
+1. **HIGH: Application DB Connection Bypasses Supabase RLS**  
+   *Finding:* The connection uses the `postgres` role, which has `rolbypassrls: true`.  
+   *Mitigation:* Defense-in-depth requires that all Route Handlers and Server Actions strictly enforce application-level authorization guards (`requireWorkspaceMembership`, `requireFormWorkspaceAccess`). Never rely on RLS when querying via Drizzle.
+2. **MEDIUM: Cookie Namespace Collision for Multiple Concurrent Forms**  
+   *Finding:* Using a single static cookie name like `bask_session_token` will cause collisions if a patient opens two forms concurrently in the same browser.  
+   *Mitigation:* HTTP route handlers in Phase 3 must namespace patient capability cookies per form slug (e.g. `bask_session_${publicSlug}`).
+3. **MEDIUM: Advisory Locking & SHA-256 Migration Checksums**  
+   *Finding:* Migration runner lacked advisory locking and checksum validation.  
+   *Mitigation:* Resolved. Implemented `SELECT pg_advisory_lock(8493021)` and SHA-256 hash tracking in `_schema_migrations`.
+4. **LOW: HTTP Route Boundary CSRF & Origin Validation**  
+   *Finding:* Backend services execute safely in isolation, but HTTP Route Handlers must validate `Origin`/`Host` headers on state-mutating requests (`POST`/`PUT`/`DELETE`).  
+   *Mitigation:* Documented invariant for Phase 2/3 HTTP Route Handler implementations.
+5. **LOW: CI Workflow Least-Privilege Permissions**  
+   *Finding:* GitHub Actions workflows lacked explicit top-level `permissions` block.  
+   *Mitigation:* Resolved. Added `permissions: contents: read` to `.github/workflows/ci.yml` and `.github/workflows/db-migrate.yml`.
+
+---
+
+### 5. Readiness Recommendation
+
+**Phase 2 Clearance: APPROVED.**  
+All security boundaries, schema models, CAS concurrency, database immutability triggers, credential mechanics, migration integrity, and test isolation are fully verified with 52 passing tests on the live Supabase PostgreSQL database. Phase 2 (Admin Form Builder UI) can safely proceed upon user request.
+
 

@@ -19,6 +19,10 @@ import {
 } from "@/features/forms/server/draft-service";
 import { publishForm } from "@/features/forms/server/publish-service";
 import {
+  listFormSubmissions,
+  getSubmissionDetail,
+} from "@/features/forms/server/response-service";
+import {
   createPatientSession,
   resumePatientSession,
   savePatientProgress,
@@ -97,6 +101,17 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
   };
 
   beforeAll(async () => {
+    // Production safety check: Prevent tests from ever running against production
+    if (
+      process.env.NODE_ENV === "production" ||
+      process.env.APP_ENV === "production" ||
+      process.env.VERCEL_ENV === "production"
+    ) {
+      throw new Error(
+        "CRITICAL SAFETY ABORT: Integration tests are forbidden from executing against a production environment!"
+      );
+    }
+
     // 1. Create isolated test workspace
     await db.insert(workspaces).values({
       id: testWorkspaceId,
@@ -869,5 +884,75 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       .from(submissions)
       .where(eq(submissions.sessionId, session.sessionId));
     expect(subRows.length).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // 15. Response administration access restricted to authorized workspace members
+  // ---------------------------------------------------------------------------
+  it("15. restricts responses access strictly to authorized workspace members", async () => {
+    const { form } = await createForm({
+      workspaceId: testWorkspaceId,
+      name: "Response Reading RBAC Form",
+      userId: editorUserId1,
+      initialDefinition: testFormDefinition,
+    });
+
+    const pub = await publishForm({
+      formId: form.id,
+      expectedRevision: 0,
+      operationId: crypto.randomUUID(),
+      userId: editorUserId1,
+    });
+
+    const session = await createPatientSession({ publicSlug: pub.publicSlug });
+
+    const submission = await submitPatientSession({
+      sessionId: session.sessionId,
+      capabilityToken: session.capabilityToken,
+      answers: {
+        "q-conditions": "opt-no",
+        "q-age": 32,
+      },
+    });
+
+    // Authorized editor can read submissions
+    const list = await listFormSubmissions({
+      formId: form.id,
+      userId: editorUserId1,
+    });
+    expect(list.length).toBe(1);
+    expect(list[0]?.id).toBe(submission.submissionId);
+
+    // Authorized editor can read submission detail
+    const detail = await getSubmissionDetail({
+      formId: form.id,
+      submissionId: submission.submissionId,
+      userId: editorUserId1,
+    });
+    expect(detail.id).toBe(submission.submissionId);
+    expect((detail.answerSnapshot as Record<string, unknown>)["q-age"]).toBe(32);
+
+    // Unauthorized user cannot list submissions
+    await expect(
+      listFormSubmissions({
+        formId: form.id,
+        userId: unauthorizedUserId,
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+
+    // Unauthorized user cannot read submission detail
+    await expect(
+      getSubmissionDetail({
+        formId: form.id,
+        submissionId: submission.submissionId,
+        userId: unauthorizedUserId,
+      })
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
   });
 });

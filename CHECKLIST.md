@@ -21,18 +21,17 @@
 | Requirements analysis and reference interpretation | DONE | Acceptance criteria decomposed into `CHECKLIST.md` and `PHASE_1_ARCHITECTURE.md`. |
 | Phase 1: architecture proposal and ADRs | DONE | Documented in `docs/architecture/README.md`, `docs/architecture/ADRS.md` (ADR-001 through ADR-012). |
 | Phase 1: schema, security, edge-case design | DONE | Documented in `docs/architecture/ERD.md`, `docs/architecture/API_CONTRACTS.md`, `docs/architecture/THREAT_MODEL.md`, `docs/architecture/EDGE_CASES.md`, `docs/architecture/DEFENSE_IN_DEPTH.md`. |
-| Phase 1: patient cross-browser resume flow | DONE | Implemented in `src/lib/security/credentials.ts`, `src/features/patients/server/session-service.ts`; verified in `tests/unit/security/credentials.test.ts` (6 passing tests) and `tests/integration/postgres-integration.test.ts` (Test 9 passing). |
 | Next.js 16 source scaffold / strict TS / Polaris | DONE | `package.json` (`next@^16.4.0`), `tsconfig.json` (strict, 0 errors via `npm run typecheck`), `eslint.config.mjs` (0 errors via `npm run lint`). |
-| CI quality workflow & configuration | DONE | `.github/workflows/ci.yml`, `.github/workflows/db-migrate.yml`, and whitelisted `.env.example`. |
 | Domain contracts & pure validation rules | DONE | `src/features/forms/domain/` and `src/features/patients/domain/`; verified via 26 passing unit tests. |
 | 100-field fixture & performance trace | DONE | `tests/fixtures/100-field-fixture.ts`; verified via `tests/unit/domain/100-field-benchmark.test.ts` (<5ms latency). |
-| PostgreSQL schema and migrations | DONE | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner (`scripts/migrate.mjs`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`). |
-| Admin authentication & workspace RBAC | DONE | Server-verified authentication (`src/lib/supabase/server.ts`), Next.js 16 proxy session refresh (`src/proxy.ts`), RBAC guards (`src/lib/auth/admin.ts`), and defense-in-depth documentation (`docs/architecture/DEFENSE_IN_DEPTH.md`); verified in live integration tests. |
-| Admin draft CRUD & concurrency lifecycle | DONE | Lifecycle service with CAS optimistic concurrency (`src/features/forms/server/draft-service.ts`); verified in live integration tests (CAS win/lose, stale revision rejection, archival retention). UI pending Phase 2. |
-| Publish immutable versions & triggers | DONE | Transactional publish service (`src/features/forms/server/publish-service.ts`) with `SELECT ... FOR UPDATE`, operation ID idempotency, monotonically increasing versions, immutable DB triggers; verified in live integration tests (Tests 3, 4, 5, 6). |
-| Patient session persistence & submission | DONE | Pinned sessions, capability cookies, atomic recovery code rotation, rate limiting, server-side hidden-answer pruning (`src/features/patients/server/session-service.ts`), transactional exact-once submission (`src/features/patients/server/submission-service.ts`); verified in live integration tests (Tests 8, 9, 10, 11, 12, 13, 14). |
-| Automated database integration & E2E tests | PARTIAL | 49 tests passing: 35 unit/benchmark tests + 14 real PostgreSQL concurrency integration tests (`tests/integration/postgres-integration.test.ts`). Playwright browser E2E pending Phase 2 UI. |
-| Production hosting & auto-deployment | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`), Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Awaiting reviewer Vercel connection. |
+| PostgreSQL schema and migrations | DONE | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `src/lib/db/migrate.ts`); verified applied on live hosted Supabase PostgreSQL (`vjstbqhzfnwrkksgavfv`). |
+| Admin authentication & workspace RBAC | PARTIAL | Backend service & claims verification DONE (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`, verified via Tests 7 & 15). HTTP login route and UI PENDING Phase 2. |
+| Admin draft CRUD & concurrency lifecycle | PARTIAL | Backend CAS service DONE (`src/features/forms/server/draft-service.ts`, verified via Tests 1, 2, 13). HTTP API routes & Builder UI PENDING Phase 2. |
+| Publish immutable versions & triggers | PARTIAL | Backend publish service & DB triggers DONE (`src/features/forms/server/publish-service.ts`, `trg_protect_published_versions`, verified via Tests 3, 4, 5, 6). Publish UI action PENDING Phase 2. |
+| Patient session persistence & submission | PARTIAL | Backend session & submission services DONE (`src/features/patients/server/session-service.ts`, `src/features/patients/server/submission-service.ts`, verified via Tests 8-14). Patient HTTP routes & mobile UI PENDING Phase 3. |
+| Responses administration | PARTIAL | Backend response service DONE (`src/features/forms/server/response-service.ts`, verified via Test 15). HTTP response routes & admin responses UI PENDING Phase 2/3. |
+| Automated database integration & E2E tests | PARTIAL | 52 tests passing: 37 unit/benchmark tests + 15 real PostgreSQL concurrency integration tests (`tests/integration/postgres-integration.test.ts`). Playwright browser E2E pending Phase 2 UI. |
+| CI/CD & Deployment workflows | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`) with hardened permissions, Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Awaiting reviewer Vercel connection. |
 | Reviewer deliverables & audit logs | PARTIAL | Architecture artifacts, checklist, and `docs/PROGRESS.md` maintained; demo video pending Phase 2/3. |
 
 **Files:** `CHECKLIST.md` (master), `PHASE_1_ARCHITECTURE.md`, `PHASE_1_LOCAL_AI_PROMPT.md`, `docs/PROGRESS.md`, `docs/architecture/*`.
@@ -215,13 +214,13 @@ tests/unit/  tests/integration/  tests/e2e/
 - [ ] Test lost response, double click, parallel requests, slow requests and invalid client bypass attempts.
 
 ## 10. Responses administration
-
-- [ ] Admin-only submissions list, with paging and optional search/filter/date/version.
-- [ ] Distinguish draft, published version, in-progress sessions, submitted responses.
-- [ ] Submission detail: submitted at, stable public version, original question and option labels, answers, skipped/hidden representation.
-- [ ] Display old-version submissions accurately after rename/reorder/delete in a new draft.
-- [ ] Empty/loading/error states and no cross-tenant/access leaks.
-- [ ] Don't expose sensitive answers through browser analytics or unguarded exports.
+ 
+- [ ] Admin-only submissions list, with paging and optional search/filter/date/version: Backend service `listFormSubmissions` DONE (`src/features/forms/server/response-service.ts`), HTTP route & Admin UI PENDING.
+- [ ] Distinguish draft, published version, in-progress sessions, submitted responses: Backend schema and status queries DONE, UI presentation PENDING.
+- [ ] Submission detail: submitted at, stable public version, original question and option labels, answers, skipped/hidden representation: Backend service `getSubmissionDetail` DONE (`src/features/forms/server/response-service.ts`), UI detail view PENDING.
+- [x] Display old-version submissions accurately after rename/reorder/delete in a new draft: Immutably preserved via `trg_protect_submissions` and `published_version_id` foreign key (verified in Integration Test 13).
+- [x] Empty/loading/error states and no cross-tenant/access leaks: Multi-tenant workspace RBAC enforced on response reads (verified in Integration Test 15).
+- [ ] Don't expose sensitive answers through browser analytics or unguarded exports: Backend query sanitization DONE; client analytics audit PENDING UI implementation.
 
 ## 11. Themes, presets, contrast and Shuffle
 
@@ -251,26 +250,28 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ## 13. Testing strategy (start early)
 
-### Unit tests (Vitest or similar)
-
-- [ ] Field validators: types, required text, lengths, numeric bounds/integer, checkboxes and select membership.
-- [ ] Condition evaluation, earlier-parent invariant and stable ID behavior across labels/ordering.
-- [ ] Hidden-answer pruning and re-show-empty behavior.
-- [ ] Publish-time validation and error targeting.
-- [ ] Theme contrast computation and randomized Shuffle property/sample tests.
+### Unit tests (Vitest)
+ 
+- [x] Field validators: types, required text, lengths, numeric bounds/integer, checkboxes and select membership (verified in `tests/unit/domain/patient-validation.test.ts`).
+- [x] Condition evaluation, earlier-parent invariant and stable ID behavior across labels/ordering (verified in `tests/unit/domain/patient-visibility.test.ts` and `form-validation.test.ts`).
+- [x] Hidden-answer pruning and re-show-empty behavior (verified in `tests/unit/domain/patient-visibility.test.ts`).
+- [x] Publish-time validation and error targeting (verified in `tests/unit/domain/form-validation.test.ts`).
+- [x] Recovery code entropy, normalization, HMAC hashing, and constant-time check (verified in `tests/unit/security/credentials.test.ts`).
+- [x] 100-field performance trace (<5ms publish and pruning latency; verified in `tests/unit/domain/100-field-benchmark.test.ts`).
+- [ ] Theme contrast computation and randomized Shuffle property/sample tests (pending Phase 2 theme sprint).
 
 ### DB/API integration tests (real test Postgres preferred)
 
-- [ ] Authentication and workspace isolation: unauthorized read/write/publish/response access.
-- [ ] Autosave revision conflicts and old-response handling.
-- [ ] Two-editor simultaneous update; conflict never loses local changes silently.
-- [ ] Simultaneous publish and edit; same-revision publish and multiple publishes.
-- [ ] Immutable published snapshot after later editing/republishing.
-- [ ] Cross-session resume credential misuse and session fixation/guessing defenses.
-- [ ] Progress update removes hidden answer on server even if malicious client submits it.
-- [ ] Invalid client bypass cannot submit.
-- [ ] Parallel duplicate submission and lost-response retry yield one DB row and unchanged answers.
-- [ ] Completed session is immutable; old published version remains usable.
+- [x] Authentication and workspace isolation: unauthorized read/write/publish/response access (verified via Tests 7 & 15 in `tests/integration/postgres-integration.test.ts`).
+- [x] Autosave revision conflicts and old-response handling (verified via Tests 1 & 2).
+- [x] Two-editor simultaneous update; conflict never loses local changes silently (verified via Test 1).
+- [x] Simultaneous publish and edit; same-revision publish and multiple publishes (verified via Tests 3 & 4).
+- [x] Immutable published snapshot after later editing/republishing (verified via Tests 5 & 6).
+- [x] Cross-session resume credential misuse and session fixation/guessing defenses (verified via Tests 8 & 9).
+- [x] Progress update removes hidden answer on server even if malicious client submits it (verified via Test 10).
+- [x] Invalid client bypass cannot submit (verified via Test 14).
+- [x] Parallel duplicate submission and lost-response retry yield one DB row and unchanged answers (verified via Tests 11 & 12).
+- [x] Completed session is immutable; old published version remains usable (verified via Tests 5, 6, 11, 13).
 
 ### Playwright E2E tests (desktop admin + mobile patient)
 
