@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { ApiError } from "@/lib/http/api-client";
 
 export type SaveStatus =
@@ -17,6 +18,7 @@ export interface AutosaveState {
 /** Serializes writes and tracks acknowledged edits separately from newer edits. */
 export class DraftAutosave<T> {
   private latest: T;
+  private acknowledged: T;
   private editVersion = 0;
   private savedVersion = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -38,6 +40,7 @@ export class DraftAutosave<T> {
     private readonly isEqual: (left: T, right: T) => boolean = Object.is,
   ) {
     this.latest = initial;
+    this.acknowledged = initial;
     this.state = {
       revision,
       status: "saved",
@@ -47,6 +50,7 @@ export class DraftAutosave<T> {
   }
 
   getSnapshot = () => this.state;
+  getAcknowledgedSnapshot = () => this.acknowledged;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
@@ -104,10 +108,11 @@ export class DraftAutosave<T> {
         if (request.signal.aborted) return false;
         if (!Number.isSafeInteger(revision) || revision <= expectedRevision) {
           throw new Error(
-            "The save response did not advance the draft revision.",
+            APP_MESSAGES.THE_SAVE_RESPONSE_DID_NOT_ADVANCE_THE_DRAFT_REVISION,
           );
         }
         this.savedVersion = version;
+        this.acknowledged = snapshot;
         this.notify({ revision, lastSavedAt: new Date() });
         // Edits made during this request are still dirty. Save them using the
         // acknowledged revision before reporting that the draft is saved.
@@ -146,12 +151,23 @@ export class DraftAutosave<T> {
     return this.flush();
   };
 
+  saveWithMergedSnapshot = (
+    snapshot: T,
+    revision: number,
+  ): Promise<boolean> => {
+    this.latest = snapshot;
+    this.editVersion++;
+    this.notify({ revision, conflict: null });
+    return this.flush();
+  };
+
   reset(snapshot: T, revision: number) {
     this.clearTimer();
     this.request?.abort();
     this.latest = snapshot;
     this.editVersion++;
     this.savedVersion = this.editVersion;
+    this.acknowledged = snapshot;
     this.notify({
       revision,
       status: "saved",

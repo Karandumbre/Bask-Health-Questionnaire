@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -31,7 +32,7 @@ export async function requireAdmin(): Promise<VerifiedAuthUser> {
   if (!user) {
     throw new AppError(
       "UNAUTHORIZED",
-      "Authentication required for administrative access.",
+      APP_MESSAGES.AUTHENTICATION_REQUIRED_FOR_ADMINISTRATIVE_ACCESS,
       401,
     );
   }
@@ -63,7 +64,7 @@ export async function requireWorkspaceMembership(
   if (!membership) {
     throw new AppError(
       "FORBIDDEN",
-      "Access denied: You are not a member of this workspace.",
+      APP_MESSAGES.ACCESS_DENIED_YOU_ARE_NOT_A_MEMBER_OF_THIS,
       403,
       { resourceType: "workspace" },
     );
@@ -72,7 +73,7 @@ export async function requireWorkspaceMembership(
   if (requiredRole === "owner" && membership.role !== "owner") {
     throw new AppError(
       "FORBIDDEN",
-      "Access denied: Owner privileges required for this action.",
+      APP_MESSAGES.ACCESS_DENIED_OWNER_PRIVILEGES_REQUIRED_FOR_THIS_ACTION,
       403,
       { resourceType: "workspace" },
     );
@@ -97,7 +98,7 @@ export async function requireFormWorkspaceAccess(
     .limit(1);
 
   if (!form) {
-    throw new AppError("NOT_FOUND", "Form not found.", 404, {
+    throw new AppError("NOT_FOUND", APP_MESSAGES.FORM_NOT_FOUND, 404, {
       resourceType: "form",
     });
   }

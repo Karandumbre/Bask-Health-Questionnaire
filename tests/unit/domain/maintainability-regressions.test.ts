@@ -1,3 +1,5 @@
+import { validateSessionSubmission } from "@/features/patients/domain/validation";
+import { ThemeDefinitionSchema } from "@/features/themes/domain/theme-tokens";
 import { describe, it, expect } from "vitest";
 import {
   validateQuestionCondition,
@@ -135,5 +137,29 @@ describe("Shared condition and comparison rules", () => {
       compareDrafts(local, definition, 1, 2, { baseDefinition: definition })
         .summary.removedLocally,
     ).toBe(1);
+  });
+  it("rejects unknown final answers while pruning known hidden answers", () => {
+    const result = validateSessionSubmission(
+      { p: "no", c: "hidden", unknown: "injected" },
+      definition.questions,
+    );
+    expect(result.errors).toMatchObject([
+      { questionId: "unknown", code: "UNEXPECTED_ANSWER" },
+    ]);
+    expect(result.sanitizedAnswers).toEqual({ p: "no" });
+  });
+  it("reads legacy theme snapshots without changing their stored JSON", () => {
+    const mode = {
+      background: "#FFFFFF",
+      surface: "#F8FAFC",
+      text: "#0F172A",
+      primary: "#0284C7",
+      primaryForeground: "#FFFFFF",
+    };
+    const input = { presetName: "Legacy", light: mode, dark: mode };
+    expect(ThemeDefinitionSchema.parse(input).light.textPrimary).toBe(
+      mode.text,
+    );
+    expect(input.light).not.toHaveProperty("textPrimary");
   });
 });

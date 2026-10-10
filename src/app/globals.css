@@ -1,16 +1,15 @@
 @import "tailwindcss";
+@import "../design-system/tokens.css";
 
 :root {
-  --background: #f6f6f7;
-  --foreground: #202223;
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto,
-    Helvetica, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -19,9 +18,9 @@ body {
   *,
   ::before,
   ::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: var(--motion-reduced-duration) !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: var(--motion-reduced-duration) !important;
     scroll-behavior: auto !important;
   }
 }

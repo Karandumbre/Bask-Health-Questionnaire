@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { revisionSchema as revision } from "@/lib/validation/primitives";
 import { z } from "zod";
 import { FormDefinitionSchema, ThemeDefinitionSchema } from "./types";
@@ -17,7 +18,7 @@ export const publishRequestSchema = z.object({
 });
 export const createFormSchema = z.object({
   workspaceId: z.string().uuid().optional(),
-  name: z.string().trim().min(1).default("Untitled Clinical Intake"),
+  name: z.string().trim().min(1).default(APP_MESSAGES.UNTITLED_CLINICAL_INTAKE),
   initialDefinition: FormDefinitionSchema.optional(),
   initialTheme: ThemeDefinitionSchema.optional(),
 });

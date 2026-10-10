@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusIcon, SearchIcon } from "@/components/ui/icons";
@@ -36,13 +38,13 @@ export function FormDashboard({
       <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-            BH
+            {APP_MESSAGES.BH}
           </div>
           <div>
             <h1 className="text-sm font-bold text-gray-900 leading-tight">
-              Bask Health — Intake Studio
+              {APP_MESSAGES.BASK_HEALTH_INTAKE_STUDIO}
             </h1>
-            <p className="text-[11px] text-gray-500">{workspaceName}</p>
+            <p className="text-caption text-gray-500">{workspaceName}</p>
           </div>
         </div>
 
@@ -55,7 +57,7 @@ export function FormDashboard({
             disabled={isMutating}
             className="text-xs text-gray-500 hover:text-gray-900 font-medium px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
           >
-            Sign Out
+            {APP_MESSAGES.SIGN_OUT}
           </Button>
         </div>
       </header>
@@ -66,10 +68,12 @@ export function FormDashboard({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              Clinical Intake Forms
+              {APP_MESSAGES.CLINICAL_INTAKE_FORMS}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Author, publish, and review versioned patient questionnaires.
+              {
+                APP_MESSAGES.AUTHOR_PUBLISH_AND_REVIEW_VERSIONED_PATIENT_QUESTIONNAIRES
+              }
             </p>
           </div>
 
@@ -80,7 +84,7 @@ export function FormDashboard({
             className="gap-2"
           >
             <PlusIcon className="w-4 h-4" />
-            <span>Create New Form</span>
+            <span>{APP_MESSAGES.CREATE_NEW_FORM}</span>
           </Button>
         </div>
 
@@ -95,8 +99,8 @@ export function FormDashboard({
           <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
             type="text"
-            aria-label="Search forms"
-            placeholder="Search forms by title..."
+            aria-label={APP_MESSAGES.SEARCH_FORMS}
+            placeholder={APP_MESSAGES.SEARCH_FORMS_BY_TITLE}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full text-xs pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -110,29 +114,33 @@ export function FormDashboard({
               <PlusIcon className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-gray-900">
-              No clinical forms found
+              {APP_MESSAGES.NO_CLINICAL_FORMS_FOUND}
             </h3>
             <p className="text-xs text-gray-500 max-w-xs mx-auto">
-              Get started by creating your first patient intake questionnaire.
+              {
+                APP_MESSAGES.GET_STARTED_BY_CREATING_YOUR_FIRST_PATIENT_INTAKE_QUESTIONNAIRE
+              }
             </p>
             <Button
               onClick={openCreateDialog}
               disabled={isMutating}
               className="text-xs font-semibold text-blue-600 hover:text-blue-700"
             >
-              + Create Form Now
+              {APP_MESSAGES.CREATE_FORM_NOW}
             </Button>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/70 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                  <th className="py-3 px-4">Form Title</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Working Draft</th>
-                  <th className="py-3 px-4">Last Updated</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-gray-200 bg-gray-50/70 text-caption font-bold uppercase tracking-wider text-gray-500">
+                  <th className="py-3 px-4">{APP_MESSAGES.FORM_TITLE}</th>
+                  <th className="py-3 px-4">{APP_MESSAGES.STATUS}</th>
+                  <th className="py-3 px-4">{APP_MESSAGES.WORKING_DRAFT}</th>
+                  <th className="py-3 px-4">{APP_MESSAGES.LAST_UPDATED}</th>
+                  <th className="py-3 px-4 text-right">
+                    {APP_MESSAGES.ACTIONS}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">

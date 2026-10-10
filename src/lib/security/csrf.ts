@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { type NextRequest } from "next/server";
 import { AppError } from "@/lib/errors";
@@ -22,7 +23,7 @@ export function verifyRequestOrigin(request: NextRequest): void {
     if (!origin) return;
     throw new AppError(
       "FORBIDDEN",
-      "Cross-site mutation rejected: Missing host header.",
+      APP_MESSAGES.CROSS_SITE_MUTATION_REJECTED_MISSING_HOST_HEADER,
       403,
     );
   }
@@ -32,14 +33,17 @@ export function verifyRequestOrigin(request: NextRequest): void {
     if (originUrl.host !== host) {
       throw new AppError(
         "FORBIDDEN",
-        `Cross-site mutation rejected: Origin '${originUrl.host}' does not match host '${host}'.`,
+        APP_MESSAGES.CROSS_SITE_MUTATION_REJECTED_ORIGIN_FORMATTED(
+          originUrl.host,
+          host,
+        ),
         403,
       );
     }
   } catch {
     throw new AppError(
       "FORBIDDEN",
-      "Cross-site mutation rejected: Malformed origin header.",
+      APP_MESSAGES.CROSS_SITE_MUTATION_REJECTED_MALFORMED_ORIGIN_HEADER,
       403,
     );
   }

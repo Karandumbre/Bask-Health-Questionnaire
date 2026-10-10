@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -53,7 +54,7 @@ export async function getUserWorkspaces(
     // Provision initial workspace for first-time admin / reviewer
     const defaultName = userEmail
       ? `${userEmail.split("@")[0]}'s Clinic`
-      : "Clinical Workspace";
+      : APP_MESSAGES.CLINICAL_WORKSPACE;
     const [newWorkspace] = await tx
       .insert(workspaces)
       .values({ name: defaultName })
@@ -62,7 +63,7 @@ export async function getUserWorkspaces(
     if (!newWorkspace) {
       throw new AppError(
         "INTERNAL_ERROR",
-        "Failed to initialize workspace.",
+        APP_MESSAGES.FAILED_TO_INITIALIZE_WORKSPACE,
         500,
       );
     }

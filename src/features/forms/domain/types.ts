@@ -1,10 +1,11 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { z } from "zod";
 
 /**
  * Stable Option Definition for single-select and multi-select fields.
  */
 export const OptionSchema = z.object({
-  id: z.string().min(1, "Option ID must not be empty"),
+  id: z.string().min(1, APP_MESSAGES.OPTION_ID_MUST_NOT_BE_EMPTY),
   label: z.string(),
 });
 export type Option = z.infer<typeof OptionSchema>;
@@ -42,7 +43,7 @@ export type NumberValidation = z.infer<typeof NumberValidationSchema>;
  * Base Question properties shared across all types.
  */
 const BaseQuestionSchema = z.object({
-  id: z.string().min(1, "Question ID must not be empty"),
+  id: z.string().min(1, APP_MESSAGES.QUESTION_ID_MUST_NOT_BE_EMPTY),
   label: z.string().default(""),
   description: z.string().optional(),
   required: z.boolean().default(false),
@@ -109,7 +110,7 @@ export type FieldType = Question["type"];
  */
 export const FormDefinitionSchema = z.object({
   schemaVersion: z.literal(1).default(1),
-  title: z.string().default("Untitled Form"),
+  title: z.string().default(APP_MESSAGES.UNTITLED_FORM),
   description: z.string().optional(),
   questions: z.array(QuestionSchema).default([]),
 });

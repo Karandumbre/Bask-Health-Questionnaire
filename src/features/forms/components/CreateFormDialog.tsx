@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,16 +38,18 @@ export function CreateFormDialog({
                 id="create-form-title"
                 className="text-base font-bold text-gray-900"
               >
-                Create Clinical Form
+                {APP_MESSAGES.CREATE_CLINICAL_FORM}
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Initializes a new draft container ready for question authoring.
+                {
+                  APP_MESSAGES.INITIALIZES_A_NEW_DRAFT_CONTAINER_READY_FOR_QUESTION_AUTHORING
+                }
               </p>
             </div>
             <Button
               disabled={isCreating}
               onClick={() => setIsCreateModalOpen(false)}
-              aria-label="Close create form dialog"
+              aria-label={APP_MESSAGES.CLOSE_CREATE_FORM_DIALOG}
               className="text-gray-400 hover:text-gray-600"
             >
               ✕
@@ -58,13 +62,14 @@ export function CreateFormDialog({
                 htmlFor="new-form-name"
                 className="block text-xs font-semibold text-gray-700 mb-1"
               >
-                Form Title <span className="text-red-500">*</span>
+                {APP_MESSAGES.FORM_TITLE}{" "}
+                <span className="text-red-500">*</span>
               </label>
               <Input
                 type="text"
                 required
                 id="new-form-name"
-                placeholder="e.g. Adult ADHD Initial Screening"
+                placeholder={APP_MESSAGES.E_G_ADULT_ADHD_INITIAL_SCREENING}
                 value={newFormName}
                 onChange={(e) => setNewFormName(e.target.value)}
 
@@ -87,7 +92,7 @@ export function CreateFormDialog({
                 variant="secondary"
                 className="py-2"
               >
-                Cancel
+                {APP_MESSAGES.CANCEL}
               </Button>
               <Button
                 type="submit"
@@ -95,7 +100,7 @@ export function CreateFormDialog({
                 variant="primary"
                 className="py-2"
               >
-                {isCreating ? "Creating..." : "Create & Open"}
+                {isCreating ? "Creating..." : APP_MESSAGES.CREATE_OPEN}
               </Button>
             </div>
           </form>

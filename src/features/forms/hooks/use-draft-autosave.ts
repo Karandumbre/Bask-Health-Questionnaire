@@ -1,4 +1,5 @@
 "use client";
+import { APPLICATION } from "@/lib/constants/application";
 
 import {
   useEffect,
@@ -26,7 +27,7 @@ export function useDraftAutosave(
         initialRevision,
         (snapshot, revision, signal) =>
           saveFormDraft(formId, snapshot, revision, signal),
-        800,
+        APPLICATION.autosaveDelayMs,
         (left, right) =>
           left.definition === right.definition && left.theme === right.theme,
       ),

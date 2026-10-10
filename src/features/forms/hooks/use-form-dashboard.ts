@@ -1,4 +1,8 @@
 "use client";
+import { ROUTES } from "@/lib/constants/application";
+
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { useState, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { apiErrorMessage } from "@/lib/http/api-client";
@@ -37,9 +41,11 @@ export function useFormDashboard(initialForms: FormListItem[]) {
     try {
       const data = await createForm(newFormName.trim());
 
-      router.push(`/admin/forms/${data.form.id}/edit`);
+      router.push(ROUTES.editForm(data.form.id));
     } catch (error) {
-      setErrorMessage(apiErrorMessage(error, "Network error creating form."));
+      setErrorMessage(
+        apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_CREATING_FORM),
+      );
     } finally {
       setIsCreating(false);
       busy.current = false;
@@ -48,7 +54,7 @@ export function useFormDashboard(initialForms: FormListItem[]) {
   };
 
   const handleDeleteForm = async (formId: string, formName: string) => {
-    if (!confirm(`Are you sure you want to delete or archive '${formName}'?`)) {
+    if (!confirm(APP_MESSAGES.ARE_YOU_SURE_YOU_WANT_TO_DELETE_OR(formName))) {
       return;
     }
 
@@ -59,7 +65,9 @@ export function useFormDashboard(initialForms: FormListItem[]) {
       await deleteForm(formId);
       setFormsList((prev) => prev.filter((f) => f.id !== formId));
     } catch (error) {
-      setErrorMessage(apiErrorMessage(error, "Network error deleting form."));
+      setErrorMessage(
+        apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_DELETING_FORM),
+      );
     } finally {
       busy.current = false;
       setIsMutating(false);
@@ -95,7 +103,9 @@ export function useFormDashboard(initialForms: FormListItem[]) {
       );
       setRenamingFormId(null);
     } catch (error) {
-      setErrorMessage(apiErrorMessage(error, "Network error renaming form."));
+      setErrorMessage(
+        apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_RENAMING_FORM),
+      );
     } finally {
       busy.current = false;
       setIsMutating(false);
@@ -104,17 +114,27 @@ export function useFormDashboard(initialForms: FormListItem[]) {
 
   const handleLogout = async () => {
     if (busy.current) return;
-    busy.current = true; setIsMutating(true);
+    busy.current = true;
+    setIsMutating(true);
     try {
       await logout();
-      router.push("/admin/login");
+      router.push(ROUTES.adminLogin);
       router.refresh();
     } catch (error) {
-      setErrorMessage(apiErrorMessage(error, "Network error signing out."));
-    } finally { busy.current = false; setIsMutating(false); }
+      setErrorMessage(
+        apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_SIGNING_OUT),
+      );
+    } finally {
+      busy.current = false;
+      setIsMutating(false);
+    }
   };
 
-  const openCreateDialog = () => { setNewFormName(""); setErrorMessage(null); setIsCreateModalOpen(true); };
+  const openCreateDialog = () => {
+    setNewFormName("");
+    setErrorMessage(null);
+    setIsCreateModalOpen(true);
+  };
 
   return {
     openCreateDialog,

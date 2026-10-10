@@ -1,4 +1,5 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Alert } from "@/components/ui/alert";
@@ -53,14 +54,17 @@ function PublishDialog() {
       const revision = await saveForPublish();
       if (revision === null) {
         setErrorMessage(
-          "Save the latest changes and resolve any draft conflict before publishing.",
+          APP_MESSAGES.SAVE_THE_LATEST_CHANGES_AND_RESOLVE_ANY_DRAFT_CONFLICT,
         );
         return;
       }
       const data = await publishForm(formId, revision, operationId);
       // Publication advances the server draft revision. Synchronize before the
       // editor resumes so its next save uses the acknowledged revision.
-      if (!(await resolveConflictReload())) setErrorMessage("The form was published, but the draft could not refresh. Reload the editor before continuing.");
+      if (!(await resolveConflictReload()))
+        setErrorMessage(
+          APP_MESSAGES.THE_FORM_WAS_PUBLISHED_BUT_THE_DRAFT_COULD_NOT,
+        );
 
       setPublishResult({
         versionNumber: data.versionNumber,
@@ -71,7 +75,7 @@ function PublishDialog() {
       setErrorMessage(
         apiErrorMessage(
           error,
-          "Network error during publication. Please retry.",
+          APP_MESSAGES.NETWORK_ERROR_DURING_PUBLICATION_PLEASE_RETRY,
         ),
       );
     } finally {
@@ -98,19 +102,19 @@ function PublishDialog() {
         <div>
           <h2 id="publish-title" className="text-base font-bold text-gray-900">
             {publishResult
-              ? "Form Published Successfully!"
-              : "Publish Immutable Version"}
+              ? APP_MESSAGES.FORM_PUBLISHED_SUCCESSFULLY
+              : APP_MESSAGES.PUBLISH_IMMUTABLE_VERSION}
           </h2>
           <p className="text-xs text-gray-500 mt-1">
             {publishResult
-              ? "This version snapshot is now locked and available for patient intake."
-              : "Creates an immutable snapshot of all questions and theme settings."}
+              ? APP_MESSAGES.THIS_VERSION_SNAPSHOT_IS_NOW_LOCKED_AND_AVAILABLE_FOR
+              : APP_MESSAGES.CREATES_AN_IMMUTABLE_SNAPSHOT_OF_ALL_QUESTIONS_AND_THEME}
           </p>
         </div>
         <Button
           disabled={isPublishing}
           onClick={closePublishModal}
-          aria-label="Close publish dialog"
+          aria-label={APP_MESSAGES.CLOSE_PUBLISH_DIALOG}
           className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
         >
           ✕
@@ -132,11 +136,13 @@ function PublishDialog() {
             </div>
             <div className="text-xs text-emerald-900">
               <p className="font-bold">
-                Version {publishResult.versionNumber} Created
+                {APP_MESSAGES.VERSION} {publishResult.versionNumber}{" "}
+                {APP_MESSAGES.CREATED}
               </p>
               <p className="mt-0.5 text-emerald-700">
-                Patient sessions on this version will remain bound to its exact
-                questions forever.
+                {
+                  APP_MESSAGES.PATIENT_SESSIONS_ON_THIS_VERSION_WILL_REMAIN_BOUND_TO
+                }
               </p>
             </div>
           </div>
@@ -146,7 +152,7 @@ function PublishDialog() {
               htmlFor="published-url"
               className="block text-xs font-semibold text-gray-700 mb-1"
             >
-              Public Patient URL
+              {APP_MESSAGES.PUBLIC_PATIENT_URL}
             </label>
             <div className="flex items-center gap-2">
               <Input
@@ -160,14 +166,14 @@ function PublishDialog() {
                 onClick={() => void copy(publishResult.publicUrl)}
                 className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                {copied ? "Copied!" : "Copy Link"}
+                {copied ? "Copied!" : APP_MESSAGES.COPY_LINK}
               </Button>
               <a
                 href={publishResult.publicUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2 text-gray-500 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
-                title="Open intake in new tab"
+                title={APP_MESSAGES.OPEN_INTAKE_IN_NEW_TAB}
               >
                 <ExternalIcon className="w-4 h-4" />
               </a>
@@ -180,7 +186,7 @@ function PublishDialog() {
               onClick={closePublishModal}
               className="px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-xl hover:bg-black"
             >
-              Done
+              {APP_MESSAGES.DONE}
             </Button>
           </div>
         </div>
@@ -193,8 +199,10 @@ function PublishDialog() {
               <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
                 <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0" />
                 <span>
-                  Cannot Publish — {publishValidationErrors.length} Issue
-                  {publishValidationErrors.length > 1 ? "s" : ""} Found:
+                  {APP_MESSAGES.CANNOT_PUBLISH} {publishValidationErrors.length}{" "}
+                  {APP_MESSAGES.ISSUE}
+                  {publishValidationErrors.length > 1 ? "s" : ""}{" "}
+                  {APP_MESSAGES.FOUND}
                 </span>
               </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -207,9 +215,9 @@ function PublishDialog() {
                     {err.questionId && (
                       <Button
                         onClick={() => handleFixQuestion(err.questionId)}
-                        className="text-[11px] font-semibold text-blue-600 hover:underline shrink-0"
+                        className="text-caption font-semibold text-blue-600 hover:underline shrink-0"
                       >
-                        Fix Field
+                        {APP_MESSAGES.FIX_FIELD}
                       </Button>
                     )}
                   </div>
@@ -220,20 +228,25 @@ function PublishDialog() {
             /* Ready to Publish Summary */
             <div className="rounded-xl bg-blue-50/70 border border-blue-200 p-4 space-y-2">
               <p className="text-xs font-bold text-blue-900">
-                Publish Readiness Summary
+                {APP_MESSAGES.PUBLISH_READINESS_SUMMARY}
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
-                <div>• {definition.questions.length} clinical questions</div>
+                <div>
+                  • {definition.questions.length}{" "}
+                  {APP_MESSAGES.CLINICAL_QUESTIONS}
+                </div>
                 <div>
                   •{" "}
                   {
                     definition.questions.filter((q) => q.visibility !== null)
                       .length
                   }{" "}
-                  conditional rules
+                  {APP_MESSAGES.CONDITIONAL_RULES}
                 </div>
-                <div>• Draft revision: {draftRevision}</div>
-                <div>• All clinical invariants verified</div>
+                <div>
+                  {APP_MESSAGES.DRAFT_REVISION} {draftRevision}
+                </div>
+                <div>{APP_MESSAGES.ALL_CLINICAL_INVARIANTS_VERIFIED}</div>
               </div>
             </div>
           )}
@@ -253,7 +266,7 @@ function PublishDialog() {
               variant="secondary"
               className="py-2"
             >
-              Cancel
+              {APP_MESSAGES.CANCEL}
             </Button>
 
             <Button
@@ -265,7 +278,7 @@ function PublishDialog() {
             >
               <SendIcon className="w-3.5 h-3.5" />
               <span>
-                {isPublishing ? "Publishing..." : "Confirm & Publish"}
+                {isPublishing ? "Publishing..." : APP_MESSAGES.CONFIRM_PUBLISH}
               </span>
             </Button>
           </div>

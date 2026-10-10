@@ -63,3 +63,7 @@ flowchart TD
 - [API Contracts & Error Codes](./API_CONTRACTS.md): Full specification of server contracts, validation errors, and CAS protocols.
 - [Threat Model & Security Architecture](./THREAT_MODEL.md): STRIDE threat assessment, authentication/authorization boundaries, and PII protection.
 - [Edge Cases & Concurrency Deep Dive](./EDGE_CASES.md): Exhaustive analysis of race conditions, reordering hazards, network retries, and failure recoveries.
+
+See [Maintenance boundaries](MAINTAINABILITY.md) for the current feature orchestration, shared components/helpers, and verification limits.
+
+- [Design tokens and environment access](./DESIGN_SYSTEM.md): shared visual foundations, copy/constants, and runtime configuration boundaries.

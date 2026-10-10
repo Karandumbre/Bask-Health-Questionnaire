@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { eq, desc, and } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -96,9 +97,14 @@ export async function getSubmissionDetail(params: GetSubmissionDetailParams) {
     .limit(1);
 
   if (!detail) {
-    throw new AppError("NOT_FOUND", "Submission record not found.", 404, {
-      resourceType: "submission",
-    });
+    throw new AppError(
+      "NOT_FOUND",
+      APP_MESSAGES.SUBMISSION_RECORD_NOT_FOUND,
+      404,
+      {
+        resourceType: "submission",
+      },
+    );
   }
 
   return detail;

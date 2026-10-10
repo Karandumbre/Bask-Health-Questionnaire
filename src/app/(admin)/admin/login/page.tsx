@@ -1,4 +1,7 @@
 "use client";
+import { ROUTES } from "@/lib/constants/application";
+
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +15,7 @@ import { AlertTriangleIcon } from "@/components/ui/icons";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") || "/admin/forms";
+  const nextUrl = searchParams.get("next") || ROUTES.adminForms;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +36,7 @@ function LoginForm() {
       setErrorMessage(
         apiErrorMessage(
           error,
-          "Network error during authentication. Please retry.",
+          APP_MESSAGES.NETWORK_ERROR_DURING_AUTHENTICATION_PLEASE_RETRY,
         ),
       );
     } finally {
@@ -48,7 +51,7 @@ function LoginForm() {
           htmlFor="email"
           className="block text-xs font-semibold text-gray-700 mb-1"
         >
-          Reviewer Email
+          {APP_MESSAGES.REVIEWER_EMAIL}
         </label>
         <Input
           id="email"
@@ -67,7 +70,7 @@ function LoginForm() {
           htmlFor="password"
           className="block text-xs font-semibold text-gray-700 mb-1"
         >
-          Password
+          {APP_MESSAGES.PASSWORD}
         </label>
         <Input
           id="password"
@@ -95,7 +98,9 @@ function LoginForm() {
           variant="primary"
           className="w-full"
         >
-          {isLoading ? "Signing in..." : "Sign in to Intake Studio"}
+          {isLoading
+            ? APP_MESSAGES.SIGNING_IN
+            : APP_MESSAGES.SIGN_IN_TO_INTAKE_STUDIO}
         </Button>
       </div>
     </form>
@@ -107,13 +112,13 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md mx-auto mb-4">
-          BH
+          {APP_MESSAGES.BH}
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-          Intake Studio — Reviewer Portal
+          {APP_MESSAGES.INTAKE_STUDIO_REVIEWER_PORTAL}
         </h2>
         <p className="mt-1 text-xs text-gray-500">
-          Secure clinical administration and form authoring
+          {APP_MESSAGES.SECURE_CLINICAL_ADMINISTRATION_AND_FORM_AUTHORING}
         </p>
       </div>
 
@@ -122,7 +127,7 @@ export default function AdminLoginPage() {
           <Suspense
             fallback={
               <div className="text-xs text-gray-400 text-center py-4">
-                Loading login form...
+                {APP_MESSAGES.LOADING_LOGIN_FORM}
               </div>
             }
           >
@@ -130,9 +135,10 @@ export default function AdminLoginPage() {
           </Suspense>
 
           <div className="pt-2 border-t border-gray-100 text-center">
-            <p className="text-[11px] text-gray-400">
-              Authorized clinical personnel & reviewers only. All operations
-              audited.
+            <p className="text-caption text-gray-400">
+              {
+                APP_MESSAGES.AUTHORIZED_CLINICAL_PERSONNEL_REVIEWERS_ONLY_ALL_OPERATIONS_AUDITED
+              }
             </p>
           </div>
         </div>

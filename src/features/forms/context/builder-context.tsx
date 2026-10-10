@@ -1,4 +1,5 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import {
   createContext,
@@ -43,6 +44,9 @@ export interface BuilderContextType {
   publishValidationErrors: Array<{ questionId?: string; issue: string }>;
   hasUnsavedChanges: boolean;
 
+  baseDefinition: FormDefinition;
+  baseTheme: ThemeDefinition;
+
   // Actions
   selectQuestion: (id: string | null) => void;
   addQuestion: (type: FieldType) => void;
@@ -56,6 +60,11 @@ export interface BuilderContextType {
   saveForPublish: () => Promise<number | null>;
   resolveConflictReload: () => Promise<boolean>;
   resolveConflictForce: () => Promise<void>;
+  resolveWithMergedDraft: (
+    mergedDef: FormDefinition,
+    mergedTheme: ThemeDefinition,
+    serverRevision: number,
+  ) => Promise<boolean>;
   setMode: (mode: "editor" | "preview") => void;
   setViewport: (vp: "desktop" | "mobile") => void;
   openPublishModal: () => void;
@@ -94,6 +103,8 @@ export function BuilderProvider({
     lastSavedAt,
     conflict: conflictDetails,
   } = useDraftAutosave(formId, initialRevision, { definition, theme });
+
+  const baseDraft = autosave.getAcknowledgedSnapshot();
 
   const [activeMode, setActiveMode] = useState<"editor" | "preview">("editor");
   const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">(
@@ -220,7 +231,11 @@ export function BuilderProvider({
       setDefinition(data.definition);
       setTheme(data.theme);
       setFormName(data.definition.title);
-      setSelectedQuestionId((previous) => data.definition.questions.some((q) => q.id === previous) ? previous : data.definition.questions[0]?.id ?? null);
+      setSelectedQuestionId((previous) =>
+        data.definition.questions.some((q) => q.id === previous)
+          ? previous
+          : (data.definition.questions[0]?.id ?? null),
+      );
       return true;
     } catch {
       autosave.fail();
@@ -231,6 +246,20 @@ export function BuilderProvider({
   const resolveConflictForce = async () => {
     if (conflictDetails)
       await autosave.forceSave(conflictDetails.serverRevision);
+  };
+
+  const resolveWithMergedDraft = async (
+    mergedDef: FormDefinition,
+    mergedTheme: ThemeDefinition,
+    serverRevision: number,
+  ) => {
+    setDefinition(mergedDef);
+    setTheme(mergedTheme);
+    setFormName(mergedDef.title);
+    return await autosave.saveWithMergedSnapshot(
+      { definition: mergedDef, theme: mergedTheme },
+      serverRevision,
+    );
   };
 
   // Warn on tab close or page reload when there are unsaved edits
@@ -250,7 +279,10 @@ export function BuilderProvider({
   }, [hasUnsavedChanges]);
 
   // Validation errors for publish modal
-  const publishValidationErrors = useMemo(() => validateFormForPublish(definition).errors, [definition]);
+  const publishValidationErrors = useMemo(
+    () => validateFormForPublish(definition).errors,
+    [definition],
+  );
 
   return (
     <BuilderContext.Provider
@@ -260,6 +292,8 @@ export function BuilderProvider({
         draftRevision,
         definition,
         theme,
+        baseDefinition: baseDraft.definition,
+        baseTheme: baseDraft.theme,
         selectedQuestionId,
         saveStatus,
         lastSavedAt,
@@ -281,6 +315,7 @@ export function BuilderProvider({
         saveForPublish,
         resolveConflictReload,
         resolveConflictForce,
+        resolveWithMergedDraft,
         setMode: setActiveMode,
         setViewport: setPreviewViewport,
         openPublishModal: () => setIsPublishModalOpen(true),
@@ -295,7 +330,9 @@ export function BuilderProvider({
 export function useBuilder() {
   const context = useContext(BuilderContext);
   if (!context) {
-    throw new Error("useBuilder must be used within a BuilderProvider");
+    throw new Error(
+      APP_MESSAGES.USEBUILDER_MUST_BE_USED_WITHIN_A_BUILDERPROVIDER,
+    );
   }
   return context;
 }

@@ -30,6 +30,7 @@ describe("Draft Autosave Reliability — Controlled Concurrency & State Invarian
 
     const autosave = new DraftAutosave<string>("initial", 3, save);
     autosave.update("first edit");
+    expect(autosave.getAcknowledgedSnapshot()).toBe("initial");
     const done = autosave.flush();
 
     // While first request is in-flight, second edit arrives
@@ -48,10 +49,12 @@ describe("Draft Autosave Reliability — Controlled Concurrency & State Invarian
     expect(save).toHaveBeenCalledTimes(2);
     expect(save.mock.calls[1]?.slice(0, 2)).toEqual(["second edit", 4]);
     expect(autosave.getSnapshot().status).toBe("saving");
+    expect(autosave.getAcknowledgedSnapshot()).toBe("first edit");
 
     // Second save completes with revision 5
     second.resolve(5);
     expect(await done).toBe(true);
+    expect(autosave.getAcknowledgedSnapshot()).toBe("second edit");
     expect(autosave.getSnapshot()).toMatchObject({
       revision: 5,
       status: "saved",
@@ -136,6 +139,7 @@ describe("Draft Autosave Reliability — Controlled Concurrency & State Invarian
 
     // Admin clicks Reload or reset is triggered
     autosave.reset("fresh server snapshot v2", 2);
+    expect(autosave.getAcknowledgedSnapshot()).toBe("fresh server snapshot v2");
 
     // In-flight save was aborted
     expect(signal.aborted).toBe(true);
@@ -168,6 +172,7 @@ describe("Draft Autosave Reliability — Controlled Concurrency & State Invarian
 
     expect(await autosave.flush()).toBe(false);
     expect(autosave.getSnapshot().status).toBe("conflict");
+    expect(autosave.getAcknowledgedSnapshot()).toBe("initial");
     expect(autosave.getSnapshot().conflict).toMatchObject({
       serverRevision: 15,
       localRevision: 10,

@@ -1,4 +1,7 @@
 "use client";
+import { ROUTES } from "@/lib/constants/application";
+
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,12 +63,12 @@ export function AdminHeader() {
       {/* Left section: Back button & Title */}
       <div className="flex items-center gap-3 min-w-0">
         <Link
-          href="/admin/forms"
+          href={ROUTES.adminForms}
           onClick={(e) => {
             if (hasUnsavedChanges) {
               if (
                 !window.confirm(
-                  "You have unsaved changes. Are you sure you want to leave?",
+                  APP_MESSAGES.YOU_HAVE_UNSAVED_CHANGES_ARE_YOU_SURE_YOU_WANT,
                 )
               ) {
                 e.preventDefault();
@@ -73,10 +76,10 @@ export function AdminHeader() {
             }
           }}
           className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors p-1.5 -ml-1.5 rounded hover:bg-gray-100"
-          title="Back to Forms Dashboard"
+          title={APP_MESSAGES.BACK_TO_FORMS_DASHBOARD}
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          <span className="hidden sm:inline">Forms</span>
+          <span className="hidden sm:inline">{APP_MESSAGES.FORMS}</span>
         </Link>
 
         <div className="h-4 w-px bg-gray-200" />
@@ -91,7 +94,7 @@ export function AdminHeader() {
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
               autoFocus
-              className="text-sm font-semibold text-gray-900 border border-blue-500 rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-blue-500 min-w-[200px]"
+              className="text-sm font-semibold text-gray-900 border border-blue-500 rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-blue-500 min-w-title-min"
             />
           ) : (
             <Button
@@ -100,17 +103,17 @@ export function AdminHeader() {
                 setIsEditingTitle(true);
               }}
               className="group flex items-center gap-1.5 text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate text-left"
-              title="Click to rename"
+              title={APP_MESSAGES.CLICK_TO_RENAME}
             >
-              <span className="truncate max-w-[280px] sm:max-w-[400px]">
+              <span className="truncate max-w-title-edit sm:max-w-title-max">
                 {formName}
               </span>
               <EditIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Button>
           )}
 
-          <span className="text-[11px] font-mono text-gray-400 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
-            rev {draftRevision}
+          <span className="text-caption font-mono text-gray-400 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
+            {APP_MESSAGES.REV} {draftRevision}
           </span>
         </div>
       </div>
@@ -125,7 +128,7 @@ export function AdminHeader() {
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          <span>Editor</span>
+          <span>{APP_MESSAGES.EDITOR}</span>
         </Button>
 
         <Button
@@ -137,7 +140,7 @@ export function AdminHeader() {
           }`}
         >
           <ViewIcon className="w-3.5 h-3.5" />
-          <span>Patient Preview</span>
+          <span>{APP_MESSAGES.PATIENT_PREVIEW}</span>
         </Button>
       </div>
 
@@ -153,7 +156,7 @@ export function AdminHeader() {
                   ? "bg-white text-gray-900 shadow-xs"
                   : "text-gray-500 hover:text-gray-800"
               }`}
-              title="Desktop viewport"
+              title={APP_MESSAGES.DESKTOP_VIEWPORT}
             >
               <DesktopIcon className="w-4 h-4" />
             </Button>
@@ -164,7 +167,7 @@ export function AdminHeader() {
                   ? "bg-white text-gray-900 shadow-xs"
                   : "text-gray-500 hover:text-gray-800"
               }`}
-              title="Mobile viewport"
+              title={APP_MESSAGES.MOBILE_VIEWPORT}
             >
               <MobileIcon className="w-4 h-4" />
             </Button>
@@ -178,43 +181,43 @@ export function AdminHeader() {
           aria-live="polite"
         >
           {saveStatus === "saved" && (
-            <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+            <div className="flex items-center gap-1 text-caption text-emerald-600 font-medium">
               <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="hidden md:inline">Saved</span>
+              <span className="hidden md:inline">{APP_MESSAGES.SAVED}</span>
             </div>
           )}
 
           {saveStatus === "saving" && (
-            <div className="flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+            <div className="flex items-center gap-1 text-caption text-blue-600 font-medium">
               <SaveIcon className="w-3.5 h-3.5 animate-pulse text-blue-500" />
-              <span className="hidden md:inline">Saving...</span>
+              <span className="hidden md:inline">{APP_MESSAGES.SAVING}</span>
             </div>
           )}
 
           {saveStatus === "editing" && (
-            <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
+            <div className="flex items-center gap-1 text-caption text-gray-400 font-medium">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block mr-0.5" />
-              <span className="hidden md:inline">Unsaved</span>
+              <span className="hidden md:inline">{APP_MESSAGES.UNSAVED}</span>
             </div>
           )}
 
           {saveStatus === "conflict" && (
             <Button
               onClick={saveNow}
-              className="flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded font-medium hover:bg-amber-100 transition-colors"
+              className="flex items-center gap-1 text-caption text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded font-medium hover:bg-amber-100 transition-colors"
             >
               <AlertTriangleIcon className="w-3.5 h-3.5 text-amber-600" />
-              <span>Conflict</span>
+              <span>{APP_MESSAGES.CONFLICT}</span>
             </Button>
           )}
 
           {saveStatus === "failed" && (
             <Button
               onClick={saveNow}
-              className="flex items-center gap-1 text-[11px] text-red-700 bg-red-50 border border-red-300 px-2 py-0.5 rounded font-medium hover:bg-red-100 transition-colors"
+              className="flex items-center gap-1 text-caption text-red-700 bg-red-50 border border-red-300 px-2 py-0.5 rounded font-medium hover:bg-red-100 transition-colors"
             >
               <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600" />
-              <span>Retry Save</span>
+              <span>{APP_MESSAGES.RETRY_SAVE}</span>
             </Button>
           )}
         </div>
@@ -229,9 +232,9 @@ export function AdminHeader() {
           }`}
         >
           <SendIcon className="w-3.5 h-3.5" />
-          <span>Publish</span>
+          <span>{APP_MESSAGES.PUBLISH}</span>
           {publishValidationErrors.length > 0 && (
-            <span className="bg-amber-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.2 rounded-full ml-1">
+            <span className="bg-amber-400 text-gray-900 text-micro font-bold px-1.5 py-0.2 rounded-full ml-1">
               {publishValidationErrors.length}
             </span>
           )}

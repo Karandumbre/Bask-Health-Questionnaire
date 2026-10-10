@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import { eq, and, isNull } from "drizzle-orm";
@@ -97,7 +98,7 @@ export async function createPatientSession(
   if (!versionWithForm) {
     throw new AppError(
       "NOT_FOUND",
-      "Intake form not found or is no longer accepting submissions.",
+      APP_MESSAGES.INTAKE_FORM_NOT_FOUND_OR_IS_NO_LONGER_ACCEPTING,
       404,
       {
         resourceType: "published_version",
@@ -145,7 +146,7 @@ export async function createPatientSession(
   if (!session) {
     throw new AppError(
       "INTERNAL_ERROR",
-      "Failed to initialize patient session.",
+      APP_MESSAGES.FAILED_TO_INITIALIZE_PATIENT_SESSION,
       500,
     );
   }
@@ -178,7 +179,7 @@ export async function authenticatePatientSession(
     .limit(1);
 
   if (!session) {
-    throw AppError.sessionUnauthorized("Session not found.");
+    throw AppError.sessionUnauthorized(APP_MESSAGES.SESSION_NOT_FOUND);
   }
 
   verifySessionAccess(session, capabilityToken);
@@ -217,7 +218,7 @@ export async function resumePatientSession(
 
     if (!sessionWithVersion) {
       throw AppError.sessionUnauthorized(
-        "Invalid session reference or recovery code.",
+        APP_MESSAGES.INVALID_SESSION_REFERENCE_OR_RECOVERY_CODE,
       );
     }
 
@@ -225,17 +226,25 @@ export async function resumePatientSession(
 
     if (session.status === "completed") {
       throw AppError.sessionCompleted(
-        "Intake session has already been completed.",
+        APP_MESSAGES.INTAKE_SESSION_HAS_ALREADY_BEEN_COMPLETED,
       );
     }
 
     const now = Date.now();
     if (new Date() > session.expiresAt) {
-      throw new AppError("SESSION_EXPIRED", "Intake session has expired.", 410);
+      throw new AppError(
+        "SESSION_EXPIRED",
+        APP_MESSAGES.INTAKE_SESSION_HAS_EXPIRED,
+        410,
+      );
     }
 
     if (now >= session.recoveryExpiresAt.getTime()) {
-      throw new AppError("SESSION_EXPIRED", "Recovery code has expired.", 410);
+      throw new AppError(
+        "SESSION_EXPIRED",
+        APP_MESSAGES.RECOVERY_CODE_HAS_EXPIRED,
+        410,
+      );
     }
 
     // 2. Sliding window rate limiting check
@@ -277,7 +286,7 @@ export async function resumePatientSession(
       // Return the failure so the attempt counter commits before throwing.
       return {
         error: AppError.sessionUnauthorized(
-          "Invalid session reference or recovery code.",
+          APP_MESSAGES.INVALID_SESSION_REFERENCE_OR_RECOVERY_CODE,
         ),
       };
     }
@@ -311,7 +320,7 @@ export async function resumePatientSession(
     if (!updatedSession) {
       throw new AppError(
         "INTERNAL_ERROR",
-        "Failed to rotate recovery credentials.",
+        APP_MESSAGES.FAILED_TO_ROTATE_RECOVERY_CREDENTIALS,
         500,
       );
     }
@@ -331,7 +340,7 @@ export async function resumePatientSession(
   });
   if ("error" in result && result.error) throw result.error;
   if ("error" in result)
-    throw new AppError("INTERNAL_ERROR", "Recovery failed.", 500);
+    throw new AppError("INTERNAL_ERROR", APP_MESSAGES.RECOVERY_FAILED, 500);
   return result;
 }
 
@@ -349,7 +358,7 @@ export async function savePatientProgress(params: SaveProgressParams) {
 
   if (session.status === "completed") {
     throw AppError.sessionCompleted(
-      "Cannot modify answers for a completed intake session.",
+      APP_MESSAGES.CANNOT_MODIFY_ANSWERS_FOR_A_COMPLETED_INTAKE_SESSION,
     );
   }
 
@@ -363,7 +372,7 @@ export async function savePatientProgress(params: SaveProgressParams) {
   if (!version) {
     throw new AppError(
       "NOT_FOUND",
-      "Associated published version not found.",
+      APP_MESSAGES.ASSOCIATED_PUBLISHED_VERSION_NOT_FOUND,
       404,
     );
   }
@@ -404,7 +413,7 @@ export async function savePatientProgress(params: SaveProgressParams) {
     throw AppError.revisionConflict(
       expectedSessionRevision,
       currentRev,
-      "Patient session was updated by another request. Please reload.",
+      APP_MESSAGES.PATIENT_SESSION_WAS_UPDATED_BY_ANOTHER_REQUEST_PLEASE_RELOAD,
     );
   }
 

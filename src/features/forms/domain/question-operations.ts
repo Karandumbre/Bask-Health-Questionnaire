@@ -1,3 +1,5 @@
+import { QUESTION_DEFAULTS } from "@/lib/constants/application";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { FieldType, Question } from "./types";
 
 export function generateId(prefix: string): string {
@@ -22,28 +24,28 @@ export function createDefaultQuestion(
       return {
         ...base,
         type: "short_text",
-        label: `Question ${index + 1}`,
-        placeholder: "Enter text...",
+        label: QUESTION_DEFAULTS.label(index),
+        placeholder: APP_MESSAGES.ENTER_TEXT,
       };
     case "long_text":
       return {
         ...base,
         type: "long_text",
-        label: `Question ${index + 1}`,
-        placeholder: "Enter detailed explanation...",
+        label: QUESTION_DEFAULTS.label(index),
+        placeholder: APP_MESSAGES.ENTER_DETAILED_EXPLANATION,
       };
     case "number":
       return {
         ...base,
         type: "number",
-        label: `Numeric Question ${index + 1}`,
+        label: APP_MESSAGES.NUMERIC_QUESTION_FORMATTED(index + 1),
         validation: { integerOnly: true },
       };
     case "single_select":
       return {
         ...base,
         type: "single_select",
-        label: `Single-choice Question ${index + 1}`,
+        label: APP_MESSAGES.SINGLE_CHOICE_QUESTION_FORMATTED(index + 1),
         options: [
           { id: generateId("opt"), label: "Option 1" },
           { id: generateId("opt"), label: "Option 2" },
@@ -53,7 +55,7 @@ export function createDefaultQuestion(
       return {
         ...base,
         type: "multi_select",
-        label: `Multi-select Question ${index + 1}`,
+        label: APP_MESSAGES.MULTI_SELECT_QUESTION_FORMATTED(index + 1),
         options: [
           { id: generateId("opt"), label: "Option 1" },
           { id: generateId("opt"), label: "Option 2" },
@@ -64,7 +66,7 @@ export function createDefaultQuestion(
       return {
         ...base,
         type: "checkbox",
-        label: `I acknowledge and consent to the intake terms`,
+        label: APP_MESSAGES.I_ACKNOWLEDGE_AND_CONSENT_TO_THE_INTAKE_TERMS,
       };
   }
 }
@@ -73,7 +75,7 @@ export function cloneQuestionWithNewId(
   source: Question,
   newId: string,
 ): Question {
-  const newLabel = `${source.label} (Copy)`;
+  const newLabel = QUESTION_DEFAULTS.copyLabel(source.label);
   const vis = source.visibility ? { ...source.visibility } : null;
 
   switch (source.type) {

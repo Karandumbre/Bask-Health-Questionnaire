@@ -1,3 +1,9 @@
+import {
+  readEnvironment,
+  ENVIRONMENT_DEFAULTS,
+  ENVIRONMENT_KEYS,
+  ENVIRONMENT_VALUES,
+} from "../../config/environment.mjs";
 import { THEME_PRESET_OCEAN } from "@/features/themes/domain/theme-tokens";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import crypto from "node:crypto";
@@ -87,15 +93,21 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
 
   let initialized = false;
   beforeAll(async () => {
-    if (process.env.IS_TEST_DATABASE !== "true")
+    if (
+      readEnvironment(ENVIRONMENT_KEYS.IS_TEST_DATABASE) !==
+      ENVIRONMENT_VALUES.ENABLED
+    )
       throw new Error(
         "Integration tests require IS_TEST_DATABASE=true and a disposable database.",
       );
     // Production safety check: Prevent tests from ever running against production
     if (
-      process.env.NODE_ENV === "production" ||
-      process.env.APP_ENV === "production" ||
-      process.env.VERCEL_ENV === "production"
+      readEnvironment(ENVIRONMENT_KEYS.NODE_ENV) ===
+        ENVIRONMENT_VALUES.PRODUCTION ||
+      readEnvironment(ENVIRONMENT_KEYS.APP_ENV) ===
+        ENVIRONMENT_VALUES.PRODUCTION ||
+      readEnvironment(ENVIRONMENT_KEYS.VERCEL_ENV) ===
+        ENVIRONMENT_VALUES.PRODUCTION
     ) {
       throw new Error(
         "CRITICAL SAFETY ABORT: Integration tests are forbidden from executing against a production environment!",
@@ -395,7 +407,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       updateError = e as Error;
     }
     expect(updateError).not.toBeNull();
-    const updateMsg = `${updateError?.message} ${(updateError as { cause?: Error })?.cause?.message || ""}`;
+    const updateMsg = `${updateError?.message} ${(updateError as { cause?: Error })?.cause?.message || ENVIRONMENT_DEFAULTS.EMPTY}`;
     expect(updateMsg).toMatch(/immutable/i);
 
     // Attempt direct SQL DELETE on published_versions
@@ -408,7 +420,7 @@ describe("PostgreSQL Integration & Concurrency Verification", () => {
       deleteError = e as Error;
     }
     expect(deleteError).not.toBeNull();
-    const deleteMsg = `${deleteError?.message} ${(deleteError as { cause?: Error })?.cause?.message || ""}`;
+    const deleteMsg = `${deleteError?.message} ${(deleteError as { cause?: Error })?.cause?.message || ENVIRONMENT_DEFAULTS.EMPTY}`;
     expect(deleteMsg).toMatch(/immutable/i);
   });
 

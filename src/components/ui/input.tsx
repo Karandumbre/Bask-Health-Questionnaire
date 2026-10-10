@@ -1,8 +1,8 @@
+import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import type { ComponentProps } from "react";
 import { twMerge } from "tailwind-merge";
 
-const fieldStyles =
-  "w-full text-xs bg-white border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50";
+const fieldStyles = COMPONENT_STYLES.field;
 
 export function Input({
   className,
@@ -12,7 +12,7 @@ export function Input({
 }: ComponentProps<"input">) {
   const styles =
     type === "checkbox" || type === "radio"
-      ? "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+      ? COMPONENT_STYLES.choice
       : fieldStyles;
   return (
     <input

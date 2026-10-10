@@ -1,3 +1,5 @@
+import { APPLICATION } from "@/lib/constants/application";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { NextRequest, NextResponse } from "next/server";
 import { AppError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
@@ -13,13 +15,18 @@ export async function POST(request: NextRequest) {
     verifyRequestOrigin(request);
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
-    if (error) throw new AppError("INTERNAL_ERROR", "Unable to sign out. Please retry.", 500);
+    if (error)
+      throw new AppError(
+        "INTERNAL_ERROR",
+        APP_MESSAGES.UNABLE_TO_SIGN_OUT_PLEASE_RETRY,
+        500,
+      );
 
     const response = NextResponse.json({
       success: true,
-      message: "Session ended successfully.",
+      message: APP_MESSAGES.SESSION_ENDED_SUCCESSFULLY,
     });
-    response.cookies.delete("bask_test_auth");
+    response.cookies.delete(APPLICATION.testAuthCookieName);
     response.cookies.delete("bask_test_user");
     return response;
   } catch (error) {

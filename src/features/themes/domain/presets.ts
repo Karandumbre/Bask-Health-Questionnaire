@@ -15,11 +15,11 @@ export const THEME_PRESET_OCEAN: ThemeDefinition = {
     secondaryAction: "#F1F5F9",
     secondaryActionForeground: "#334155",
     secondaryActionHover: "#E2E8F0",
-    focusRing: "#38BDF8",
+    focusRing: "#0284C7",
     error: "#DC2626",
     errorBackground: "#FEF2F2",
     errorBorder: "#FCA5A5",
-    success: "#16A34A",
+    success: "#15803D",
     successBackground: "#F0FDF4",
     successBorder: "#86EFAC",
     muted: "#94A3B8",
@@ -76,11 +76,11 @@ export const THEME_PRESET_EMERALD: ThemeDefinition = {
     secondaryAction: "#ECFDF5",
     secondaryActionForeground: "#065F46",
     secondaryActionHover: "#D1FAE5",
-    focusRing: "#34D399",
+    focusRing: "#047857",
     error: "#DC2626",
     errorBackground: "#FEF2F2",
     errorBorder: "#FCA5A5",
-    success: "#059669",
+    success: "#047857",
     successBackground: "#ECFDF5",
     successBorder: "#A7F3D0",
     muted: "#9CA3AF",
@@ -141,7 +141,7 @@ export const THEME_PRESET_SLATE: ThemeDefinition = {
     error: "#DC2626",
     errorBackground: "#FEF2F2",
     errorBorder: "#FCA5A5",
-    success: "#16A34A",
+    success: "#15803D",
     successBackground: "#F0FDF4",
     successBorder: "#86EFAC",
     muted: "#94A3B8",
@@ -191,4 +191,3 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
 // ---------------------------------------------------------------------------
 // Shuffle Palette Generator (Deterministic HSL with Guaranteed WCAG AA)
 // ---------------------------------------------------------------------------
-

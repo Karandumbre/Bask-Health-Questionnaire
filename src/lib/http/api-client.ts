@@ -1,3 +1,5 @@
+import { APPLICATION, HTTP } from "@/lib/constants/application";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import axios, { type AxiosRequestConfig } from "axios";
 import { z } from "zod";
 
@@ -25,12 +27,14 @@ export class ApiError extends Error {
 export const successSchema = z.object({ success: z.literal(true) });
 
 /** One instance keeps headers, timeouts and error handling consistent. */
-export const apiClient = axios.create({ timeout: 30_000 });
+export const apiClient = axios.create({
+  timeout: APPLICATION.requestTimeoutMs,
+});
 
 apiClient.interceptors.request.use((config) => {
-  config.headers.set("Accept", "application/json");
+  config.headers.set(HTTP.acceptHeader, HTTP.jsonContentType);
   if (config.data !== undefined)
-    config.headers.set("Content-Type", "application/json");
+    config.headers.set(HTTP.contentTypeHeader, HTTP.jsonContentType);
   return config;
 });
 
@@ -42,14 +46,14 @@ function responseError(data: unknown, status: number): ApiError | null {
   }
   if (typeof data === "string" || data === undefined || data === null) {
     return new ApiError(
-      "The server returned an unreadable response. Please retry.",
+      APP_MESSAGES.THE_SERVER_RETURNED_AN_UNREADABLE_RESPONSE_PLEASE_RETRY,
       status,
       "INVALID_RESPONSE",
     );
   }
   if (status < 200 || status >= 300) {
     return new ApiError(
-      "The request failed. Please retry.",
+      APP_MESSAGES.THE_REQUEST_FAILED_PLEASE_RETRY,
       status,
       "HTTP_ERROR",
     );
@@ -72,7 +76,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(
           responseError(error.response.data, error.response.status) ??
             new ApiError(
-              "The request failed. Please retry.",
+              APP_MESSAGES.THE_REQUEST_FAILED_PLEASE_RETRY,
               error.response.status,
               "HTTP_ERROR",
             ),
@@ -80,13 +84,17 @@ apiClient.interceptors.response.use(
       }
       if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
         return Promise.reject(
-          new ApiError("The request timed out. Please retry.", 0, "TIMEOUT"),
+          new ApiError(
+            APP_MESSAGES.THE_REQUEST_TIMED_OUT_PLEASE_RETRY,
+            0,
+            "TIMEOUT",
+          ),
         );
       }
       if (error.code === "ERR_NETWORK" || error.request) {
         return Promise.reject(
           new ApiError(
-            "Unable to reach the server. Check your connection and retry.",
+            APP_MESSAGES.UNABLE_TO_REACH_THE_SERVER_CHECK_YOUR_CONNECTION_AND,
             0,
             "NETWORK_ERROR",
           ),
@@ -95,7 +103,7 @@ apiClient.interceptors.response.use(
     }
     return Promise.reject(
       new ApiError(
-        "Unable to send the request. Please retry.",
+        APP_MESSAGES.UNABLE_TO_SEND_THE_REQUEST_PLEASE_RETRY,
         0,
         "REQUEST_ERROR",
       ),
@@ -125,7 +133,7 @@ export async function apiRequest<T>(
   const result = schema.safeParse(response.data);
   if (!result.success) {
     throw new ApiError(
-      "The server returned an unexpected response. Please retry.",
+      APP_MESSAGES.THE_SERVER_RETURNED_AN_UNEXPECTED_RESPONSE_PLEASE_RETRY,
       response.status,
       "INVALID_RESPONSE",
     );

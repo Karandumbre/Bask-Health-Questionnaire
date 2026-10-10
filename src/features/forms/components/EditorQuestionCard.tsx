@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { Input, Textarea } from "@/components/ui/input";
 import type { Question } from "../domain/types";
 import { useBuilder } from "../context/builder-context";
@@ -32,7 +34,9 @@ export function EditorQuestionCard({
           </span>
           <span className="text-sm font-semibold text-gray-900">
             {q.label || (
-              <span className="text-gray-400 italic">Untitled Question</span>
+              <span className="text-gray-400 italic">
+                {APP_MESSAGES.UNTITLED_QUESTION}
+              </span>
             )}
           </span>
           {q.required && <span className="text-red-500 font-bold">*</span>}
@@ -53,7 +57,7 @@ export function EditorQuestionCard({
           <Input
             type="text"
             readOnly
-            placeholder={q.placeholder || "Short text response..."}
+            placeholder={q.placeholder || APP_MESSAGES.SHORT_TEXT_RESPONSE}
             className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-400"
           />
         )}
@@ -62,7 +66,9 @@ export function EditorQuestionCard({
           <Textarea
             readOnly
             rows={3}
-            placeholder={q.placeholder || "Detailed long text response..."}
+            placeholder={
+              q.placeholder || APP_MESSAGES.DETAILED_LONG_TEXT_RESPONSE
+            }
             className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-400 resize-none"
           />
         )}
@@ -114,10 +120,12 @@ export function EditorQuestionCard({
 
       {/* Condition Footer Indicator */}
       {q.visibility && (
-        <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center gap-1.5 text-[11px] text-purple-700">
+        <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center gap-1.5 text-caption text-purple-700">
           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
           <span>
-            Conditional: Displays only when parent condition is satisfied
+            {
+              APP_MESSAGES.CONDITIONAL_DISPLAYS_ONLY_WHEN_PARENT_CONDITION_IS_SATISFIED
+            }
           </span>
         </div>
       )}

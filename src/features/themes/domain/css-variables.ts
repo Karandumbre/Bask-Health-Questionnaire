@@ -1,3 +1,4 @@
+import { DESIGN_TOKENS } from "@/design-system/tokens";
 import type { ThemeDefinition } from "./theme-types";
 export function themeToCssVariables(
   theme: ThemeDefinition,
@@ -5,6 +6,7 @@ export function themeToCssVariables(
 ): Record<string, string> {
   const tokens = mode === "light" ? theme.light : theme.dark;
   return {
+    "--theme-font-family": DESIGN_TOKENS.typography.family,
     "--theme-bg": tokens.background,
     "--theme-surface": tokens.surface,
     "--theme-text-primary": tokens.textPrimary,

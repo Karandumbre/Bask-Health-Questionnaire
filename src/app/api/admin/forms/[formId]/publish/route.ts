@@ -21,7 +21,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const user = await requireAdmin();
     const { formId } = await context.params;
 
-
     const body = await parseRequestJson(request, publishRequestSchema);
 
     const result = await publishForm({

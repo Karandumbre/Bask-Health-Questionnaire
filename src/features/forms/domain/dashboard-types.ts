@@ -8,4 +8,3 @@ export interface FormListItem {
   draftRevision: number | null;
   draftUpdatedAt: string | Date | null;
 }
-

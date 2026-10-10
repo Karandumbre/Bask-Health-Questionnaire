@@ -1,3 +1,4 @@
+import { APPLICATION } from "@/lib/constants/application";
 import { requireSupabaseConfig } from "./config";
 import "server-only";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
@@ -91,7 +92,7 @@ export async function getServerVerifiedUser(
   // 3. Isolated test fixture fallback (strictly opt-in, fail-closed, non-Vercel only)
   try {
     const cookieStore = await cookies();
-    const testCookie = cookieStore.get("bask_test_auth");
+    const testCookie = cookieStore.get(APPLICATION.testAuthCookieName);
     const verifiedUser = verifyTestAuthCookie(testCookie?.value);
     if (verifiedUser) {
       return verifiedUser;

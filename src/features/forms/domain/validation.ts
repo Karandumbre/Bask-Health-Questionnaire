@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { validateQuestionCondition } from "./conditions";
 import {
   FormDefinition,
@@ -55,7 +56,7 @@ export function validateFormForPublish(definition: FormDefinition): {
   if (!definition.title || definition.title.trim().length === 0) {
     errors.push({
       field: "title",
-      issue: "Form title cannot be blank",
+      issue: APP_MESSAGES.FORM_TITLE_CANNOT_BE_BLANK,
       code: "EMPTY_TITLE",
     });
   }
@@ -63,7 +64,7 @@ export function validateFormForPublish(definition: FormDefinition): {
   if (!definition.questions || definition.questions.length === 0) {
     errors.push({
       field: "questions",
-      issue: "Form must contain at least one question before publishing",
+      issue: APP_MESSAGES.FORM_MUST_CONTAIN_AT_LEAST_ONE_QUESTION_BEFORE,
       code: "NO_QUESTIONS",
     });
     return { valid: false, errors };
@@ -79,7 +80,7 @@ export function validateFormForPublish(definition: FormDefinition): {
     if (questionIndexMap.has(q.id)) {
       errors.push({
         questionId: q.id,
-        issue: `Duplicate question ID detected: "${q.id}"`,
+        issue: APP_MESSAGES.DUPLICATE_QUESTION_ID_DETECTED_FORMATTED(q.id),
         code: "DUPLICATE_QUESTION_ID",
       });
     } else {
@@ -116,7 +117,10 @@ export function validateFormForPublish(definition: FormDefinition): {
             errors.push({
               questionId: q.id,
               field: "validation",
-              issue: `Minimum length (${minLength}) cannot be greater than maximum length (${maxLength})`,
+              issue: APP_MESSAGES.MINIMUM_LENGTH_FORMATTED(
+                minLength,
+                maxLength,
+              ),
               code: "INVALID_LENGTH_RANGE",
             });
           }
@@ -131,7 +135,7 @@ export function validateFormForPublish(definition: FormDefinition): {
             errors.push({
               questionId: q.id,
               field: "min",
-              issue: "Minimum value must be a finite number",
+              issue: APP_MESSAGES.MINIMUM_VALUE_MUST_BE_A_FINITE_NUMBER,
               code: "INVALID_NUMBER_MIN",
             });
           }
@@ -139,7 +143,7 @@ export function validateFormForPublish(definition: FormDefinition): {
             errors.push({
               questionId: q.id,
               field: "max",
-              issue: "Maximum value must be a finite number",
+              issue: APP_MESSAGES.MAXIMUM_VALUE_MUST_BE_A_FINITE_NUMBER,
               code: "INVALID_NUMBER_MAX",
             });
           }
@@ -147,7 +151,7 @@ export function validateFormForPublish(definition: FormDefinition): {
             errors.push({
               questionId: q.id,
               field: "validation",
-              issue: `Minimum value (${min}) cannot be greater than maximum value (${max})`,
+              issue: APP_MESSAGES.MINIMUM_VALUE_FORMATTED(min, max),
               code: "INVALID_NUMBER_RANGE",
             });
           }
@@ -157,7 +161,7 @@ export function validateFormForPublish(definition: FormDefinition): {
                 questionId: q.id,
                 field: "min",
                 issue:
-                  "Minimum bound must be an integer when integer-only is enabled",
+                  APP_MESSAGES.MINIMUM_BOUND_MUST_BE_AN_INTEGER_WHEN_INTEGER,
                 code: "NON_INTEGER_BOUND",
               });
             }
@@ -166,7 +170,7 @@ export function validateFormForPublish(definition: FormDefinition): {
                 questionId: q.id,
                 field: "max",
                 issue:
-                  "Maximum bound must be an integer when integer-only is enabled",
+                  APP_MESSAGES.MAXIMUM_BOUND_MUST_BE_AN_INTEGER_WHEN_INTEGER,
                 code: "NON_INTEGER_BOUND",
               });
             }
@@ -204,7 +208,9 @@ function validateChoiceOptions(
     errors.push({
       questionId: q.id,
       field: "options",
-      issue: `Select question must have at least 2 distinct choices (found ${q.options ? q.options.length : 0})`,
+      issue: APP_MESSAGES.SELECT_QUESTION_MUST_HAVE_AT_LEAST_2_DISTINCT(
+        q.options ? q.options.length : 0,
+      ),
       code: "INSUFFICIENT_OPTIONS",
     });
     return;
@@ -230,7 +236,7 @@ function validateChoiceOptions(
         errors.push({
           questionId: q.id,
           field: `options[${j}].label`,
-          issue: `Duplicate option label "${opt.label}" detected in question`,
+          issue: APP_MESSAGES.DUPLICATE_OPTION_LABEL_FORMATTED(opt.label),
           code: "DUPLICATE_OPTION_LABEL",
         });
       }
@@ -241,7 +247,7 @@ function validateChoiceOptions(
       errors.push({
         questionId: q.id,
         field: `options[${j}].id`,
-        issue: `Duplicate option ID "${opt.id}" detected in question`,
+        issue: APP_MESSAGES.DUPLICATE_OPTION_ID_FORMATTED(opt.id),
         code: "DUPLICATE_OPTION_ID",
       });
     }

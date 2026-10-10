@@ -1,3 +1,4 @@
+import { ROUTES } from "@/lib/constants/application";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getFormDraft } from "@/features/forms/server/draft-service";
@@ -27,7 +28,7 @@ export default async function FormEditPage({ params }: PageProps) {
   try {
     data = await getFormDraft(formId, user.id);
   } catch {
-    redirect("/admin/forms");
+    redirect(ROUTES.adminForms);
   }
 
   return (

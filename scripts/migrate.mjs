@@ -1,9 +1,12 @@
+import { readEnvironment, ENVIRONMENT_KEYS } from "../config/environment.mjs";
 import postgres from "postgres";
 import { loadLocalEnv } from "./lib/load-env.mjs";
 import { runMigrationEngine } from "./lib/migration-engine.mjs";
 
 loadLocalEnv();
-const url = process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL;
+const url =
+  readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) ||
+  readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL);
 if (!url) throw new Error("DATABASE_DIRECT_URL or DATABASE_URL is required.");
 try {
   const result = await runMigrationEngine(

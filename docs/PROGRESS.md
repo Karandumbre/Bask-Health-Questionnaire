@@ -429,6 +429,7 @@ All security boundaries, schema models, CAS concurrency, database immutability t
 ### 1. Hardening & Implementations Completed
 
 #### A. Strict Fail-Closed Test Authentication Guard (`src/lib/auth/test-auth-guard.ts`)
+
 - Eliminated all permissive `APP_ENV !== "production"` auth bypasses.
 - Required explicit opt-in via `ENABLE_TEST_AUTH === "true"`.
 - Enforced rejection on all Vercel environments (`VERCEL`, `VERCEL_ENV`, `VERCEL_URL`).
@@ -437,6 +438,7 @@ All security boundaries, schema models, CAS concurrency, database immutability t
 - Tested with 8 negative test cases in `tests/unit/security/test-auth-guard.test.ts`.
 
 #### B. Multi-Admin Conflict Recovery (`src/features/forms/domain/draft-diff.ts`, `ConflictModal.tsx`)
+
 - Pure draft comparison utility matching questions by stable ID (`id`) rather than position or mutable labels.
 - Computes exact diff breakdown: questions added, removed, modified, and condition changes.
 - Upgraded `ConflictModal.tsx` to display visual diff badges with question IDs and old vs. new values.
@@ -445,6 +447,7 @@ All security boundaries, schema models, CAS concurrency, database immutability t
 - Verified with 4 concurrency test cases in `tests/unit/forms/multi-admin-concurrency.test.ts`.
 
 #### C. Autosave Reliability & State Machine Verification (`tests/unit/forms/draft-autosave.test.ts`)
+
 - Comprehensive coverage across all 8 autosave edge conditions using deterministic fake timers and deferred promises:
   1. Editing during an in-flight CAS save.
   2. Multiple rapid edits debouncing cleanly.
@@ -456,6 +459,7 @@ All security boundaries, schema models, CAS concurrency, database immutability t
   8. Saved indicator accuracy (`saving` $\to$ `saved` only when current state matches acknowledged state).
 
 #### D. Centralized Design Token Architecture & Contrast Engine (`src/features/themes/domain/theme-tokens.ts`)
+
 - Centralized typed design token schema with 20+ tokens covering background, surface, textPrimary, textSecondary, border, borderFocus, primaryAction, secondaryAction, focusRing, error, success, muted, and disabled states.
 - Defined 3 accessible presets: **Ocean**, **Emerald**, and **Slate** with full light/dark specifications.
 - Implemented WCAG 2.1 relative luminance and contrast ratio engine.
@@ -465,12 +469,31 @@ All security boundaries, schema models, CAS concurrency, database immutability t
 
 ### 2. Comprehensive Verification Evidence
 
-| Test Suite / Command         | Execution Scope                               | Result            | Details                                                                                  |
-| ---------------------------- | --------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------- |
-| `npm run typecheck`          | Entire project (`tsc --noEmit`)               | **PASS (Exit 0)** | 0 errors. Strict TypeScript compliance across all features, tests, and domain contracts. |
-| `npm run lint`               | ESLint 9 (`eslint .`)                         | **PASS (Exit 0)** | 0 errors, 0 warnings.                                                                    |
-| `npm run test:unit`          | 13 test files, 95 unit & integration tests    | **PASS (Exit 0)** | **95 passed / 0 failed** in 4.78s across domain, security, forms, themes, and HTTP.      |
-| `npx next build --webpack`   | Next.js production bundle                     | **PASS (Exit 0)** | Clean compilation of 14 routes, Edge proxy, and CSS assets in 9.9s.                    |
-| `npx playwright test`        | Chromium E2E Smoke Test (`smoke.spec.ts`)     | **PASS (Exit 0)** | **1 passed / 0 failed** in 27.0s. All 8 administrative lifecycle steps verified.         |
-| `graphify update .`          | Code graph knowledge base                     | **PASS (Exit 0)** | Rebuilt 780 nodes, 1804 edges, 37 communities.                                           |
+| Test Suite / Command       | Execution Scope                            | Result            | Details                                                                                  |
+| -------------------------- | ------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------- |
+| `npm run typecheck`        | Entire project (`tsc --noEmit`)            | **PASS (Exit 0)** | 0 errors. Strict TypeScript compliance across all features, tests, and domain contracts. |
+| `npm run lint`             | ESLint 9 (`eslint .`)                      | **PASS (Exit 0)** | 0 errors, 0 warnings.                                                                    |
+| `npm run test:unit`        | 13 test files, 95 unit & integration tests | **PASS (Exit 0)** | **95 passed / 0 failed** in 4.78s across domain, security, forms, themes, and HTTP.      |
+| `npx next build --webpack` | Next.js production bundle                  | **PASS (Exit 0)** | Clean compilation of 14 routes, Edge proxy, and CSS assets in 9.9s.                      |
+| `npx playwright test`      | Chromium E2E Smoke Test (`smoke.spec.ts`)  | **PASS (Exit 0)** | **1 passed / 0 failed** in 27.0s. All 8 administrative lifecycle steps verified.         |
+| `graphify update .`        | Code graph knowledge base                  | **PASS (Exit 0)** | Rebuilt 780 nodes, 1804 edges, 37 communities.                                           |
 
+## Maintainability refactor — 2026-10-10
+
+Implemented shared condition rules, native question input rendering, reusable question actions, separate option/constraint editors, dashboard components and mutation hook, clipboard handling, public Supabase configuration, and feature auth API helpers. Pure question factories now live in the domain layer. Theme schemas, presets, audits, Shuffle, colors, and CSS generation have separate modules; preview consumes those tokens and supports light/dark mode.
+
+Corrected revision-aware rename/autosave and synchronized form names, consistent form-before-draft locking, publication replay ownership and concurrent retries, recovery counter rollback and expiry, unknown final-answer rejection, legacy theme reading, and incomplete-draft validation. Workspace provisioning is serialized per user outside the auth module. Migration execution and environment loading each have one shared implementation. CI integration tests use dedicated test database secrets.
+
+Verification: 119 unit tests passed in 18 files; lint, TypeScript, and the production build passed. Chrome verified autosave, shared question actions, broken-condition handling, native choices, hidden-answer pruning, theme application/dark mode, and create-dialog focus/Escape. API writes in that browser check were mocked. The temporary fixture and preview process were removed after verification. The subsequently added three-way merge passed unit, lint, TypeScript, and build checks; its dialog interaction was not included in that browser check. Autosave regression assertions verify the merge base stays at the acknowledged snapshot while newer edits are pending.
+
+PostgreSQL regressions were added for rename versus stale saves, concurrent publication replay, cross-form operation reuse, and recovery counter persistence/expiry. NOT RUN: PostgreSQL integration suite, migrations, and live-database end-to-end tests; no disposable test database was designated. Patient pages/API routes and responses UI remain pending. See `docs/architecture/MAINTAINABILITY.md` for component and service boundaries.
+
+Graphify refresh succeeded. Its code extraction reports partial TSX coverage and no SQL extraction because `tree_sitter_sql` is not installed. These are graph-parser limitations; the application passes TypeScript and production compilation. The graph is supporting context rather than a replacement for source inspection.
+
+## Design tokens and configuration centralization — 2026-10-10
+
+Added `src/design-system/tokens.css`, CSS-reference exports in `tokens.ts`, and shared primitive recipes in `component-styles.ts`. Tailwind typography, spacing, palette, radii, shadows, motion, and named application dimensions resolve through those foundations. Scoped patient palette aliases use `@theme inline`. Application copy and formatted messages use `lib/constants/messages.ts`; route/API/timing/auth/question defaults use `application.ts`.
+
+Environment names/access now live in `config/environment.mjs`, with lazy reads and a `server-only` application wrapper. Database, Supabase, session policy, test auth, cookies, migration/Drizzle/Playwright configuration, and test runtime guards use that boundary. Public references remain literal for Next.js bundling. Added an ESLint restriction and environment regressions.
+
+Verified: 126 tests in 19 unit test files, TypeScript, lint, production build, and Chrome desktop/mobile root/login rendering. Browser checks measured shared spacing and caption sizes, input/button padding, locally scoped theme surface colors, no horizontal mobile overflow, and no page errors. No database writes/migrations/integration tests were performed. Graphify refresh succeeded; SQL extraction remains unavailable without `tree_sitter_sql`. See `docs/architecture/DESIGN_SYSTEM.md` for ownership and usage.

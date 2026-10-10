@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -53,7 +54,7 @@ export async function submitPatientSession(
       .limit(1);
 
     if (!lockedSession) {
-      throw AppError.sessionUnauthorized("Session not found.");
+      throw AppError.sessionUnauthorized(APP_MESSAGES.SESSION_NOT_FOUND);
     }
 
     verifySessionAccess(lockedSession, capabilityToken);
@@ -89,7 +90,7 @@ export async function submitPatientSession(
     if (!version) {
       throw new AppError(
         "NOT_FOUND",
-        "Associated published version not found.",
+        APP_MESSAGES.ASSOCIATED_PUBLISHED_VERSION_NOT_FOUND,
         404,
       );
     }
@@ -116,7 +117,11 @@ export async function submitPatientSession(
       .returning();
 
     if (!submission) {
-      throw new AppError("INTERNAL_ERROR", "Failed to record submission.", 500);
+      throw new AppError(
+        "INTERNAL_ERROR",
+        APP_MESSAGES.FAILED_TO_RECORD_SUBMISSION,
+        500,
+      );
     }
 
     // 7. Transition session status to completed

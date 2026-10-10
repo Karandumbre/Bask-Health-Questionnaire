@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { lockActiveForm } from "./form-lock";
 import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
@@ -59,7 +60,11 @@ export async function createForm(params: CreateFormParams) {
 
   const validatedName = name.trim();
   if (!validatedName) {
-    throw new AppError("INVALID_FORM", "Form name cannot be empty.", 400);
+    throw new AppError(
+      "INVALID_FORM",
+      APP_MESSAGES.FORM_NAME_CANNOT_BE_EMPTY,
+      400,
+    );
   }
 
   const definition = FormDefinitionSchema.parse(
@@ -87,7 +92,7 @@ export async function createForm(params: CreateFormParams) {
     if (!form) {
       throw new AppError(
         "INTERNAL_ERROR",
-        "Failed to create form container.",
+        APP_MESSAGES.FAILED_TO_CREATE_FORM_CONTAINER,
         500,
       );
     }
@@ -161,7 +166,7 @@ export async function getFormDraft(formId: string, userId: string) {
   if (!draft) {
     throw new AppError(
       "NOT_FOUND",
-      "Working draft not found for this form.",
+      APP_MESSAGES.WORKING_DRAFT_NOT_FOUND_FOR_THIS_FORM,
       404,
       {
         resourceType: "draft",
@@ -187,7 +192,11 @@ export async function renameForm(params: RenameFormParams) {
 
   const newName = name.trim();
   if (!newName) {
-    throw new AppError("INVALID_FORM", "Form name cannot be empty.", 400);
+    throw new AppError(
+      "INVALID_FORM",
+      APP_MESSAGES.FORM_NAME_CANNOT_BE_EMPTY,
+      400,
+    );
   }
 
   return await db.transaction(async (tx) => {
@@ -199,7 +208,11 @@ export async function renameForm(params: RenameFormParams) {
       .where(eq(formDrafts.formId, formId))
       .for("update");
     if (!draft)
-      throw new AppError("NOT_FOUND", "Working draft not found.", 404);
+      throw new AppError(
+        "NOT_FOUND",
+        APP_MESSAGES.WORKING_DRAFT_NOT_FOUND,
+        404,
+      );
     if (draft.revision !== params.expectedRevision) {
       throw AppError.revisionConflict(params.expectedRevision, draft.revision);
     }
@@ -261,7 +274,11 @@ export async function updateDraft(params: UpdateDraftParams) {
         .where(eq(formDrafts.formId, formId))
         .limit(1);
       if (!current)
-        throw new AppError("NOT_FOUND", "Working draft not found.", 404);
+        throw new AppError(
+          "NOT_FOUND",
+          APP_MESSAGES.WORKING_DRAFT_NOT_FOUND,
+          404,
+        );
       throw AppError.revisionConflict(expectedRevision, current.revision);
     }
     await tx
@@ -314,8 +331,17 @@ export async function deleteUnpublishedForm(formId: string, userId: string) {
 
   return db.transaction(async (tx) => {
     await lockActiveForm(tx, formId);
-    const [versionCount] = await tx.select({ val: count() }).from(publishedVersions).where(eq(publishedVersions.formId, formId));
-    if ((versionCount?.val ?? 0) > 0) throw new AppError("FORBIDDEN", "Forms with published versions cannot be deleted. Archive the form instead.", 403, { resourceType: "form" });
+    const [versionCount] = await tx
+      .select({ val: count() })
+      .from(publishedVersions)
+      .where(eq(publishedVersions.formId, formId));
+    if ((versionCount?.val ?? 0) > 0)
+      throw new AppError(
+        "FORBIDDEN",
+        APP_MESSAGES.FORMS_WITH_PUBLISHED_VERSIONS_CANNOT_BE_DELETED_ARCHIVE_THE,
+        403,
+        { resourceType: "form" },
+      );
     await tx.delete(formDrafts).where(eq(formDrafts.formId, formId));
     const [deletedForm] = await tx
       .delete(forms)

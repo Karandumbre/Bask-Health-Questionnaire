@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { lockActiveForm } from "./form-lock";
 import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
@@ -84,7 +85,7 @@ export async function publishForm(
     if (existingOp.formId !== formId)
       throw new AppError(
         "INVALID_FORM",
-        "Publication operation belongs to a different form.",
+        APP_MESSAGES.PUBLICATION_OPERATION_BELONGS_TO_A_DIFFERENT_FORM,
         409,
       );
     return {
@@ -123,7 +124,7 @@ export async function publishForm(
       if (replay.formId !== formId)
         throw new AppError(
           "INVALID_FORM",
-          "Publication operation belongs to a different form.",
+          APP_MESSAGES.PUBLICATION_OPERATION_BELONGS_TO_A_DIFFERENT_FORM,
           409,
         );
       return {
@@ -144,7 +145,7 @@ export async function publishForm(
     if (!lockedDraft) {
       throw new AppError(
         "NOT_FOUND",
-        "Working draft not found for this form.",
+        APP_MESSAGES.WORKING_DRAFT_NOT_FOUND_FOR_THIS_FORM,
         404,
         {
           resourceType: "draft",
@@ -156,7 +157,7 @@ export async function publishForm(
     if (lockedDraft.revision !== expectedRevision) {
       throw new AppError(
         "PUBLISH_CONFLICT",
-        "Draft revision has changed. Please review the updated draft before publishing.",
+        APP_MESSAGES.DRAFT_REVISION_HAS_CHANGED_PLEASE_REVIEW_THE_UPDATED_DRAFT,
         409,
         {
           expectedRevision,
@@ -197,7 +198,7 @@ export async function publishForm(
     if (!version) {
       throw new AppError(
         "INTERNAL_ERROR",
-        "Failed to create published version snapshot.",
+        APP_MESSAGES.FAILED_TO_CREATE_PUBLISHED_VERSION_SNAPSHOT,
         500,
       );
     }

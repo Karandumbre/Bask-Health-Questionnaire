@@ -21,7 +21,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const user = await requireAdmin();
     const { formId } = await context.params;
 
-
     const searchParams = request.nextUrl.searchParams;
     const submissionId = searchParams.get("submissionId");
     const { limit, offset } = paginationSchema.parse({

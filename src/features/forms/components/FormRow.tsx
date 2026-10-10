@@ -1,4 +1,8 @@
 "use client";
+import { ROUTES } from "@/lib/constants/application";
+
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,18 +45,18 @@ export function FormRow({
               onClick={() => handleSaveRename(form.id)}
               className="text-blue-600 font-bold hover:underline"
             >
-              Save
+              {APP_MESSAGES.SAVE}
             </Button>
             <Button
               onClick={() => setRenamingFormId(null)}
               className="text-gray-400 hover:underline"
             >
-              Cancel
+              {APP_MESSAGES.CANCEL}
             </Button>
           </div>
         ) : (
           <Link
-            href={`/admin/forms/${form.id}/edit`}
+            href={ROUTES.editForm(form.id)}
             className="hover:text-blue-600 font-semibold text-gray-900 transition-colors"
           >
             {form.name}
@@ -63,25 +67,26 @@ export function FormRow({
       {/* Status Badge */}
       <td className="py-3.5 px-4">
         {form.latestPublishedVersionNumber ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-caption font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
             <CheckIcon className="w-3 h-3 text-emerald-600" />
-            Published v{form.latestPublishedVersionNumber}
+            {APP_MESSAGES.PUBLISHED_V}
+            {form.latestPublishedVersionNumber}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
-            Unpublished Draft
+          <span className="inline-flex items-center gap-1 text-caption font-medium text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+            {APP_MESSAGES.UNPUBLISHED_DRAFT}
           </span>
         )}
       </td>
 
       {/* Draft Revision */}
-      <td className="py-3.5 px-4 font-mono text-[11px] text-gray-500">
-        rev {form.draftRevision ?? 0}
+      <td className="py-3.5 px-4 font-mono text-caption text-gray-500">
+        {APP_MESSAGES.REV} {form.draftRevision ?? 0}
       </td>
 
       {/* Updated At */}
-      <td className="py-3.5 px-4 text-gray-500 text-[11px]">
-        {new Date(form.updatedAt).toLocaleDateString()} at{" "}
+      <td className="py-3.5 px-4 text-gray-500 text-caption">
+        {new Date(form.updatedAt).toLocaleDateString()} {APP_MESSAGES.AT}{" "}
         {new Date(form.updatedAt).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -92,17 +97,17 @@ export function FormRow({
       <td className="py-3.5 px-4 text-right">
         <div className="flex items-center justify-end gap-2">
           <Link
-            href={`/admin/forms/${form.id}/edit`}
+            href={ROUTES.editForm(form.id)}
             className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 px-2.5 py-1 rounded-md transition-colors"
           >
-            Open Editor
+            {APP_MESSAGES.OPEN_EDITOR}
           </Link>
 
           <Button
             disabled={isMutating}
             onClick={() => handleStartRename(form)}
             className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
-            title="Rename form"
+            title={APP_MESSAGES.RENAME_FORM}
           >
             <EditIcon className="w-3.5 h-3.5" />
           </Button>
@@ -111,7 +116,7 @@ export function FormRow({
             disabled={isMutating}
             onClick={() => handleDeleteForm(form.id, form.name)}
             className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
-            title="Archive or delete form"
+            title={APP_MESSAGES.ARCHIVE_OR_DELETE_FORM}
           >
             <DeleteIcon className="w-3.5 h-3.5" />
           </Button>

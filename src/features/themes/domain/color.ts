@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 export interface RgbColor {
   r: number;
   g: number;
@@ -7,7 +8,7 @@ export interface RgbColor {
 export function parseHexColor(hex: string): RgbColor {
   const clean = hex.replace("#", "").trim();
   if (!/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(clean))
-    throw new Error("Invalid hex color.");
+    throw new Error(APP_MESSAGES.INVALID_HEX_COLOR);
   if (clean.length === 3) {
     const r = clean.charAt(0);
     const g = clean.charAt(1);
@@ -58,4 +59,3 @@ export function getContrastRatio(hex1: string, hex2: string): number {
   const darker = Math.min(lum1, lum2);
   return (brighter + 0.05) / (darker + 0.05);
 }
-

@@ -1,3 +1,8 @@
+import {
+  ENVIRONMENT_KEYS,
+  ENVIRONMENT_NAMES,
+  ENVIRONMENT_VALUES,
+} from "../../../config/environment.mjs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   isTestAuthPermitted,
@@ -13,13 +18,13 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    delete process.env.ENABLE_TEST_AUTH;
-    delete process.env.TEST_AUTH_SECRET;
-    delete process.env.VERCEL;
-    delete process.env.VERCEL_ENV;
-    delete process.env.VERCEL_URL;
-    delete process.env.APP_ENV;
-    delete process.env.IS_TEST_DATABASE;
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_ENV]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_URL]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.APP_ENV]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]];
   });
 
   afterEach(() => {
@@ -27,82 +32,103 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
   });
 
   it("fails closed when ENABLE_TEST_AUTH is missing or false", () => {
-    process.env.TEST_AUTH_SECRET = validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
     expect(isTestAuthPermitted()).toBe(false);
 
-    process.env.ENABLE_TEST_AUTH = "false";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.DISABLED;
     expect(isTestAuthPermitted()).toBe(false);
 
-    process.env.ENABLE_TEST_AUTH = "0";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.DISABLED_NUMERIC;
     expect(isTestAuthPermitted()).toBe(false);
   });
 
   it("fails closed on ANY Vercel deployment environment", () => {
-    process.env.ENABLE_TEST_AUTH = "true";
-    process.env.TEST_AUTH_SECRET = validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
 
     // Vercel system flag
-    process.env.VERCEL = "1";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL]] =
+      ENVIRONMENT_VALUES.VERCEL_ENABLED;
     expect(isTestAuthPermitted()).toBe(false);
-    delete process.env.VERCEL;
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL]];
 
     // Vercel preview environment
-    process.env.VERCEL_ENV = "preview";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_ENV]] =
+      ENVIRONMENT_VALUES.PREVIEW;
     expect(isTestAuthPermitted()).toBe(false);
 
     // Vercel production environment
-    process.env.VERCEL_ENV = "production";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_ENV]] =
+      ENVIRONMENT_VALUES.PRODUCTION;
     expect(isTestAuthPermitted()).toBe(false);
 
     // Vercel development environment
-    process.env.VERCEL_ENV = "development";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_ENV]] =
+      ENVIRONMENT_VALUES.DEVELOPMENT;
     expect(isTestAuthPermitted()).toBe(false);
-    delete process.env.VERCEL_ENV;
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_ENV]];
 
     // Vercel deployment URL present
-    process.env.VERCEL_URL = "intake-studio-preview.vercel.app";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_URL]] =
+      "intake-studio-preview.vercel.app";
     expect(isTestAuthPermitted()).toBe(false);
   });
 
   it("fails closed when APP_ENV is production", () => {
-    process.env.ENABLE_TEST_AUTH = "true";
-    process.env.TEST_AUTH_SECRET = validSecret;
-    process.env.APP_ENV = "production";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.APP_ENV]] =
+      ENVIRONMENT_VALUES.PRODUCTION;
     expect(isTestAuthPermitted()).toBe(false);
 
-    process.env.APP_ENV = "prod";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.APP_ENV]] =
+      ENVIRONMENT_VALUES.PRODUCTION_ALIAS;
     expect(isTestAuthPermitted()).toBe(false);
   });
 
   it("fails closed when TEST_AUTH_SECRET is missing or insufficient length", () => {
-    process.env.ENABLE_TEST_AUTH = "true";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
 
     // Missing secret
-    delete process.env.TEST_AUTH_SECRET;
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]];
     expect(isTestAuthPermitted()).toBe(false);
 
     // Secret too short (< 32 chars)
-    process.env.TEST_AUTH_SECRET = "short_secret_12345";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      "short_secret_12345";
     expect(isTestAuthPermitted()).toBe(false);
   });
 
   it("fails closed against unverified remote databases", () => {
-    process.env.ENABLE_TEST_AUTH = "true";
-    process.env.TEST_AUTH_SECRET = validSecret;
-    process.env.DATABASE_URL =
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]] =
       "postgres://postgres:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres";
 
     // Without IS_TEST_DATABASE=true
     expect(isTestAuthPermitted()).toBe(false);
 
     // With explicit IS_TEST_DATABASE=true
-    process.env.IS_TEST_DATABASE = "true";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
+      ENVIRONMENT_VALUES.ENABLED;
     expect(isTestAuthPermitted()).toBe(true);
   });
 
   it("rejects token generation when test auth is not permitted or ID is invalid", () => {
-    process.env.ENABLE_TEST_AUTH = "false";
-    process.env.TEST_AUTH_SECRET = validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.DISABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
 
     // Not permitted
     expect(
@@ -110,7 +136,8 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
     ).toBeNull();
 
     // Permitted, but invalid non-UUID format
-    process.env.ENABLE_TEST_AUTH = "true";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
     expect(
       createTestAuthCookie({
         id: "invalid-user-id",
@@ -120,9 +147,12 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
   });
 
   it("rejects tokens with tampered data or invalid signatures", () => {
-    process.env.ENABLE_TEST_AUTH = "true";
-    process.env.TEST_AUTH_SECRET = validSecret;
-    process.env.IS_TEST_DATABASE = "true";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
+      ENVIRONMENT_VALUES.ENABLED;
 
     const validToken = createTestAuthCookie({
       id: validUserId,
@@ -151,9 +181,12 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
   });
 
   it("successfully signs and verifies valid test credentials within maxAge", () => {
-    process.env.ENABLE_TEST_AUTH = "true";
-    process.env.TEST_AUTH_SECRET = validSecret;
-    process.env.IS_TEST_DATABASE = "true";
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
+      ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
+      validSecret;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
+      ENVIRONMENT_VALUES.ENABLED;
 
     const token = createTestAuthCookie({
       id: validUserId,

@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { getContrastRatio } from "./color";
 import type { ThemeModeTokens } from "./theme-types";
 export interface WcagAuditResult {
@@ -15,37 +16,37 @@ export function auditThemeMode(tokens: ThemeModeTokens): WcagAuditResult {
 
   const checks = [
     {
-      pair: "Primary Text on Background",
+      pair: APP_MESSAGES.PRIMARY_TEXT_ON_BACKGROUND,
       foreground: tokens.textPrimary,
       background: tokens.background,
       required: 4.5,
     },
     {
-      pair: "Primary Text on Surface",
+      pair: APP_MESSAGES.PRIMARY_TEXT_ON_SURFACE,
       foreground: tokens.textPrimary,
       background: tokens.surface,
       required: 4.5,
     },
     {
-      pair: "Secondary Text on Surface",
+      pair: APP_MESSAGES.SECONDARY_TEXT_ON_SURFACE,
       foreground: tokens.textSecondary,
       background: tokens.surface,
       required: 4.5,
     },
     {
-      pair: "Primary Action Foreground on Action BG",
+      pair: APP_MESSAGES.PRIMARY_ACTION_FOREGROUND_ON_ACTION_BG,
       foreground: tokens.primaryActionForeground,
       background: tokens.primaryAction,
       required: 4.5,
     },
     {
-      pair: "Secondary Action Foreground on Secondary Action BG",
+      pair: APP_MESSAGES.SECONDARY_ACTION_FOREGROUND_ON_SECONDARY_ACTION_BG,
       foreground: tokens.secondaryActionForeground,
       background: tokens.secondaryAction,
       required: 4.5,
     },
     {
-      pair: "Error Text on Surface",
+      pair: APP_MESSAGES.ERROR_TEXT_ON_SURFACE,
       foreground: tokens.error,
       background: tokens.surface,
       required: 4.5,
@@ -75,4 +76,3 @@ export function auditThemeMode(tokens: ThemeModeTokens): WcagAuditResult {
 // ---------------------------------------------------------------------------
 // 3 Named Clinical Theme Presets
 // ---------------------------------------------------------------------------
-

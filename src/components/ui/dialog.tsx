@@ -1,4 +1,5 @@
 "use client";
+import { COMPONENT_STYLES } from "@/design-system/component-styles";
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
@@ -38,10 +39,7 @@ export function Dialog({
       ref={ref}
       tabIndex={-1}
       aria-labelledby={titleId}
-      className={twMerge(
-        "m-auto w-[calc(100%-2rem)] max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-xs",
-        className,
-      )}
+      className={twMerge(COMPONENT_STYLES.dialog, className)}
       onCancel={(event) => {
         event.preventDefault();
         onClose?.();

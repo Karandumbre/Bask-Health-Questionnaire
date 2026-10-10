@@ -1,4 +1,5 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Button } from "@/components/ui/button";
 import { EditorQuestionCard } from "./EditorQuestionCard";
@@ -8,20 +9,26 @@ import { themeToCssVariables } from "@/features/themes/domain/theme-tokens";
 
 import { useState } from "react";
 import { useBuilder } from "../context/builder-context";
-import {
-  getVisibleQuestions,
-} from "@/features/patients/domain/visibility";
+import { getVisibleQuestions } from "@/features/patients/domain/visibility";
 import { usePreviewAnswers } from "../hooks/use-preview-answers";
 export function FormCanvas() {
-  const { definition, theme, activeMode, previewViewport } = useBuilder();
+  const { definition, theme, updateTheme, activeMode, previewViewport } =
+    useBuilder();
 
   // Preview mode answers state
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
-  const { answers: previewAnswers, updateAnswer: handlePreviewAnswerChange } = usePreviewAnswers(definition.questions);
+  const { answers: previewAnswers, updateAnswer: handlePreviewAnswerChange } =
+    usePreviewAnswers(definition.questions);
 
   return (
-    <main className="flex-1 bg-gray-100/60 overflow-y-auto h-[calc(100vh-3.5rem)] p-6 flex flex-col items-center">
-      <ThemeControls mode={themeMode} onModeChange={setThemeMode} />
+    <main className="flex-1 bg-gray-100/60 overflow-y-auto h-editor-height p-6 flex flex-col items-center">
+      <ThemeControls
+        theme={theme}
+        onThemeChange={updateTheme}
+        editable={activeMode === "editor"}
+        mode={themeMode}
+        onModeChange={setThemeMode}
+      />
       {activeMode === "editor" ? (
         /* Editor Canvas View */
         <div className="w-full max-w-2xl space-y-4 pb-20">
@@ -35,10 +42,14 @@ export function FormCanvas() {
                 {definition.description}
               </p>
             )}
-            <div className="mt-3 flex items-center gap-3 text-[11px] text-gray-400">
-              <span>Theme: {theme.presetName}</span>
+            <div className="mt-3 flex items-center gap-3 text-caption text-gray-400">
+              <span>
+                {APP_MESSAGES.THEME} {theme.presetName}
+              </span>
               <span>•</span>
-              <span>{definition.questions.length} questions total</span>
+              <span>
+                {definition.questions.length} {APP_MESSAGES.QUESTIONS_TOTAL}
+              </span>
             </div>
           </div>
 
@@ -52,31 +63,32 @@ export function FormCanvas() {
         <div
           style={themeToCssVariables(theme, themeMode)}
           data-patient-theme
-          className={`w-full rounded-xl bg-[var(--theme-bg)] p-4 transition-all duration-200 pb-20 ${
+          className={`w-full rounded-xl bg-intake-bg p-4 transition-all duration-200 pb-20 ${
             previewViewport === "mobile"
-              ? "max-w-sm rounded-[36px] border-8 border-gray-900 shadow-2xl p-4 bg-gray-50 my-2"
+              ? "max-w-sm rounded-device border-8 border-gray-900 shadow-2xl p-4 bg-gray-50 my-2"
               : "max-w-xl"
           }`}
         >
           {/* Simulator Banner */}
           <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
             <p className="text-xs font-semibold text-blue-900">
-              Interactive Patient Simulator
+              {APP_MESSAGES.INTERACTIVE_PATIENT_SIMULATOR}
             </p>
-            <p className="text-[11px] text-blue-700 mt-0.5">
-              Testing live conditions & visibility. Responses here are not saved
-              to the database.
+            <p className="text-caption text-blue-700 mt-0.5">
+              {
+                APP_MESSAGES.TESTING_LIVE_CONDITIONS_VISIBILITY_RESPONSES_HERE_ARE_NOT_SAVED
+              }
             </p>
           </div>
 
           <div className="space-y-4">
             {/* Clinical Header */}
-            <div className="bg-[var(--theme-surface)] rounded-xl border border-[var(--theme-border)] p-5 shadow-xs">
-              <h1 className="text-lg font-bold text-[var(--theme-text-primary)]">
+            <div className="bg-intake-surface rounded-xl border border-intake-border p-5 shadow-xs">
+              <h1 className="text-lg font-bold text-intake-text-primary">
                 {definition.title}
               </h1>
               {definition.description && (
-                <p className="text-xs text-[var(--theme-text-secondary)] mt-1">
+                <p className="text-xs text-intake-text-secondary mt-1">
                   {definition.description}
                 </p>
               )}
@@ -97,9 +109,9 @@ export function FormCanvas() {
             <div className="pt-2">
               <Button
                 type="button"
-                className="w-full bg-[var(--theme-primary-action)] text-[var(--theme-primary-action-fg)] font-semibold text-xs py-3 rounded-xl shadow-xs hover:bg-[var(--theme-primary-action-hover)] transition-colors"
+                className="w-full bg-intake-primary-action text-intake-primary-action-fg font-semibold text-xs py-3 rounded-xl shadow-xs hover:bg-intake-primary-action-hover transition-colors"
               >
-                Submit Intake (Simulation)
+                {APP_MESSAGES.SUBMIT_INTAKE_SIMULATION}
               </Button>
             </div>
           </div>

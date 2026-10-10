@@ -1,8 +1,6 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireAdmin,
-  getUserWorkspaces,
-} from "@/lib/auth/admin";
+import { requireAdmin, getUserWorkspaces } from "@/lib/auth/admin";
 import {
   createForm,
   listWorkspaceForms,
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
       if (!firstWs) {
         throw new AppError(
           "FORBIDDEN",
-          "No active clinical workspace available.",
+          APP_MESSAGES.NO_ACTIVE_CLINICAL_WORKSPACE_AVAILABLE,
           403,
         );
       }
@@ -71,7 +69,9 @@ export async function POST(request: NextRequest) {
     }
 
     const name =
-      typeof body.name === "string" ? body.name : "Untitled Clinical Intake";
+      typeof body.name === "string"
+        ? body.name
+        : APP_MESSAGES.UNTITLED_CLINICAL_INTAKE;
 
     const result = await createForm({
       workspaceId,

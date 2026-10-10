@@ -1,3 +1,10 @@
+import { APPLICATION } from "@/lib/constants/application";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import {
+  readEnvironment,
+  ENVIRONMENT_KEYS,
+  ENVIRONMENT_VALUES,
+} from "@/lib/config/environment";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
@@ -17,7 +24,13 @@ export async function POST(request: NextRequest) {
   try {
     verifyRequestOrigin(request);
 
-    const { email, password } = await parseRequestJson(request, z.object({ email: z.string().trim().email(), password: z.string().min(1) }));
+    const { email, password } = await parseRequestJson(
+      request,
+      z.object({
+        email: z.string().trim().email(),
+        password: z.string().min(1),
+      }),
+    );
 
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -28,12 +41,27 @@ export async function POST(request: NextRequest) {
     if (error || !data.user) {
       const fixture = authenticateTestReviewer(email, password);
       if (fixture) {
-        const response = NextResponse.json({ success: true, user: fixture.user });
-        response.cookies.set("bask_test_auth", fixture.token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 3600, secure: process.env.NODE_ENV === "production" });
+        const response = NextResponse.json({
+          success: true,
+          user: fixture.user,
+        });
+        response.cookies.set(APPLICATION.testAuthCookieName, fixture.token, {
+          httpOnly: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge: APPLICATION.testAuthLifetimeSeconds,
+          secure:
+            readEnvironment(ENVIRONMENT_KEYS.NODE_ENV) ===
+            ENVIRONMENT_VALUES.PRODUCTION,
+        });
         return response;
       }
 
-      throw new AppError("UNAUTHORIZED", "Invalid reviewer credentials.", 401);
+      throw new AppError(
+        "UNAUTHORIZED",
+        APP_MESSAGES.INVALID_REVIEWER_CREDENTIALS,
+        401,
+      );
     }
 
     return NextResponse.json({

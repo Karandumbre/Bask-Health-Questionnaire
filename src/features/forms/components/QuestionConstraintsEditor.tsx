@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import type {
@@ -22,7 +24,7 @@ export function QuestionConstraintsEditor({
   return (
     <section className="space-y-3 border-t border-gray-200 pt-2">
       <h3 className="text-xs font-semibold">
-        {numeric ? "Numeric Bounds" : "Length Limits"}
+        {numeric ? APP_MESSAGES.NUMERIC_BOUNDS : APP_MESSAGES.LENGTH_LIMITS}
       </h3>
       <div className="grid grid-cols-2 gap-2">
         {fields.map((field, index) => {
@@ -67,7 +69,7 @@ export function QuestionConstraintsEditor({
       </div>
       {question.type === "number" && (
         <label className="flex items-center justify-between text-xs">
-          Whole numbers only
+          {APP_MESSAGES.WHOLE_NUMBERS_ONLY}
           <Input
             type="checkbox"
             checked={question.validation?.integerOnly ?? false}

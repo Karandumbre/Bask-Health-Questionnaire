@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/admin";
 import {
@@ -125,7 +126,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
           success: true,
           action: "archived",
           form: archived,
-          note: "Form had published versions; archived instead of hard-deleted to preserve history.",
+          note: APP_MESSAGES.FORM_HAD_PUBLISHED_VERSIONS_ARCHIVED_INSTEAD_OF_HARD_DELETED,
         });
       }
       throw err;

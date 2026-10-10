@@ -1,3 +1,9 @@
+import {
+  readEnvironment,
+  ENVIRONMENT_DEFAULTS,
+  ENVIRONMENT_KEYS,
+  ENVIRONMENT_VALUES,
+} from "../../config/environment.mjs";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -17,8 +23,11 @@ import { test, expect } from "@playwright/test";
 test.describe("Administrator Form Builder Smoke Flow", () => {
   test.beforeEach(() => {
     // Safety guard: Never execute destructive browser tests against production
-    const env = process.env.NODE_ENV || process.env.APP_ENV || "";
-    if (env.toLowerCase() === "production") {
+    const env =
+      readEnvironment(ENVIRONMENT_KEYS.NODE_ENV) ||
+      readEnvironment(ENVIRONMENT_KEYS.APP_ENV) ||
+      ENVIRONMENT_DEFAULTS.EMPTY;
+    if (env.toLowerCase() === ENVIRONMENT_VALUES.PRODUCTION) {
       throw new Error(
         "Destructive E2E smoke tests are strictly forbidden against production!",
       );

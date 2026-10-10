@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { z } from "zod";
 import { AppError } from "@/lib/errors";
@@ -10,7 +11,11 @@ export async function parseRequestJson<T>(
   try {
     body = await request.json();
   } catch {
-    throw new AppError("INVALID_FORM", "Request body must be valid JSON.", 400);
+    throw new AppError(
+      "INVALID_FORM",
+      APP_MESSAGES.REQUEST_BODY_MUST_BE_VALID_JSON,
+      400,
+    );
   }
   return schema.parse(body);
 }

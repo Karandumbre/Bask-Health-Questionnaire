@@ -1,4 +1,5 @@
 "use client";
+
 import { Input, Textarea } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import type { Question } from "../domain/types";
@@ -8,7 +9,7 @@ import type {
 } from "@/features/patients/domain/types";
 
 const fieldClass =
-  "border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)] focus:border-[var(--theme-border-focus)] focus:ring-[var(--theme-focus-ring)]";
+  "border-intake-border bg-intake-surface text-intake-text-primary focus:border-intake-border-focus focus:ring-intake-focus-ring";
 
 export function QuestionInput({
   question: q,
@@ -23,7 +24,7 @@ export function QuestionInput({
   const id = `preview-${q.id}`;
   const help = q.description ? `${id}-help` : undefined;
   return (
-    <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-5 text-[var(--theme-text-primary)] shadow-xs">
+    <div className="rounded-xl border border-intake-border bg-intake-surface p-5 text-intake-text-primary shadow-xs">
       {q.type === "single_select" || q.type === "multi_select" ? (
         <fieldset aria-describedby={help}>
           <legend className="text-sm font-semibold">
@@ -33,7 +34,7 @@ export function QuestionInput({
           {q.description && (
             <p
               id={`${id}-help`}
-              className="mt-1 text-xs text-[var(--theme-text-secondary)]"
+              className="mt-1 text-xs text-intake-text-secondary"
             >
               {q.description}
             </p>
@@ -47,10 +48,10 @@ export function QuestionInput({
               return (
                 <label
                   key={option.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--theme-border)] p-3 text-xs"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-intake-border p-3 text-xs"
                 >
                   <Input
-                    className="accent-[var(--theme-primary-action)] focus:ring-[var(--theme-focus-ring)]"
+                    className="accent-intake-primary-action focus:ring-intake-focus-ring"
                     type={q.type === "single_select" ? "radio" : "checkbox"}
                     name={id}
                     checked={selected}
@@ -97,7 +98,7 @@ export function QuestionInput({
               aria-describedby={help}
               type="checkbox"
               checked={value === true}
-              className="accent-[var(--theme-primary-action)]"
+              className="accent-intake-primary-action"
               onChange={(event) => onAnswerChange(q.id, event.target.checked)}
             />
           ) : (

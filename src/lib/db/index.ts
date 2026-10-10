@@ -1,3 +1,10 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import {
+  readEnvironment,
+  ENVIRONMENT_DEFAULTS,
+  ENVIRONMENT_KEYS,
+  ENVIRONMENT_VALUES,
+} from "@/lib/config/environment";
 import "server-only";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -12,10 +19,14 @@ declare global {
   var __drizzleDb: ReturnType<typeof drizzle<typeof schema>> | undefined;
 }
 
-const connectionString = process.env.DATABASE_URL || "";
+const connectionString =
+  readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) || ENVIRONMENT_DEFAULTS.EMPTY;
 
-if (!connectionString && process.env.NODE_ENV !== "test") {
-  throw new Error("DATABASE_URL environment variable is missing.");
+if (
+  !connectionString &&
+  readEnvironment(ENVIRONMENT_KEYS.NODE_ENV) !== ENVIRONMENT_VALUES.TEST
+) {
+  throw new Error(APP_MESSAGES.DATABASE_URL_ENVIRONMENT_VARIABLE_IS_MISSING);
 }
 
 /**
@@ -27,7 +38,11 @@ if (!connectionString && process.env.NODE_ENV !== "test") {
 function createPooledClient(): postgres.Sql {
   return postgres(connectionString, {
     prepare: false, // Required for transaction pooler mode
-    max: process.env.NODE_ENV === "production" ? 10 : 3,
+    max:
+      readEnvironment(ENVIRONMENT_KEYS.NODE_ENV) ===
+      ENVIRONMENT_VALUES.PRODUCTION
+        ? 10
+        : 3,
     idle_timeout: 20,
     max_lifetime: 60 * 30,
     connect_timeout: 10,
@@ -48,9 +63,13 @@ export const db =
  */
 export function getDirectClient(): postgres.Sql {
   const directUrl =
-    process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL || "";
+    readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) ||
+    readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) ||
+    ENVIRONMENT_DEFAULTS.EMPTY;
   if (!directUrl) {
-    throw new Error("DATABASE_DIRECT_URL and DATABASE_URL are both missing.");
+    throw new Error(
+      APP_MESSAGES.DATABASE_DIRECT_URL_AND_DATABASE_URL_ARE_BOTH_MISSING,
+    );
   }
   return postgres(directUrl, {
     max: 1,

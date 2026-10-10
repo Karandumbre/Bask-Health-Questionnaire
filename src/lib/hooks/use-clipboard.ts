@@ -1,4 +1,7 @@
 "use client";
+import { APPLICATION } from "@/lib/constants/application";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { useEffect, useRef, useState } from "react";
 
 export function useClipboard() {
@@ -21,11 +24,14 @@ export function useClipboard() {
       await navigator.clipboard.writeText(text);
       if (!mounted.current) return;
       setCopied(true);
-      timer.current = setTimeout(() => setCopied(false), 2000);
+      timer.current = setTimeout(
+        () => setCopied(false),
+        APPLICATION.clipboardFeedbackMs,
+      );
     } catch {
       if (mounted.current)
         setCopyError(
-          "Unable to copy. Please select and copy the text manually.",
+          APP_MESSAGES.UNABLE_TO_COPY_PLEASE_SELECT_AND_COPY_THE_TEXT,
         );
     }
   };

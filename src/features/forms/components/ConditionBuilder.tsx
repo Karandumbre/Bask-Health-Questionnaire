@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import {
   getEligibleConditionParents,
   validateQuestionCondition,
@@ -90,10 +92,10 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
             htmlFor="cond-toggle"
             className="text-xs font-semibold text-gray-900 cursor-pointer"
           >
-            Conditional Visibility
+            {APP_MESSAGES.CONDITIONAL_VISIBILITY}
           </label>
-          <p className="text-[11px] text-gray-400">
-            Show only when an earlier answer matches
+          <p className="text-caption text-gray-400">
+            {APP_MESSAGES.SHOW_ONLY_WHEN_AN_EARLIER_ANSWER_MATCHES}
           </p>
         </div>
 
@@ -109,13 +111,16 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
       {isConditional && (
         <div className="space-y-3 pt-2 border-t border-gray-200/80">
           {eligibleParents.length === 0 && !selectedParent ? (
-            <div className="rounded-md bg-amber-50 p-2.5 border border-amber-200 text-[11px] text-amber-800 flex items-start gap-2">
+            <div className="rounded-md bg-amber-50 p-2.5 border border-amber-200 text-caption text-amber-800 flex items-start gap-2">
               <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">No eligible parent fields</p>
+                <p className="font-semibold">
+                  {APP_MESSAGES.NO_ELIGIBLE_PARENT_FIELDS}
+                </p>
                 <p className="mt-0.5 text-amber-700">
-                  Conditions require an earlier single-choice question that is
-                  marked Required and unconditional.
+                  {
+                    APP_MESSAGES.CONDITIONS_REQUIRE_AN_EARLIER_SINGLE_CHOICE_QUESTION_THAT_IS
+                  }
                 </p>
               </div>
             </div>
@@ -125,9 +130,9 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
               <div>
                 <label
                   htmlFor={`condition-parent-${question.id}`}
-                  className="block text-[11px] font-medium text-gray-700 mb-1"
+                  className="block text-caption font-medium text-gray-700 mb-1"
                 >
-                  When parent question:
+                  {APP_MESSAGES.WHEN_PARENT_QUESTION}
                 </label>
                 <Select
                   id={`condition-parent-${question.id}`}
@@ -136,11 +141,11 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                   className="rounded-md p-1.5"
                 >
                   <option value="" disabled>
-                    -- Select eligible question --
+                    {APP_MESSAGES.SELECT_ELIGIBLE_QUESTION}
                   </option>
                   {eligibleParents.map((parent) => (
                     <option key={parent.id} value={parent.id}>
-                      {parent.label || "Untitled Single-Select"}
+                      {parent.label || APP_MESSAGES.UNTITLED_SINGLE_SELECT}
                     </option>
                   ))}
                   {/* If current parent is invalid / outside eligible list, display it */}
@@ -152,7 +157,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                         value={selectedParent.id}
                         className="text-red-600"
                       >
-                        {selectedParent.label} (Invalid dependency)
+                        {selectedParent.label} {APP_MESSAGES.INVALID_DEPENDENCY}
                       </option>
                     )}
                 </Select>
@@ -163,9 +168,9 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                 <div>
                   <label
                     htmlFor={`condition-option-${question.id}`}
-                    className="block text-[11px] font-medium text-gray-700 mb-1"
+                    className="block text-caption font-medium text-gray-700 mb-1"
                   >
-                    Equals choice:
+                    {APP_MESSAGES.EQUALS_CHOICE}
                   </label>
                   <Select
                     id={`condition-option-${question.id}`}
@@ -174,11 +179,11 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                     className="rounded-md p-1.5"
                   >
                     <option value="" disabled>
-                      -- Select choice --
+                      {APP_MESSAGES.SELECT_CHOICE}
                     </option>
                     {selectedParent.options.map((opt) => (
                       <option key={opt.id} value={opt.id}>
-                        {opt.label || "Untitled Choice"}
+                        {opt.label || APP_MESSAGES.UNTITLED_CHOICE}
                       </option>
                     ))}
                   </Select>
@@ -187,12 +192,12 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
 
               {/* Status Indicator */}
               {isConditionValid ? (
-                <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">
+                <div className="flex items-center gap-1.5 text-caption text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">
                   <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Condition is valid and active</span>
+                  <span>{APP_MESSAGES.CONDITION_IS_VALID_AND_ACTIVE}</span>
                 </div>
               ) : (
-                <div className="flex items-start justify-between gap-2 text-[11px] text-red-700 bg-red-50 border border-red-200 p-2 rounded">
+                <div className="flex items-start justify-between gap-2 text-caption text-red-700 bg-red-50 border border-red-200 p-2 rounded">
                   <div className="flex items-start gap-1.5 min-w-0">
                     <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
                     <span>{validationMessage}</span>
@@ -202,10 +207,10 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                     onClick={() =>
                       updateQuestion(question.id, { visibility: null })
                     }
-                    className="text-[10px] font-semibold text-red-700 underline hover:text-red-900 shrink-0 cursor-pointer"
-                    title="Remove broken condition"
+                    className="text-micro font-semibold text-red-700 underline hover:text-red-900 shrink-0 cursor-pointer"
+                    title={APP_MESSAGES.REMOVE_BROKEN_CONDITION}
                   >
-                    Remove condition
+                    {APP_MESSAGES.REMOVE_CONDITION}
                   </Button>
                 </div>
               )}

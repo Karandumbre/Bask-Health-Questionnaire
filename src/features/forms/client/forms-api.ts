@@ -1,3 +1,4 @@
+import { API_ROUTES } from "@/lib/constants/application";
 import { z } from "zod";
 import { apiRequest, successSchema } from "@/lib/http/api-client";
 import { FormDefinitionSchema, ThemeDefinitionSchema } from "../domain/types";
@@ -21,7 +22,7 @@ const publishedSchema = successSchema.extend({
   publicUrl: z.string(),
 });
 
-const formUrl = (id: string) => `/api/admin/forms/${encodeURIComponent(id)}`;
+const formUrl = API_ROUTES.form;
 
 export async function saveFormDraft(
   id: string,
@@ -42,7 +43,7 @@ export function loadFormDraft(id: string, signal?: AbortSignal) {
 }
 
 export function createForm(name: string) {
-  return apiRequest("/api/admin/forms", formSchema, {
+  return apiRequest(API_ROUTES.forms, formSchema, {
     method: "POST",
     json: { name },
   });
@@ -60,7 +61,7 @@ export function deleteForm(id: string) {
 }
 
 export function publishForm(id: string, revision: number, operationId: string) {
-  return apiRequest(`${formUrl(id)}/publish`, publishedSchema, {
+  return apiRequest(API_ROUTES.publishForm(id), publishedSchema, {
     method: "POST",
     json: { expectedRevision: revision, operationId },
   });

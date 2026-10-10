@@ -83,3 +83,9 @@ Running `drizzle-kit migrate` during Vercel's `npm run build` is strictly prohib
 3. **Storage & Egress Limits:**
    - Free tier includes 500MB database storage.
    - Using JSONB aggregates with lean schemas ensures thousands of intakes easily fit within quota.
+
+## Disposable database verification
+
+PostgreSQL integration tests require a separate disposable database and `IS_TEST_DATABASE=true`. CI reads `TEST_DATABASE_URL` and `TEST_DATABASE_DIRECT_URL` for this suite, rather than the application's database secrets. If those test secrets are absent, CI skips integration tests. The build uses a dummy database URL and does not connect to it during compilation.
+
+Keep `APP_SESSION_PEPPER` at least 32 characters long; patient services fail closed when it is missing or weak. Test authentication must remain disabled on deployed environments. No migrations or live database tests were run as part of the maintainability refactor.

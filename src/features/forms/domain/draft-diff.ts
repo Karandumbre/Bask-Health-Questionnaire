@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { FormDefinition, Question, ThemeDefinition } from "./types";
 
 export type DiffStatus =
@@ -48,7 +49,10 @@ function stringifyOptions(q: Question): string {
 
 function stringifyCondition(q: Question): string {
   if (!q.visibility) return "none";
-  return `depends on ${q.visibility.parentQuestionId} (choice ${q.visibility.equalsOptionId})`;
+  return APP_MESSAGES.DEPENDS_ON_FORMATTED(
+    q.visibility.parentQuestionId,
+    q.visibility.equalsOptionId,
+  );
 }
 
 /**
@@ -120,7 +124,7 @@ export function compareDrafts(
           {
             property: "status",
             localValue: `Added: "${localQ.label}" (${localQ.type})`,
-            serverValue: "Not present on server",
+            serverValue: APP_MESSAGES.NOT_PRESENT_ON_SERVER,
           },
         ],
       });
@@ -137,8 +141,11 @@ export function compareDrafts(
         changes: [
           {
             property: "status",
-            localValue: "Not present locally",
-            serverValue: `Server field: "${serverQ.label}" (${serverQ.type})`,
+            localValue: APP_MESSAGES.NOT_PRESENT_LOCALLY,
+            serverValue: APP_MESSAGES.SERVER_FIELD_FORMATTED(
+              serverQ.label,
+              serverQ.type,
+            ),
           },
         ],
       });

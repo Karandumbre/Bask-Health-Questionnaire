@@ -1,3 +1,10 @@
+import { APPLICATION } from "@/lib/constants/application";
+import {
+  readEnvironment,
+  ENVIRONMENT_DEFAULTS,
+  ENVIRONMENT_KEYS,
+  ENVIRONMENT_VALUES,
+} from "@/lib/config/environment";
 import "server-only";
 import { z } from "zod";
 import crypto from "node:crypto";
@@ -7,7 +14,7 @@ import type { VerifiedAuthUser } from "../supabase/server";
  * Strict security boundary for automated test authentication.
  *
  * Invariants:
- * 1. Must explicitly opt-in: ENABLE_TEST_AUTH === "true"
+ * 1. Must explicitly opt-in: ENABLE_TEST_AUTH === ENVIRONMENT_VALUES.ENABLED
  * 2. Disabled on EVERY Vercel environment (production, preview, development)
  * 3. Fails closed if APP_ENV is production, or if TEST_AUTH_SECRET is missing or < 32 characters
  * 4. Fails closed against unverified remote production databases
@@ -15,37 +22,55 @@ import type { VerifiedAuthUser } from "../supabase/server";
  */
 export function isTestAuthPermitted(): boolean {
   // 1. Explicit opt-in flag required
-  if (process.env.ENABLE_TEST_AUTH !== "true") {
+  if (
+    readEnvironment(ENVIRONMENT_KEYS.ENABLE_TEST_AUTH) !==
+    ENVIRONMENT_VALUES.ENABLED
+  ) {
     return false;
   }
 
   // 2. Prohibited on all Vercel deployment environments
   if (
-    process.env.VERCEL === "1" ||
-    Boolean(process.env.VERCEL_ENV) ||
-    Boolean(process.env.VERCEL_URL)
+    readEnvironment(ENVIRONMENT_KEYS.VERCEL) ===
+      ENVIRONMENT_VALUES.VERCEL_ENABLED ||
+    Boolean(readEnvironment(ENVIRONMENT_KEYS.VERCEL_ENV)) ||
+    Boolean(readEnvironment(ENVIRONMENT_KEYS.VERCEL_URL))
   ) {
     return false;
   }
 
   // 3. Prohibited in production application environments
-  const appEnv = (process.env.APP_ENV || "").toLowerCase();
-  if (appEnv === "production" || appEnv === "prod") {
+  const appEnv = (
+    readEnvironment(ENVIRONMENT_KEYS.APP_ENV) || ENVIRONMENT_DEFAULTS.EMPTY
+  ).toLowerCase();
+  if (
+    appEnv === ENVIRONMENT_VALUES.PRODUCTION ||
+    appEnv === ENVIRONMENT_VALUES.PRODUCTION_ALIAS
+  ) {
     return false;
   }
 
   // 4. Fail closed when TEST_AUTH_SECRET is missing or insufficient length
-  const secret = process.env.TEST_AUTH_SECRET;
-  if (!secret || typeof secret !== "string" || secret.length < 32) {
+  const secret = readEnvironment(ENVIRONMENT_KEYS.TEST_AUTH_SECRET);
+  if (
+    !secret ||
+    typeof secret !== "string" ||
+    secret.length < APPLICATION.minimumSecretLength
+  ) {
     return false;
   }
 
-  // 5. Never allow against unflagged production databases
-  const dbUrl = (process.env.DATABASE_URL || "").toLowerCase();
+  // 5. Never allow against unflagged production or remote shared databases
+  const dbUrl = (
+    readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) || ENVIRONMENT_DEFAULTS.EMPTY
+  ).toLowerCase();
+  const isLocal =
+    dbUrl.includes(ENVIRONMENT_DEFAULTS.LOCAL_HOST) ||
+    dbUrl.includes(ENVIRONMENT_DEFAULTS.LOOPBACK_HOST);
   if (
-    dbUrl.includes("pooler.supabase.com") &&
-    process.env.IS_TEST_DATABASE !== "true" &&
-    !dbUrl.includes("test")
+    !isLocal &&
+    readEnvironment(ENVIRONMENT_KEYS.IS_TEST_DATABASE) !==
+      ENVIRONMENT_VALUES.ENABLED
   ) {
     return false;
   }
@@ -59,7 +84,11 @@ export interface TestUserPayload {
   issuedAt: number;
 }
 
-const payloadSchema = z.object({ id: z.string().uuid(), email: z.string().email(), issuedAt: z.number().int().positive() });
+const payloadSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  issuedAt: z.number().int().positive(),
+});
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -75,7 +104,7 @@ export function createTestAuthCookie(user: {
   if (!isTestAuthPermitted()) return null;
   if (!UUID_REGEX.test(user.id)) return null;
 
-  const secret = process.env.TEST_AUTH_SECRET;
+  const secret = readEnvironment(ENVIRONMENT_KEYS.TEST_AUTH_SECRET);
   if (!secret) return null;
 
   const payload: TestUserPayload = {
@@ -102,7 +131,7 @@ export function verifyTestAuthCookie(
 ): VerifiedAuthUser | null {
   if (!cookieValue || !isTestAuthPermitted()) return null;
 
-  const secret = process.env.TEST_AUTH_SECRET;
+  const secret = readEnvironment(ENVIRONMENT_KEYS.TEST_AUTH_SECRET);
   if (!secret) return null;
 
   const parts = cookieValue.split(".");
@@ -127,14 +156,19 @@ export function verifyTestAuthCookie(
   }
 
   try {
-    const payload = payloadSchema.parse(JSON.parse(Buffer.from(data, "base64url").toString("utf8")));
+    const payload = payloadSchema.parse(
+      JSON.parse(Buffer.from(data, "base64url").toString("utf8")),
+    );
 
     if (!payload.id || !UUID_REGEX.test(payload.id)) {
       return null;
     }
 
     // Tokens expire after 1 hour
-    if (payload.issuedAt > Date.now() || Date.now() - payload.issuedAt > 3600 * 1000) {
+    if (
+      payload.issuedAt > Date.now() ||
+      Date.now() - payload.issuedAt > APPLICATION.testAuthLifetimeSeconds * 1000
+    ) {
       return null;
     }
 
@@ -154,7 +188,12 @@ export function verifyTestAuthCookie(
 }
 
 export function authenticateTestReviewer(email: string, password: string) {
-  if (!isTestAuthPermitted() || email !== "reviewer@baskhealth.com" || password !== "ClinicalReview2026!") return null;
+  if (
+    !isTestAuthPermitted() ||
+    email !== "reviewer@baskhealth.com" ||
+    password !== "ClinicalReview2026!"
+  )
+    return null;
   const user = { id: "a1111111-1111-4111-8111-111111111111", email };
   const token = createTestAuthCookie(user);
   return token ? { user, token } : null;

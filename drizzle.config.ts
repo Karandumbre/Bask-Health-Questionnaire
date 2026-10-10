@@ -1,3 +1,8 @@
+import {
+  readEnvironment,
+  ENVIRONMENT_DEFAULTS,
+  ENVIRONMENT_KEYS,
+} from "./config/environment.mjs";
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
@@ -5,6 +10,9 @@ export default defineConfig({
   out: "./db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL || "",
+    url:
+      readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) ||
+      readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) ||
+      ENVIRONMENT_DEFAULTS.EMPTY,
   },
 });

@@ -1,3 +1,4 @@
+import { ROUTES } from "@/lib/constants/application";
 import { redirect } from "next/navigation";
 import { requireAdmin, getUserWorkspaces } from "@/lib/auth/admin";
 import { listWorkspaceForms } from "@/features/forms/server/draft-service";
@@ -11,14 +12,14 @@ export default async function AdminFormsPage() {
   try {
     user = await requireAdmin();
   } catch {
-    redirect("/admin/login");
+    redirect(ROUTES.adminLogin);
   }
 
   const workspaces = await getUserWorkspaces(user.id, user.email);
   const activeWorkspace = workspaces[0];
 
   if (!activeWorkspace) {
-    redirect("/admin/login");
+    redirect(ROUTES.adminLogin);
   }
 
   const forms = await listWorkspaceForms(activeWorkspace.workspaceId, user.id);

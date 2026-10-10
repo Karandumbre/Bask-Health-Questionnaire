@@ -1,4 +1,5 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Input, Textarea } from "@/components/ui/input";
 
@@ -18,10 +19,11 @@ export function QuestionInspector() {
   if (!selectedQuestion) {
     return (
       <aside className="w-88 shrink-0 border-l border-gray-200 bg-white p-6 flex flex-col items-center justify-center text-center text-gray-400 select-none">
-        <p className="text-xs font-medium text-gray-500">No field selected</p>
-        <p className="text-[11px] text-gray-400 mt-1">
-          Select a question from the navigator or canvas to configure its
-          properties.
+        <p className="text-xs font-medium text-gray-500">
+          {APP_MESSAGES.NO_FIELD_SELECTED}
+        </p>
+        <p className="text-caption text-gray-400 mt-1">
+          {APP_MESSAGES.SELECT_A_QUESTION_FROM_THE_NAVIGATOR_OR_CANVAS_TO}
         </p>
       </aside>
     );
@@ -50,19 +52,19 @@ export function QuestionInspector() {
   };
 
   return (
-    <aside className="w-88 shrink-0 border-l border-gray-200 bg-white flex flex-col h-[calc(100vh-3.5rem)] overflow-y-auto select-none">
+    <aside className="w-88 shrink-0 border-l border-gray-200 bg-white flex flex-col h-editor-height overflow-y-auto select-none">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+          <span className="text-micro font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
             {selectedQuestion.type.replace("_", " ")}
           </span>
           <h3 className="text-xs font-bold text-gray-900 mt-1.5">
-            Question Settings
+            {APP_MESSAGES.QUESTION_SETTINGS}
           </h3>
         </div>
-        <span className="text-[10px] font-mono text-gray-400">
-          ID: {selectedQuestion.id}
+        <span className="text-micro font-mono text-gray-400">
+          {APP_MESSAGES.ID} {selectedQuestion.id}
         </span>
       </div>
 
@@ -73,14 +75,15 @@ export function QuestionInspector() {
             htmlFor="question-label-input"
             className="block text-xs font-semibold text-gray-800 mb-1"
           >
-            Question Label <span className="text-red-500">*</span>
+            {APP_MESSAGES.QUESTION_LABEL}{" "}
+            <span className="text-red-500">*</span>
           </label>
           <Input
             id="question-label-input"
             type="text"
             value={selectedQuestion.label}
             onChange={(e) => handleLabelChange(e.target.value)}
-            placeholder="e.g. Do you have any allergies?"
+            placeholder={APP_MESSAGES.E_G_DO_YOU_HAVE_ANY_ALLERGIES}
             className="rounded-md p-2"
           />
         </div>
@@ -91,13 +94,13 @@ export function QuestionInspector() {
             htmlFor="question-description-input"
             className="block text-xs font-semibold text-gray-800 mb-1"
           >
-            Help Text / Instructions
+            {APP_MESSAGES.HELP_TEXT_INSTRUCTIONS}
           </label>
           <Textarea
             id="question-description-input"
             value={selectedQuestion.description || ""}
             onChange={(e) => handleDescriptionChange(e.target.value)}
-            placeholder="Additional guidance for the patient..."
+            placeholder={APP_MESSAGES.ADDITIONAL_GUIDANCE_FOR_THE_PATIENT}
             rows={2}
             className="rounded-md p-2"
           />
@@ -112,14 +115,14 @@ export function QuestionInspector() {
               htmlFor="question-placeholder-input"
               className="block text-xs font-semibold text-gray-800 mb-1"
             >
-              Field Placeholder
+              {APP_MESSAGES.FIELD_PLACEHOLDER}
             </label>
             <Input
               id="question-placeholder-input"
               type="text"
               value={selectedQuestion.placeholder || ""}
               onChange={(e) => handlePlaceholderChange(e.target.value)}
-              placeholder="e.g. Type your answer..."
+              placeholder={APP_MESSAGES.E_G_TYPE_YOUR_ANSWER}
               className="rounded-md p-2"
             />
           </div>
@@ -132,16 +135,16 @@ export function QuestionInspector() {
               htmlFor="question-required-toggle"
               className="text-xs font-semibold text-gray-900 cursor-pointer block"
             >
-              Required Response
+              {APP_MESSAGES.REQUIRED_RESPONSE}
             </label>
-            <p className="text-[11px] text-gray-400">
-              Patient cannot submit without completing
+            <p className="text-caption text-gray-400">
+              {APP_MESSAGES.PATIENT_CANNOT_SUBMIT_WITHOUT_COMPLETING}
             </p>
           </div>
           <Input
             id="question-required-toggle"
             type="checkbox"
-            aria-label="Required response"
+            aria-label={APP_MESSAGES.REQUIRED_RESPONSE_2}
             checked={selectedQuestion.required}
             onChange={(e) => handleRequiredToggle(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"

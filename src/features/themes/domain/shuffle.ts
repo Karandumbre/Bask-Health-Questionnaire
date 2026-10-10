@@ -96,7 +96,7 @@ export function generateShuffledTheme(
     error: "#DC2626",
     errorBackground: "#FEF2F2",
     errorBorder: "#FCA5A5",
-    success: "#16A34A",
+    success: "#15803D",
     successBackground: "#F0FDF4",
     successBorder: "#86EFAC",
     muted: "#94A3B8",

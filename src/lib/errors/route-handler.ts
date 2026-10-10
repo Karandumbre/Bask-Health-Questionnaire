@@ -1,3 +1,4 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import "server-only";
 import { ZodError } from "zod";
 import { NextResponse } from "next/server";
@@ -18,7 +19,7 @@ export function handleRouteError(error: unknown): NextResponse {
         success: false,
         error: {
           code: "INVALID_FORM",
-          message: "Request data is invalid.",
+          message: APP_MESSAGES.REQUEST_DATA_IS_INVALID,
           details: {
             validationErrors: error.issues.map((issue) => ({
               field: issue.path.join("."),
@@ -37,7 +38,7 @@ export function handleRouteError(error: unknown): NextResponse {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "An internal server error occurred.",
+        message: APP_MESSAGES.AN_INTERNAL_SERVER_ERROR_OCCURRED,
       },
     },
     { status: 500 },

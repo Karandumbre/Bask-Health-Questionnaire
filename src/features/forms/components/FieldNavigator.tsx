@@ -1,4 +1,5 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { QuestionActions } from "./QuestionActions";
 import { Button } from "@/components/ui/button";
@@ -26,33 +27,33 @@ const QUESTION_TYPE_CONFIG: Record<
   }
 > = {
   short_text: {
-    label: "Short Text",
-    description: "Single-line response (e.g. name, email)",
+    label: APP_MESSAGES.SHORT_TEXT,
+    description: APP_MESSAGES.SINGLE_LINE_RESPONSE_E_G_NAME_EMAIL,
     icon: TextIcon,
   },
   long_text: {
-    label: "Long Text",
-    description: "Multi-line medical details or notes",
+    label: APP_MESSAGES.LONG_TEXT,
+    description: APP_MESSAGES.MULTI_LINE_MEDICAL_DETAILS_OR_NOTES,
     icon: NoteIcon,
   },
   number: {
     label: "Numeric",
-    description: "Age, dosage, or measurement values",
+    description: APP_MESSAGES.AGE_DOSAGE_OR_MEASUREMENT_VALUES,
     icon: HashtagIcon,
   },
   single_select: {
-    label: "Single Select",
-    description: "Radio choices with conditional support",
+    label: APP_MESSAGES.SINGLE_SELECT,
+    description: APP_MESSAGES.RADIO_CHOICES_WITH_CONDITIONAL_SUPPORT,
     icon: SelectIcon,
   },
   multi_select: {
     label: "Multi-Select",
-    description: "Checklist of multiple options",
+    description: APP_MESSAGES.CHECKLIST_OF_MULTIPLE_OPTIONS,
     icon: ListBulletedIcon,
   },
   checkbox: {
-    label: "Consent / Checkbox",
-    description: "Required acknowledgment or opt-in",
+    label: APP_MESSAGES.CONSENT_CHECKBOX,
+    description: APP_MESSAGES.REQUIRED_ACKNOWLEDGMENT_OR_OPT_IN,
     icon: CheckboxIcon,
   },
 };
@@ -74,14 +75,14 @@ export function FieldNavigator() {
   };
 
   return (
-    <aside className="w-80 shrink-0 border-r border-gray-200 bg-gray-50/70 flex flex-col h-[calc(100vh-3.5rem)] select-none">
+    <aside className="w-80 shrink-0 border-r border-gray-200 bg-gray-50/70 flex flex-col h-editor-height select-none">
       {/* Navigator Header */}
       <div className="p-3 border-b border-gray-200 bg-white flex items-center justify-between relative">
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
-            Form Questions
+            {APP_MESSAGES.FORM_QUESTIONS}
           </h2>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-caption text-gray-400 mt-0.5">
             {definition.questions.length}{" "}
             {definition.questions.length === 1 ? "field" : "fields"}
           </p>
@@ -93,11 +94,11 @@ export function FieldNavigator() {
             onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
             aria-expanded={isAddMenuOpen}
             aria-haspopup="menu"
-            aria-label="Add new field"
+            aria-label={APP_MESSAGES.ADD_NEW_FIELD}
             className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-md shadow-xs transition-colors"
           >
             <PlusIcon className="w-3.5 h-3.5" />
-            <span>Add Field</span>
+            <span>{APP_MESSAGES.ADD_FIELD}</span>
           </Button>
 
           {isAddMenuOpen && (
@@ -107,8 +108,8 @@ export function FieldNavigator() {
                 onClick={() => setIsAddMenuOpen(false)}
               />
               <div className="absolute right-0 top-full mt-1.5 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in duration-100">
-                <div className="px-3 py-1.5 border-b border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Select Field Type
+                <div className="px-3 py-1.5 border-b border-gray-100 text-micro font-bold uppercase tracking-wider text-gray-400">
+                  {APP_MESSAGES.SELECT_FIELD_TYPE}
                 </div>
                 {(Object.keys(QUESTION_TYPE_CONFIG) as FieldType[]).map(
                   (type) => {
@@ -128,7 +129,7 @@ export function FieldNavigator() {
                           <div className="text-xs font-medium text-gray-900 group-hover:text-blue-700">
                             {conf.label}
                           </div>
-                          <div className="text-[11px] text-gray-400 truncate">
+                          <div className="text-caption text-gray-400 truncate">
                             {conf.description}
                           </div>
                         </div>
@@ -147,11 +148,10 @@ export function FieldNavigator() {
         {definition.questions.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-gray-200 rounded-lg m-2">
             <p className="text-xs font-medium text-gray-600">
-              No questions added yet
+              {APP_MESSAGES.NO_QUESTIONS_ADDED_YET}
             </p>
-            <p className="text-[11px] text-gray-400 mt-1">
-              Click &quot;Add Field&quot; above to create clinical intake
-              questions.
+            <p className="text-caption text-gray-400 mt-1">
+              {APP_MESSAGES.CLICK_QUOT_ADD_FIELD_QUOT_ABOVE_TO_CREATE_CLINICAL}
             </p>
           </div>
         ) : (
@@ -178,7 +178,7 @@ export function FieldNavigator() {
                 <div className="flex items-start justify-between gap-2">
                   {/* Left: Icon, Index, Label */}
                   <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <span className="text-[11px] font-mono font-medium text-gray-400 mt-0.5">
+                    <span className="text-caption font-mono font-medium text-gray-400 mt-0.5">
                       {index + 1}.
                     </span>
                     <div className="p-1 rounded bg-gray-100 text-gray-600 mt-0.5">
@@ -188,36 +188,36 @@ export function FieldNavigator() {
                       <p className="text-xs font-medium text-gray-900 truncate">
                         {q.label || (
                           <span className="italic text-gray-400">
-                            Untitled Question
+                            {APP_MESSAGES.UNTITLED_QUESTION}
                           </span>
                         )}
                       </p>
 
                       {/* Badges */}
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
+                        <span className="text-micro text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
                           {typeConf.label}
                         </span>
 
                         {q.required && (
-                          <span className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.2 rounded font-medium">
-                            Required
+                          <span className="text-micro text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.2 rounded font-medium">
+                            {APP_MESSAGES.REQUIRED}
                           </span>
                         )}
 
                         {q.visibility && (
-                          <span className="text-[10px] text-purple-700 bg-purple-50 border border-purple-200/60 px-1.5 py-0.2 rounded font-medium">
-                            Conditional
+                          <span className="text-micro text-purple-700 bg-purple-50 border border-purple-200/60 px-1.5 py-0.2 rounded font-medium">
+                            {APP_MESSAGES.CONDITIONAL}
                           </span>
                         )}
 
                         {hasError && (
                           <span
-                            className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded flex items-center gap-0.5"
-                            title="Has validation issue"
+                            className="text-micro text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded flex items-center gap-0.5"
+                            title={APP_MESSAGES.HAS_VALIDATION_ISSUE}
                           >
                             <AlertTriangleIcon className="w-3 h-3 text-amber-600" />
-                            Issue
+                            {APP_MESSAGES.ISSUE}
                           </span>
                         )}
                       </div>

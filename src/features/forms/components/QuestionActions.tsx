@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { Button } from "@/components/ui/button";
 import {
   ChevronUpIcon,
@@ -19,13 +21,13 @@ export function QuestionActions({
     useBuilder();
   const actions = [
     {
-      label: "Move up",
+      label: APP_MESSAGES.MOVE_UP,
       icon: ChevronUpIcon,
       disabled: index === 0,
       run: () => reorderQuestion(questionId, "up"),
     },
     {
-      label: "Move down",
+      label: APP_MESSAGES.MOVE_DOWN,
       icon: ChevronDownIcon,
       disabled: index === definition.questions.length - 1,
       run: () => reorderQuestion(questionId, "down"),

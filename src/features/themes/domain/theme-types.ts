@@ -67,9 +67,18 @@ export const ThemeDefinitionSchema = z.preprocess((input) => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
     const tokens = raw as Record<string, unknown>;
     if (tokens.textPrimary !== undefined) return raw;
-    return { ...defaults, ...tokens, textPrimary: tokens.text, primaryAction: tokens.primary, primaryActionForeground: tokens.primaryForeground };
+    return {
+      ...defaults,
+      ...tokens,
+      textPrimary: tokens.text,
+      primaryAction: tokens.primary,
+      primaryActionForeground: tokens.primaryForeground,
+    };
   };
-  return { ...value, light: mode(value.light, THEME_PRESET_OCEAN.light), dark: mode(value.dark, THEME_PRESET_OCEAN.dark) };
+  return {
+    ...value,
+    light: mode(value.light, THEME_PRESET_OCEAN.light),
+    dark: mode(value.dark, THEME_PRESET_OCEAN.dark),
+  };
 }, canonicalThemeSchema);
 export type ThemeDefinition = z.infer<typeof canonicalThemeSchema>;
-

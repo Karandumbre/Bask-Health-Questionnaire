@@ -1,4 +1,6 @@
 "use client";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusIcon, DeleteIcon, AlertTriangleIcon } from "@/components/ui/icons";
@@ -54,22 +56,23 @@ export function QuestionOptionsEditor({
         <div className="space-y-3 pt-2 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-gray-900">
-              Options ({selectOptions.length})
+              {APP_MESSAGES.OPTIONS}
+              {selectOptions.length})
             </label>
             <Button
               type="button"
               onClick={handleAddOption}
-              className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium"
+              className="flex items-center gap-1 text-caption text-blue-600 hover:text-blue-700 font-medium"
             >
               <PlusIcon className="w-3 h-3" />
-              <span>Add Choice</span>
+              <span>{APP_MESSAGES.ADD_CHOICE}</span>
             </Button>
           </div>
 
           <div className="space-y-1.5">
             {selectOptions.map((opt, optIndex) => (
               <div key={opt.id} className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-gray-400 w-4 text-right">
+                <span className="text-micro font-mono text-gray-400 w-4 text-right">
                   {optIndex + 1}.
                 </span>
                 <Input
@@ -88,8 +91,8 @@ export function QuestionOptionsEditor({
                   className="p-1 text-gray-400 hover:text-red-600 rounded disabled:opacity-20 disabled:hover:text-gray-400"
                   title={
                     selectOptions.length <= 2
-                      ? "Must have at least 2 choices"
-                      : "Delete option"
+                      ? APP_MESSAGES.MUST_HAVE_AT_LEAST_2_CHOICES
+                      : APP_MESSAGES.DELETE_OPTION
                   }
                 >
                   <DeleteIcon className="w-3.5 h-3.5" />
@@ -99,9 +102,9 @@ export function QuestionOptionsEditor({
           </div>
 
           {selectOptions.length < 2 && (
-            <p className="text-[11px] text-red-600 flex items-center gap-1">
+            <p className="text-caption text-red-600 flex items-center gap-1">
               <AlertTriangleIcon className="w-3 h-3 text-red-500" />
-              At least 2 choices are required.
+              {APP_MESSAGES.AT_LEAST_2_CHOICES_ARE_REQUIRED}
             </p>
           )}
         </div>
