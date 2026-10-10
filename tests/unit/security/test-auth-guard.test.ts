@@ -15,6 +15,8 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
   const validSecret =
     "a_super_secret_test_auth_key_with_at_least_32_characters_12345";
   const validUserId = "a1111111-1111-4111-8111-111111111111";
+  const validDatabaseUrl =
+    "postgres://postgres:password@localhost:5432/postgres";
 
   beforeEach(() => {
     process.env = { ...originalEnv };
@@ -25,6 +27,7 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
     delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.VERCEL_URL]];
     delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.APP_ENV]];
     delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]];
+    delete process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]];
   });
 
   afterEach(() => {
@@ -144,6 +147,10 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
     // Permitted, but invalid non-UUID format
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
       ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
+      ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]] =
+      validDatabaseUrl;
     expect(
       createTestAuthCookie({
         id: "invalid-user-id",
@@ -159,6 +166,8 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
       validSecret;
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
       ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]] =
+      validDatabaseUrl;
 
     const validToken = createTestAuthCookie({
       id: validUserId,
@@ -193,6 +202,8 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
       validSecret;
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
       ENVIRONMENT_VALUES.ENABLED;
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]] =
+      validDatabaseUrl;
 
     const token = createTestAuthCookie({
       id: validUserId,
