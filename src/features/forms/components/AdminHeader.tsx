@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useBuilder } from "../context/builder-context";
@@ -28,6 +31,7 @@ export function AdminHeader() {
     setViewport,
     openPublishModal,
     publishValidationErrors,
+    hasUnsavedChanges,
   } = useBuilder();
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -57,6 +61,13 @@ export function AdminHeader() {
       <div className="flex items-center gap-3 min-w-0">
         <Link
           href="/admin/forms"
+          onClick={(e) => {
+            if (hasUnsavedChanges) {
+              if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                e.preventDefault();
+              }
+            }
+          }}
           className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors p-1.5 -ml-1.5 rounded hover:bg-gray-100"
           title="Back to Forms Dashboard"
         >
@@ -69,7 +80,7 @@ export function AdminHeader() {
         {/* Editable Title */}
         <div className="flex items-center gap-2 min-w-0">
           {isEditingTitle ? (
-            <input
+            <Input
               type="text"
               value={tempTitle}
               onChange={(e) => setTempTitle(e.target.value)}
@@ -79,7 +90,7 @@ export function AdminHeader() {
               className="text-sm font-semibold text-gray-900 border border-blue-500 rounded px-2 py-0.5 outline-none focus:ring-1 focus:ring-blue-500 min-w-[200px]"
             />
           ) : (
-            <button
+            <Button
               onClick={() => {
                 setTempTitle(formName);
                 setIsEditingTitle(true);
@@ -89,7 +100,7 @@ export function AdminHeader() {
             >
               <span className="truncate max-w-[280px] sm:max-w-[400px]">{formName}</span>
               <EditIcon className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
+            </Button>
           )}
 
           <span className="text-[11px] font-mono text-gray-400 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
@@ -100,7 +111,7 @@ export function AdminHeader() {
 
       {/* Center section: Mode switcher (Editor / Preview) */}
       <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
-        <button
+        <Button
           onClick={() => setMode("editor")}
           className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
             activeMode === "editor"
@@ -109,9 +120,9 @@ export function AdminHeader() {
           }`}
         >
           <span>Editor</span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={() => setMode("preview")}
           className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
             activeMode === "preview"
@@ -121,7 +132,7 @@ export function AdminHeader() {
         >
           <ViewIcon className="w-3.5 h-3.5" />
           <span>Patient Preview</span>
-        </button>
+        </Button>
       </div>
 
       {/* Right section: Save Status & Publish Button */}
@@ -129,7 +140,7 @@ export function AdminHeader() {
         {/* Viewport toggle when in Preview mode */}
         {activeMode === "preview" && (
           <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md border border-gray-200">
-            <button
+            <Button
               onClick={() => setViewport("desktop")}
               className={`p-1 rounded ${
                 previewViewport === "desktop"
@@ -139,8 +150,8 @@ export function AdminHeader() {
               title="Desktop viewport"
             >
               <DesktopIcon className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setViewport("mobile")}
               className={`p-1 rounded ${
                 previewViewport === "mobile"
@@ -150,12 +161,12 @@ export function AdminHeader() {
               title="Mobile viewport"
             >
               <MobileIcon className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         )}
 
         {/* Autosave Indicator */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" role="status" aria-live="polite">
           {saveStatus === "saved" && (
             <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
               <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
@@ -178,28 +189,28 @@ export function AdminHeader() {
           )}
 
           {saveStatus === "conflict" && (
-            <button
+            <Button
               onClick={saveNow}
               className="flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded font-medium hover:bg-amber-100 transition-colors"
             >
               <AlertTriangleIcon className="w-3.5 h-3.5 text-amber-600" />
               <span>Conflict</span>
-            </button>
+            </Button>
           )}
 
           {saveStatus === "failed" && (
-            <button
+            <Button
               onClick={saveNow}
               className="flex items-center gap-1 text-[11px] text-red-700 bg-red-50 border border-red-300 px-2 py-0.5 rounded font-medium hover:bg-red-100 transition-colors"
             >
               <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600" />
               <span>Retry Save</span>
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Publish Action Button */}
-        <button
+        <Button
           onClick={openPublishModal}
           className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all ${
             publishValidationErrors.length === 0
@@ -214,7 +225,7 @@ export function AdminHeader() {
               {publishValidationErrors.length}
             </span>
           )}
-        </button>
+        </Button>
       </div>
     </header>
   );

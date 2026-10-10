@@ -1,5 +1,11 @@
 "use client";
 
+import { Dialog } from "@/components/ui/dialog";
+import { apiErrorMessage, apiRequest, successSchema } from "@/lib/http/api-client";
+import { createForm, deleteForm, renameForm } from "../client/forms-api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -56,21 +62,11 @@ export function FormDashboard({
     setErrorMessage(null);
 
     try {
-      const res = await fetch("/api/admin/forms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newFormName.trim() }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMessage(data.error?.message || "Failed to create form.");
-        return;
-      }
+      const data = await createForm(newFormName.trim());
 
       router.push(`/admin/forms/${data.form.id}/edit`);
-    } catch {
-      setErrorMessage("Network error creating form.");
+    } catch (error) {
+      setErrorMessage(apiErrorMessage(error, "Network error creating form."));
     } finally {
       setIsCreating(false);
     }
@@ -82,18 +78,10 @@ export function FormDashboard({
     }
 
     try {
-      const res = await fetch(`/api/admin/forms/${formId}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setFormsList((prev) => prev.filter((f) => f.id !== formId));
-      } else {
-        alert(data.error?.message || "Failed to delete form.");
-      }
-    } catch {
-      alert("Network error.");
+      await deleteForm(formId);
+      setFormsList((prev) => prev.filter((f) => f.id !== formId));
+    } catch (error) {
+      setErrorMessage(apiErrorMessage(error, "Network error deleting form."));
     }
   };
 
@@ -106,28 +94,22 @@ export function FormDashboard({
     if (!renamingName.trim()) return;
 
     try {
-      const res = await fetch(`/api/admin/forms/${formId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: renamingName.trim() }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setFormsList((prev) =>
-          prev.map((f) => (f.id === formId ? { ...f, name: renamingName.trim() } : f))
-        );
-        setRenamingFormId(null);
-      }
-    } catch {
-      // Keep old name
+      await renameForm(formId, renamingName.trim());
+      setFormsList((prev) => prev.map((f) => f.id === formId ? { ...f, name: renamingName.trim() } : f));
+      setRenamingFormId(null);
+    } catch (error) {
+      setErrorMessage(apiErrorMessage(error, "Network error renaming form."));
     }
   };
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/admin/login");
-    router.refresh();
+    try {
+      await apiRequest("/api/auth/logout", successSchema, { method: "POST" });
+      router.push("/admin/login");
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(apiErrorMessage(error, "Network error signing out."));
+    }
   };
 
   return (
@@ -148,12 +130,12 @@ export function FormDashboard({
 
         <div className="flex items-center gap-4">
           <span className="text-xs text-gray-600 hidden sm:inline">{userEmail}</span>
-          <button
+          <Button
             onClick={handleLogout}
             className="text-xs text-gray-500 hover:text-gray-900 font-medium px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
           >
             Sign Out
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -168,23 +150,26 @@ export function FormDashboard({
             </p>
           </div>
 
-          <button
+          <Button
             onClick={() => {
               setNewFormName("");
               setIsCreateModalOpen(true);
             }}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors"
+            variant="primary" className="gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             <span>Create New Form</span>
-          </button>
+          </Button>
         </div>
+
+        {errorMessage && !isCreateModalOpen && <p role="alert" className="text-xs text-red-600">{errorMessage}</p>}
 
         {/* Search & Filter */}
         <div className="relative max-w-md">
           <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
+          <Input
             type="text"
+            aria-label="Search forms"
             placeholder="Search forms by title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -202,12 +187,12 @@ export function FormDashboard({
             <p className="text-xs text-gray-500 max-w-xs mx-auto">
               Get started by creating your first patient intake questionnaire.
             </p>
-            <button
+            <Button
               onClick={() => setIsCreateModalOpen(true)}
               className="text-xs font-semibold text-blue-600 hover:text-blue-700"
             >
               + Create Form Now
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden">
@@ -228,25 +213,25 @@ export function FormDashboard({
                     <td className="py-3.5 px-4 font-medium text-gray-900">
                       {renamingFormId === form.id ? (
                         <div className="flex items-center gap-1.5">
-                          <input
+                          <Input
                             type="text"
                             value={renamingName}
                             onChange={(e) => setRenamingName(e.target.value)}
                             className="border border-blue-500 rounded px-2 py-0.5 text-xs outline-none"
                             autoFocus
                           />
-                          <button
+                          <Button
                             onClick={() => handleSaveRename(form.id)}
                             className="text-blue-600 font-bold hover:underline"
                           >
                             Save
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => setRenamingFormId(null)}
                             className="text-gray-400 hover:underline"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <Link
@@ -296,21 +281,21 @@ export function FormDashboard({
                           Open Editor
                         </Link>
 
-                        <button
+                        <Button
                           onClick={() => handleStartRename(form)}
                           className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
                           title="Rename form"
                         >
                           <EditIcon className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                           onClick={() => handleDeleteForm(form.id, form.name)}
                           className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
                           title="Archive or delete form"
                         >
                           <DeleteIcon className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -323,35 +308,36 @@ export function FormDashboard({
 
       {/* Create New Form Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-md w-full p-6 space-y-4">
+        <Dialog open titleId="create-form-title" onClose={isCreating ? undefined : () => setIsCreateModalOpen(false)} className="max-w-md space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-base font-bold text-gray-900">Create Clinical Form</h3>
+                <h3 id="create-form-title" className="text-base font-bold text-gray-900">Create Clinical Form</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Initializes a new draft container ready for question authoring.
                 </p>
               </div>
-              <button
+              <Button
+                disabled={isCreating}
                 onClick={() => setIsCreateModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleCreateForm} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label htmlFor="new-form-name" className="block text-xs font-semibold text-gray-700 mb-1">
                   Form Title <span className="text-red-500">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   required
+                  id="new-form-name"
                   placeholder="e.g. Adult ADHD Initial Screening"
                   value={newFormName}
                   onChange={(e) => setNewFormName(e.target.value)}
-                  className="w-full text-xs border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+
                   autoFocus
                 />
               </div>
@@ -364,24 +350,24 @@ export function FormDashboard({
               )}
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50"
+                  disabled={isCreating}
+                onClick={() => setIsCreateModalOpen(false)}
+                  variant="secondary" className="py-2"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isCreating || !newFormName.trim()}
-                  className="px-4 py-2 text-xs font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm disabled:opacity-40"
+                  variant="primary" className="py-2"
                 >
                   {isCreating ? "Creating..." : "Create & Open"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

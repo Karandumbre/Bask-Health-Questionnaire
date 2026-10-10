@@ -1,5 +1,7 @@
 "use client";
 
+import { Input, Select } from "@/components/ui/input";
+
 import { useBuilder } from "../context/builder-context";
 import type { Question, SingleSelectQuestion } from "@/features/forms/domain/types";
 import { AlertTriangleIcon, CheckIcon } from "@/components/ui/icons";
@@ -127,12 +129,12 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
           </p>
         </div>
 
-        <input
+        <Input
           id="cond-toggle"
           type="checkbox"
           checked={isConditional}
           onChange={(e) => handleToggle(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+
         />
       </div>
 
@@ -154,13 +156,14 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
             <>
               {/* Parent Field Selector */}
               <div>
-                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                <label htmlFor={`condition-parent-${question.id}`} className="block text-[11px] font-medium text-gray-700 mb-1">
                   When parent question:
                 </label>
-                <select
+                <Select
+                  id={`condition-parent-${question.id}`}
                   value={currentParentId}
                   onChange={(e) => handleParentChange(e.target.value)}
-                  className="w-full text-xs bg-white border border-gray-300 rounded-md p-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                  className="rounded-md p-1.5"
                 >
                   <option value="" disabled>
                     -- Select eligible question --
@@ -177,19 +180,20 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                         {selectedParent.label} (Invalid dependency)
                       </option>
                     )}
-                </select>
+                </Select>
               </div>
 
               {/* Option Selector */}
               {selectedParent && (
                 <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  <label htmlFor={`condition-option-${question.id}`} className="block text-[11px] font-medium text-gray-700 mb-1">
                     Equals choice:
                   </label>
-                  <select
+                  <Select
+                    id={`condition-option-${question.id}`}
                     value={currentOptionId}
                     onChange={(e) => handleOptionChange(e.target.value)}
-                    className="w-full text-xs bg-white border border-gray-300 rounded-md p-1.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                    className="rounded-md p-1.5"
                   >
                     <option value="" disabled>
                       -- Select choice --
@@ -199,7 +203,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                         {opt.label || "Untitled Choice"}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               )}
 
@@ -210,9 +214,19 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                   <span>Condition is valid and active</span>
                 </div>
               ) : (
-                <div className="flex items-start gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 px-2 py-1 rounded">
-                  <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-                  <span>{validationMessage}</span>
+                <div className="flex items-start justify-between gap-2 text-[11px] text-red-700 bg-red-50 border border-red-200 p-2 rounded">
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                    <span>{validationMessage}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateQuestion(question.id, { visibility: null })}
+                    className="text-[10px] font-semibold text-red-700 underline hover:text-red-900 shrink-0 cursor-pointer"
+                    title="Remove broken condition"
+                  >
+                    Remove condition
+                  </button>
                 </div>
               )}
             </>

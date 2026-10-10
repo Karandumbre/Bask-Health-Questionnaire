@@ -32,6 +32,7 @@ export default async function FormEditPage({ params }: PageProps) {
 
   return (
     <BuilderProvider
+      key={data.form.id}
       formId={data.form.id}
       initialName={data.form.name}
       initialRevision={data.draft.revision}

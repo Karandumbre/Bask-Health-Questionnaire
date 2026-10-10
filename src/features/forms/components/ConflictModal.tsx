@@ -1,5 +1,8 @@
 "use client";
 
+import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
 import { useState } from "react";
 import { useBuilder } from "../context/builder-context";
 import { AlertTriangleIcon, UndoIcon, SaveIcon, CheckIcon } from "@/components/ui/icons";
@@ -42,15 +45,14 @@ export function ConflictModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full overflow-hidden p-6 space-y-4">
+    <Dialog open titleId="conflict-title" className="space-y-4">
         {/* Warning Icon & Title */}
         <div className="flex items-start gap-3">
           <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
             <AlertTriangleIcon className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-gray-900">
+            <h2 id="conflict-title" className="text-base font-bold text-gray-900">
               Revision Conflict (HTTP 409)
             </h2>
             <p className="text-xs text-gray-500 mt-1 leading-relaxed">
@@ -81,7 +83,7 @@ export function ConflictModal() {
               Copy your local questions to clipboard before reloading.
             </p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleCopy}
             className="flex items-center gap-1.5 text-xs font-medium bg-white text-blue-700 border border-blue-300 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
@@ -94,32 +96,31 @@ export function ConflictModal() {
             ) : (
               <span>Copy JSON</span>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Resolution Buttons */}
         <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-end">
-          <button
+          <Button
             type="button"
             disabled={isProcessing}
             onClick={handleReload}
-            className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            variant="secondary"
           >
             <UndoIcon className="w-4 h-4 text-gray-500" />
             <span>Discard & Reload Server</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             disabled={isProcessing}
             onClick={handleForceOverwrite}
-            className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl bg-amber-600 text-white hover:bg-amber-700 shadow-sm transition-colors disabled:opacity-50"
+            variant="warning"
           >
             <SaveIcon className="w-4 h-4" />
             <span>Keep Mine (Force Update)</span>
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

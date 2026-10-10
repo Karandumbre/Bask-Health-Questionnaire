@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import { useState, type ComponentType } from "react";
 import { useBuilder } from "../context/builder-context";
 import type { FieldType } from "@/features/forms/domain/types";
@@ -88,13 +90,16 @@ export function FieldNavigator() {
 
         {/* Add Question Button & Dropdown */}
         <div className="relative">
-          <button
+          <Button
             onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+            aria-expanded={isAddMenuOpen}
+            aria-haspopup="menu"
+            aria-label="Add new field"
             className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-md shadow-xs transition-colors"
           >
             <PlusIcon className="w-3.5 h-3.5" />
             <span>Add Field</span>
-          </button>
+          </Button>
 
           {isAddMenuOpen && (
             <>
@@ -111,7 +116,7 @@ export function FieldNavigator() {
                   if (!conf) return null;
                   const Icon = conf.icon;
                   return (
-                    <button
+                    <Button
                       key={type}
                       onClick={() => handleAddType(type)}
                       className="w-full text-left px-3 py-2 hover:bg-blue-50/70 flex items-start gap-2.5 transition-colors group"
@@ -127,7 +132,7 @@ export function FieldNavigator() {
                           {conf.description}
                         </div>
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -219,42 +224,46 @@ export function FieldNavigator() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* Move Up */}
-                    <button
+                    <Button
                       onClick={() => reorderQuestion(q.id, "up")}
                       disabled={index === 0}
                       className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent"
                       title="Move up (Keyboard accessible)"
+                      aria-label={`Move question ${index + 1} up`}
                     >
                       <ChevronUpIcon className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
 
                     {/* Move Down */}
-                    <button
+                    <Button
                       onClick={() => reorderQuestion(q.id, "down")}
                       disabled={index === definition.questions.length - 1}
                       className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-20 disabled:hover:bg-transparent"
                       title="Move down (Keyboard accessible)"
+                      aria-label={`Move question ${index + 1} down`}
                     >
                       <ChevronDownIcon className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
 
                     {/* Duplicate */}
-                    <button
+                    <Button
                       onClick={() => duplicateQuestion(q.id)}
                       className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                       title="Duplicate field"
+                      aria-label={`Duplicate question ${index + 1}`}
                     >
                       <DuplicateIcon className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
 
                     {/* Delete */}
-                    <button
+                    <Button
                       onClick={() => deleteQuestion(q.id)}
                       className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                       title="Delete field"
+                      aria-label={`Delete question ${index + 1}`}
                     >
                       <DeleteIcon className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

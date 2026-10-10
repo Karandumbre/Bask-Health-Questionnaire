@@ -5,7 +5,6 @@ import {
   useContext,
   useState,
   useEffect,
-  useRef,
   useCallback,
   type ReactNode,
 } from "react";
@@ -17,19 +16,11 @@ import type {
 } from "@/features/forms/domain/types";
 import { validateFormForPublish } from "@/features/forms/domain/validation";
 
-export type SaveStatus =
-  | "saved"
-  | "editing"
-  | "saving"
-  | "failed"
-  | "conflict"
-  | "offline";
-
-export interface ConflictDetails {
-  serverRevision: number;
-  localRevision: number;
-  message?: string;
-}
+import { useDraftAutosave } from "../hooks/use-draft-autosave";
+import { loadFormDraft } from "../client/forms-api";
+import { generateId, createDefaultQuestion, cloneQuestionWithNewId } from "../client/question-operations";
+import type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
+export type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 
 export interface BuilderContextType {
   formId: string;
@@ -45,6 +36,7 @@ export interface BuilderContextType {
   previewViewport: "desktop" | "mobile";
   isPublishModalOpen: boolean;
   publishValidationErrors: Array<{ questionId?: string; issue: string }>;
+  hasUnsavedChanges: boolean;
 
   // Actions
   selectQuestion: (id: string | null) => void;
@@ -55,7 +47,8 @@ export interface BuilderContextType {
   reorderQuestion: (id: string, direction: "up" | "down") => void;
   updateFormMeta: (updates: { title?: string; description?: string }) => void;
   updateTheme: (newTheme: ThemeDefinition) => void;
-  saveNow: () => Promise<void>;
+  saveNow: () => Promise<boolean>;
+  saveForPublish: () => Promise<number | null>;
   resolveConflictReload: () => Promise<void>;
   resolveConflictForce: () => Promise<void>;
   setMode: (mode: "editor" | "preview") => void;
@@ -65,106 +58,6 @@ export interface BuilderContextType {
 }
 
 const BuilderContext = createContext<BuilderContextType | null>(null);
-
-function generateId(prefix: string): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return `${prefix}_${crypto.randomUUID().slice(0, 8)}`;
-  }
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function createDefaultQuestion(type: FieldType, index: number): Question {
-  const base = {
-    id: generateId("q"),
-    required: false,
-    visibility: null,
-  };
-
-  switch (type) {
-    case "short_text":
-      return {
-        ...base,
-        type: "short_text",
-        label: `Question ${index + 1}`,
-        placeholder: "Enter text...",
-      };
-    case "long_text":
-      return {
-        ...base,
-        type: "long_text",
-        label: `Question ${index + 1}`,
-        placeholder: "Enter detailed explanation...",
-      };
-    case "number":
-      return {
-        ...base,
-        type: "number",
-        label: `Numeric Question ${index + 1}`,
-        validation: { integerOnly: true },
-      };
-    case "single_select":
-      return {
-        ...base,
-        type: "single_select",
-        label: `Single-choice Question ${index + 1}`,
-        options: [
-          { id: generateId("opt"), label: "Option 1" },
-          { id: generateId("opt"), label: "Option 2" },
-        ],
-      };
-    case "multi_select":
-      return {
-        ...base,
-        type: "multi_select",
-        label: `Multi-select Question ${index + 1}`,
-        options: [
-          { id: generateId("opt"), label: "Option 1" },
-          { id: generateId("opt"), label: "Option 2" },
-          { id: generateId("opt"), label: "Option 3" },
-        ],
-      };
-    case "checkbox":
-      return {
-        ...base,
-        type: "checkbox",
-        label: `I acknowledge and consent to the intake terms`,
-      };
-  }
-}
-
-function cloneQuestionWithNewId(source: Question, newId: string): Question {
-  const newLabel = `${source.label} (Copy)`;
-  const vis = source.visibility ? { ...source.visibility } : null;
-
-  switch (source.type) {
-    case "single_select":
-      return {
-        ...source,
-        id: newId,
-        label: newLabel,
-        options: source.options.map((opt) => ({ ...opt, id: generateId("opt") })),
-        visibility: vis,
-      };
-    case "multi_select":
-      return {
-        ...source,
-        id: newId,
-        label: newLabel,
-        options: source.options.map((opt) => ({ ...opt, id: generateId("opt") })),
-        visibility: vis,
-      };
-    case "short_text":
-    case "long_text":
-    case "number":
-    case "checkbox":
-      return {
-        ...source,
-        id: newId,
-        label: newLabel,
-        visibility: vis,
-      };
-  }
-}
 
 export function BuilderProvider({
   formId,
@@ -182,108 +75,18 @@ export function BuilderProvider({
   children: ReactNode;
 }) {
   const [formName, setFormName] = useState(initialName);
-  const [draftRevision, setDraftRevision] = useState(initialRevision);
   const [definition, setDefinition] = useState<FormDefinition>(initialDefinition);
   const [theme, setTheme] = useState<ThemeDefinition>(initialTheme);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
     initialDefinition.questions[0]?.id ?? null
   );
 
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(new Date());
-  const [conflictDetails, setConflictDetails] = useState<ConflictDetails | null>(null);
+  const { autosave, revision: draftRevision, status: saveStatus, lastSavedAt, conflict: conflictDetails } =
+    useDraftAutosave(formId, initialRevision, { definition, theme });
 
   const [activeMode, setActiveMode] = useState<"editor" | "preview">("editor");
   const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-
-  // Refs for tracking debounced saves and latest state
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isDirtyRef = useRef(false);
-  const isSavingRef = useRef(false);
-  const definitionRef = useRef(definition);
-  const themeRef = useRef(theme);
-  const revisionRef = useRef(draftRevision);
-
-  useEffect(() => {
-    definitionRef.current = definition;
-    themeRef.current = theme;
-    revisionRef.current = draftRevision;
-  }, [definition, theme, draftRevision]);
-
-  // Real autosave execution
-  const executeSave = useCallback(async () => {
-    if (isSavingRef.current || !isDirtyRef.current) return;
-
-    try {
-      isSavingRef.current = true;
-      setSaveStatus("saving");
-
-      const response = await fetch(`/api/admin/forms/${formId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expectedRevision: revisionRef.current,
-          definition: definitionRef.current,
-          theme: themeRef.current,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.status === 409) {
-        // Revision conflict occurred!
-        setSaveStatus("conflict");
-        setConflictDetails({
-          serverRevision: data.error?.details?.currentRevision ?? revisionRef.current + 1,
-          localRevision: revisionRef.current,
-          message: data.error?.message,
-        });
-        return;
-      }
-
-      if (!response.ok || !data.success) {
-        setSaveStatus("failed");
-        return;
-      }
-
-      // Success
-      isDirtyRef.current = false;
-      const nextRev = typeof data.revision === "number" ? data.revision : revisionRef.current + 1;
-      setDraftRevision(nextRev);
-      revisionRef.current = nextRev;
-      setSaveStatus("saved");
-      setLastSavedAt(new Date());
-      setConflictDetails(null);
-    } catch {
-      setSaveStatus("failed");
-    } finally {
-      isSavingRef.current = false;
-    }
-  }, [formId]);
-
-  // Trigger debounced autosave on edits
-  const scheduleAutosave = useCallback(() => {
-    isDirtyRef.current = true;
-    setSaveStatus("editing");
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      executeSave();
-    }, 800);
-  }, [executeSave]);
-
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
 
   // Question manipulation
   const selectQuestion = useCallback((id: string | null) => {
@@ -298,9 +101,8 @@ export function BuilderProvider({
         setSelectedQuestionId(newQ.id);
         return { ...prev, questions: nextQuestions };
       });
-      scheduleAutosave();
     },
-    [scheduleAutosave]
+    []
   );
 
   const updateQuestion = useCallback(
@@ -314,9 +116,8 @@ export function BuilderProvider({
         });
         return { ...prev, questions: nextQuestions };
       });
-      scheduleAutosave();
     },
-    [scheduleAutosave]
+    []
   );
 
   const duplicateQuestion = useCallback(
@@ -336,34 +137,25 @@ export function BuilderProvider({
         setSelectedQuestionId(newId);
         return { ...prev, questions: nextQuestions };
       });
-      scheduleAutosave();
     },
-    [scheduleAutosave]
+    []
   );
 
   const deleteQuestion = useCallback(
     (id: string) => {
       setDefinition((prev) => {
         const nextQuestions = prev.questions.filter((q) => q.id !== id);
-        // Clean up broken conditions if this was an upstream parent
-        const sanitizedQuestions = nextQuestions.map((q) => {
-          if (q.visibility?.parentQuestionId === id) {
-            return { ...q, visibility: null };
-          }
-          return q;
-        });
 
-        // Update selected question
+        // Update selected question if deleted question was selected
         if (selectedQuestionId === id) {
-          const nextSelected = sanitizedQuestions[0]?.id ?? null;
+          const nextSelected = nextQuestions[0]?.id ?? null;
           setSelectedQuestionId(nextSelected);
         }
 
-        return { ...prev, questions: sanitizedQuestions };
+        return { ...prev, questions: nextQuestions };
       });
-      scheduleAutosave();
     },
-    [selectedQuestionId, scheduleAutosave]
+    [selectedQuestionId]
   );
 
   const reorderQuestion = useCallback(
@@ -384,9 +176,8 @@ export function BuilderProvider({
 
         return { ...prev, questions: nextQuestions };
       });
-      scheduleAutosave();
     },
-    [scheduleAutosave]
+    []
   );
 
   const updateFormMeta = useCallback(
@@ -398,78 +189,51 @@ export function BuilderProvider({
         }
         return nextDef;
       });
-      scheduleAutosave();
     },
-    [scheduleAutosave]
+    []
   );
 
   const updateTheme = useCallback(
     (newTheme: ThemeDefinition) => {
       setTheme(newTheme);
-      scheduleAutosave();
     },
-    [scheduleAutosave]
+    []
   );
 
-  const saveNow = useCallback(async () => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    isDirtyRef.current = true;
-    await executeSave();
-  }, [executeSave]);
+  const saveNow = autosave.flush;
+  const saveForPublish = async () => await autosave.flush() ? autosave.getSnapshot().revision : null;
 
-  // Conflict resolution handlers
-  const resolveConflictReload = useCallback(async () => {
+  const resolveConflictReload = async () => {
     try {
-      setSaveStatus("saving");
-      const res = await fetch(`/api/admin/forms/${formId}`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setDefinition(data.definition);
-        setTheme(data.theme);
-        setDraftRevision(data.draft.revision);
-        revisionRef.current = data.draft.revision;
-        isDirtyRef.current = false;
-        setConflictDetails(null);
-        setSaveStatus("saved");
-      }
+      const data = await loadFormDraft(formId);
+      autosave.reset({ definition: data.definition, theme: data.theme }, data.draft.revision);
+      setDefinition(data.definition);
+      setTheme(data.theme);
+      setFormName(data.definition.title);
     } catch {
-      setSaveStatus("failed");
+      autosave.fail();
     }
-  }, [formId]);
+  };
 
-  const resolveConflictForce = useCallback(async () => {
-    if (!conflictDetails) return;
-    try {
-      setSaveStatus("saving");
-      // Force save using server revision as expectedRevision
-      const response = await fetch(`/api/admin/forms/${formId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expectedRevision: conflictDetails.serverRevision,
-          definition: definitionRef.current,
-          theme: themeRef.current,
-        }),
-      });
+  const resolveConflictForce = async () => {
+    if (conflictDetails) await autosave.forceSave(conflictDetails.serverRevision);
+  };
 
-      const data = await response.json();
-      if (response.ok && data.success) {
-        const nextRev = typeof data.revision === "number" ? data.revision : conflictDetails.serverRevision + 1;
-        setDraftRevision(nextRev);
-        revisionRef.current = nextRev;
-        isDirtyRef.current = false;
-        setConflictDetails(null);
-        setSaveStatus("saved");
-        setLastSavedAt(new Date());
-      } else {
-        setSaveStatus("failed");
+  // Warn on tab close or page reload when there are unsaved edits
+  const hasUnsavedChanges = saveStatus !== "saved";
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent): void => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
       }
-    } catch {
-      setSaveStatus("failed");
-    }
-  }, [formId, conflictDetails]);
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   // Validation errors for publish modal
   const publishValidationErrors = validateFormForPublish(definition).errors;
@@ -490,6 +254,7 @@ export function BuilderProvider({
         previewViewport,
         isPublishModalOpen,
         publishValidationErrors,
+        hasUnsavedChanges,
         selectQuestion,
         addQuestion,
         updateQuestion,
@@ -499,6 +264,7 @@ export function BuilderProvider({
         updateFormMeta,
         updateTheme,
         saveNow,
+        saveForPublish,
         resolveConflictReload,
         resolveConflictForce,
         setMode: setActiveMode,

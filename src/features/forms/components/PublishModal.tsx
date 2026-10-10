@@ -1,5 +1,11 @@
 "use client";
 
+import { Dialog } from "@/components/ui/dialog";
+import { apiErrorMessage } from "@/lib/http/api-client";
+import { publishForm } from "../client/forms-api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { useState } from "react";
 import { useBuilder } from "../context/builder-context";
 import {
@@ -10,11 +16,17 @@ import {
 } from "@/components/ui/icons";
 
 export function PublishModal() {
+  const { isPublishModalOpen } = useBuilder();
+  return isPublishModalOpen ? <PublishDialog /> : null;
+}
+
+function PublishDialog() {
   const {
     formId,
     draftRevision,
+    saveForPublish,
+    resolveConflictReload,
     definition,
-    isPublishModalOpen,
     closePublishModal,
     publishValidationErrors,
     selectQuestion,
@@ -29,37 +41,30 @@ export function PublishModal() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  if (!isPublishModalOpen) return null;
+  const [operationId] = useState(() => crypto.randomUUID());
 
   const handlePublish = async () => {
     setIsPublishing(true);
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/forms/${formId}/publish`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expectedRevision: draftRevision,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setErrorMessage(
-          data.error?.message || "Failed to publish form draft. Please review validation errors."
-        );
+      const revision = await saveForPublish();
+      if (revision === null) {
+        setErrorMessage("Save the latest changes and resolve any draft conflict before publishing.");
         return;
       }
+      const data = await publishForm(formId, revision, operationId);
+      // Publication advances the server draft revision. Synchronize before the
+      // editor resumes so its next save uses the acknowledged revision.
+      await resolveConflictReload();
 
       setPublishResult({
         versionNumber: data.versionNumber,
         publicSlug: data.publicSlug,
         publicUrl: data.publicUrl,
       });
-    } catch {
-      setErrorMessage("Network error during publication. Please retry.");
+    } catch (error) {
+      setErrorMessage(apiErrorMessage(error, "Network error during publication. Please retry."));
     } finally {
       setIsPublishing(false);
     }
@@ -79,12 +84,11 @@ export function PublishModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full overflow-hidden p-6 space-y-4">
+    <Dialog open titleId="publish-title" onClose={isPublishing ? undefined : closePublishModal} className="space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-base font-bold text-gray-900">
+            <h2 id="publish-title" className="text-base font-bold text-gray-900">
               {publishResult ? "Form Published Successfully!" : "Publish Immutable Version"}
             </h2>
             <p className="text-xs text-gray-500 mt-1">
@@ -93,12 +97,14 @@ export function PublishModal() {
                 : "Creates an immutable snapshot of all questions and theme settings."}
             </p>
           </div>
-          <button
+          <Button
+            disabled={isPublishing}
             onClick={closePublishModal}
+            aria-label="Close publish dialog"
             className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
           >
             ✕
-          </button>
+          </Button>
         </div>
 
         {/* Branch 1: Published Success State */}
@@ -117,22 +123,23 @@ export function PublishModal() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
+              <label htmlFor="published-url" className="block text-xs font-semibold text-gray-700 mb-1">
                 Public Patient URL
               </label>
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="text"
                   readOnly
+                  id="published-url"
                   value={publishResult.publicUrl}
                   className="flex-1 text-xs bg-gray-50 border border-gray-300 rounded-lg p-2 font-mono text-gray-700"
                 />
-                <button
+                <Button
                   onClick={() => handleCopyUrl(publishResult.publicUrl)}
                   className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {copied ? "Copied!" : "Copy Link"}
-                </button>
+                </Button>
                 <a
                   href={publishResult.publicUrl}
                   target="_blank"
@@ -146,12 +153,13 @@ export function PublishModal() {
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button
+              <Button
+                disabled={isPublishing}
                 onClick={closePublishModal}
                 className="px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-xl hover:bg-black"
               >
                 Done
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -175,12 +183,12 @@ export function PublishModal() {
                     >
                       <span>• {err.issue}</span>
                       {err.questionId && (
-                        <button
+                        <Button
                           onClick={() => handleFixQuestion(err.questionId)}
                           className="text-[11px] font-semibold text-blue-600 hover:underline shrink-0"
                         >
                           Fix Field
-                        </button>
+                        </Button>
                       )}
                     </div>
                   ))}
@@ -213,27 +221,27 @@ export function PublishModal() {
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2">
-              <button
+              <Button
                 type="button"
+                disabled={isPublishing}
                 onClick={closePublishModal}
-                className="px-4 py-2 text-xs font-semibold border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50"
+                variant="secondary" className="py-2"
               >
                 Cancel
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 disabled={publishValidationErrors.length > 0 || isPublishing}
                 onClick={handlePublish}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm disabled:opacity-40 disabled:hover:bg-blue-600"
+                variant="primary" className="py-2"
               >
                 <SendIcon className="w-3.5 h-3.5" />
                 <span>{isPublishing ? "Publishing..." : "Confirm & Publish"}</span>
-              </button>
+              </Button>
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }

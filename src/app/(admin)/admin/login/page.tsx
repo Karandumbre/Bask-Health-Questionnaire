@@ -1,5 +1,9 @@
 "use client";
 
+import { apiRequest, apiErrorMessage, successSchema } from "@/lib/http/api-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { useState, type FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangleIcon } from "@/components/ui/icons";
@@ -20,25 +24,12 @@ function LoginForm() {
     setErrorMessage(null);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setErrorMessage(
-          data.error?.message || "Invalid credentials. Please verify your reviewer email and password."
-        );
-        return;
-      }
+      await apiRequest("/api/auth/login", successSchema, { method: "POST", json: { email, password } });
 
       router.push(nextUrl);
       router.refresh();
-    } catch {
-      setErrorMessage("Network error during authentication. Please retry.");
+    } catch (error) {
+      setErrorMessage(apiErrorMessage(error, "Network error during authentication. Please retry."));
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +44,7 @@ function LoginForm() {
         >
           Reviewer Email
         </label>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
@@ -62,7 +53,7 @@ function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="reviewer@baskhealth.com"
-          className="w-full text-xs border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+
         />
       </div>
 
@@ -73,7 +64,7 @@ function LoginForm() {
         >
           Password
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
@@ -82,7 +73,7 @@ function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••••"
-          className="w-full text-xs border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+
         />
       </div>
 
@@ -94,13 +85,13 @@ function LoginForm() {
       )}
 
       <div>
-        <button
+        <Button
           type="submit"
           disabled={isLoading}
-          className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-xs text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+          variant="primary" className="w-full"
         >
           {isLoading ? "Signing in..." : "Sign in to Intake Studio"}
-        </button>
+        </Button>
       </div>
     </form>
   );
