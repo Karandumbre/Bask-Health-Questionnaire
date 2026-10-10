@@ -1,5 +1,6 @@
 import { useId, memo } from "react";
 import type { Question } from "@/features/forms/domain/types";
+import type { CanonicalAnswer } from "@/features/patients/domain/types";
 import { AlertTriangleIcon } from "@/components/ui/icons";
 import {
   QuestionControl,
@@ -9,8 +10,8 @@ import {
 interface PatientQuestionFieldProps {
   question: Question;
   index: number;
-  value: unknown;
-  onChange: (value: unknown) => void;
+  value: CanonicalAnswer | undefined;
+  onChange: (value: CanonicalAnswer | undefined) => void;
   error?: string;
   disabled?: boolean;
 }
@@ -29,12 +30,10 @@ export const PatientQuestionField = memo(function PatientQuestionField({
   const descId = `patient-desc-${question.id}-${generatedId}`;
 
   const hasError = Boolean(error);
-  const describedBy = getFieldDescribedBy({
-    descriptionId: descId,
-    errorId,
-    hasDescription: Boolean(question.description),
-    hasError,
-  });
+  const describedBy = getFieldDescribedBy(
+    question.description ? descId : undefined,
+    hasError ? errorId : undefined,
+  );
 
   return (
     <div

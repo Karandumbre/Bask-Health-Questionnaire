@@ -21,7 +21,6 @@ export interface ChoiceGroupProps {
   ariaDescribedBy?: string;
   ariaInvalid?: boolean;
   className?: string;
-  optionsClassName?: string;
 }
 
 export function ChoiceGroup({
@@ -38,7 +37,6 @@ export function ChoiceGroup({
   ariaDescribedBy,
   ariaInvalid,
   className,
-  optionsClassName,
 }: ChoiceGroupProps) {
   const isMulti = type === "multi";
   const selectedList =
@@ -81,7 +79,7 @@ export function ChoiceGroup({
         </legend>
       )}
 
-      <div className={twMerge("space-y-2", optionsClassName)}>
+      <div className="space-y-2">
         {options.map((opt) => {
           const isSelected = isMulti
             ? selectedList.includes(opt.id)

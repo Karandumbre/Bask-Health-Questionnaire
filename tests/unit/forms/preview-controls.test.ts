@@ -3,8 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Select } from "@/components/ui/input";
 import { QuestionInput } from "@/features/forms/components/QuestionInput";
+import { getFieldDescribedBy } from "@/features/forms/components/QuestionControl";
 import { PatientQuestionField } from "@/features/patients/components/PatientQuestionField";
+import { RecoveryCodeModal } from "@/features/patients/components/RecoveryCodeModal";
 import { isQuestionAnswered } from "@/features/patients/domain/validation";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { Question } from "@/features/forms/domain/types";
 
 describe("Preview controls", () => {
@@ -222,6 +225,72 @@ describe("Preview controls", () => {
       // Next Required navigation properly surfaces missing consent
       expect(unansweredRequired).toHaveLength(1);
       expect(unansweredRequired[0]?.id).toBe("q_consent");
+    });
+
+    it("simplified getFieldDescribedBy handles combinations of IDs directly", () => {
+      expect(getFieldDescribedBy("desc-1", "err-1")).toBe("desc-1 err-1");
+      expect(getFieldDescribedBy("desc-1", undefined)).toBe("desc-1");
+      expect(getFieldDescribedBy(undefined, "err-1")).toBe("err-1");
+      expect(getFieldDescribedBy(undefined, undefined)).toBeUndefined();
+      expect(getFieldDescribedBy(false, null)).toBeUndefined();
+    });
+
+    it("RecoveryCodeModal displays save error banner when saveError is provided", () => {
+      const htmlWithError = renderToStaticMarkup(
+        createElement(RecoveryCodeModal, {
+          recoveryCode: "REC-123",
+          isOpen: true,
+          onClose: () => {},
+          saveError: APP_MESSAGES.INTAKE_SAVE_FAILED,
+        }),
+      );
+      expect(htmlWithError).toContain(APP_MESSAGES.INTAKE_SAVE_FAILED);
+
+      const htmlWithoutError = renderToStaticMarkup(
+        createElement(RecoveryCodeModal, {
+          recoveryCode: "REC-123",
+          isOpen: true,
+          onClose: () => {},
+          saveError: null,
+        }),
+      );
+      expect(htmlWithoutError).not.toContain(APP_MESSAGES.INTAKE_SAVE_FAILED);
+    });
+
+    it("PatientQuestionField keeps fields editable during recoverable errors but disables on conflict/submission", () => {
+      const question: Question = {
+        id: "q_age",
+        type: "number",
+        label: "Age",
+        required: true,
+        visibility: null,
+      };
+
+      // Recoverable failure: disabled is false, input must NOT have disabled attribute so patient can correct it
+      const editableHtml = renderToStaticMarkup(
+        createElement(PatientQuestionField, {
+          question,
+          index: 0,
+          value: 101,
+          onChange: () => {},
+          error: "Number cannot exceed 100",
+          disabled: false,
+        }),
+      );
+      expect(editableHtml).toContain('value="101"');
+      expect(editableHtml).not.toMatch(/\sdisabled([=>\s])/i);
+
+      // Conflict or session submission: disabled is true, input MUST have disabled attribute
+      const disabledHtml = renderToStaticMarkup(
+        createElement(PatientQuestionField, {
+          question,
+          index: 0,
+          value: 101,
+          onChange: () => {},
+          disabled: true,
+        }),
+      );
+      expect(disabledHtml).toMatch(/\sdisabled([=>\s])/i);
     });
   });
 });

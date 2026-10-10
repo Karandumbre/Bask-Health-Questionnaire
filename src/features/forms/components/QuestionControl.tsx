@@ -6,12 +6,13 @@ import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import { Input, Textarea } from "@/components/ui/input";
 import { ChoiceGroup } from "@/components/ui/choice-group";
 import type { Question } from "../domain/types";
+import type { CanonicalAnswer } from "@/features/patients/domain/types";
 
 export interface QuestionControlProps {
   question: Question;
   id: string;
-  value: unknown;
-  onChange: (value: unknown) => void;
+  value: CanonicalAnswer | undefined;
+  onChange: (value: CanonicalAnswer | undefined) => void;
   error?: string;
   disabled?: boolean;
   ariaDescribedBy?: string;
@@ -21,28 +22,17 @@ export interface QuestionControlProps {
   legend?: ReactNode;
   legendSrOnly?: boolean;
   checkboxLabel?: ReactNode;
-  checkboxLabelClassName?: string;
 }
 
 /**
  * Calculates combined aria-describedby ensuring assistive technology
  * does not drop field help text when validation errors appear.
  */
-export function getFieldDescribedBy({
-  descriptionId,
-  errorId,
-  hasDescription,
-  hasError,
-}: {
-  descriptionId?: string;
-  errorId?: string;
-  hasDescription?: boolean;
-  hasError?: boolean;
-}): string | undefined {
-  const ids: string[] = [];
-  if (hasDescription && descriptionId) ids.push(descriptionId);
-  if (hasError && errorId) ids.push(errorId);
-  return ids.length > 0 ? ids.join(" ") : undefined;
+export function getFieldDescribedBy(
+  ...ids: (string | undefined | null | false)[]
+): string | undefined {
+  const valid = ids.filter(Boolean) as string[];
+  return valid.length > 0 ? valid.join(" ") : undefined;
 }
 
 export function QuestionControl({
@@ -59,7 +49,6 @@ export function QuestionControl({
   legend,
   legendSrOnly = true,
   checkboxLabel,
-  checkboxLabelClassName,
 }: QuestionControlProps) {
   const hasError = Boolean(error);
   const baseInputClass = twMerge(
@@ -173,7 +162,6 @@ export function QuestionControl({
           className={twMerge(
             "flex items-start gap-3 text-xs sm:text-sm font-medium text-intake-text-primary cursor-pointer min-h-touch-target",
             disabled && "opacity-50 cursor-not-allowed",
-            checkboxLabelClassName,
           )}
         >
           <Input

@@ -7,11 +7,8 @@ export interface FormFieldProps {
   description?: ReactNode;
   error?: ReactNode;
   required?: boolean;
-  srOnlyLabel?: boolean;
   className?: string;
   labelClassName?: string;
-  helpClassName?: string;
-  errorClassName?: string;
   children: ReactNode;
 }
 
@@ -21,40 +18,27 @@ export function FormField({
   description,
   error,
   required,
-  srOnlyLabel = false,
   className,
   labelClassName,
-  helpClassName,
-  errorClassName,
   children,
 }: FormFieldProps) {
   return (
     <div className={twMerge("space-y-1.5", className)}>
       <label
         htmlFor={id}
-        className={twMerge(
-          srOnlyLabel ? "sr-only" : "block text-xs font-semibold",
-          labelClassName,
-        )}
+        className={twMerge("block text-xs font-semibold", labelClassName)}
       >
         {label}
         {required && <span className="ml-1 text-red-600">*</span>}
       </label>
       {description && (
-        <p
-          id={`${id}-help`}
-          className={twMerge("text-xs opacity-80", helpClassName)}
-        >
+        <p id={`${id}-help`} className="text-xs opacity-80">
           {description}
         </p>
       )}
       {children}
       {error && (
-        <p
-          id={`${id}-error`}
-          role="alert"
-          className={twMerge("text-xs text-red-600", errorClassName)}
-        >
+        <p id={`${id}-error`} role="alert" className="text-xs text-red-600">
           {error}
         </p>
       )}

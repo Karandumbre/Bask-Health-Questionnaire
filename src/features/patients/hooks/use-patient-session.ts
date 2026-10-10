@@ -86,6 +86,8 @@ export function usePatientSession(initialSlug: string) {
 
   const completed = sessionCompleted || progressSessionCompleted;
   const accessEnded = sessionEnded || progressSessionEnded || completed;
+  const isConflict = progressState?.status === "conflict" || hasConflict();
+  const saveErrorMessage = progressState?.errorMessage ?? null;
 
   const saveStatus: "idle" | "saving" | "saved" | "error" = progressSessionEnded
     ? "idle"
@@ -238,18 +240,18 @@ export function usePatientSession(initialSlug: string) {
   }, [initialSlug, loadAttempt, adoptActiveSession, showCompletedSession]);
 
   const handleAnswerChange = useCallback(
-    (questionId: string, value: unknown) => {
+    (questionId: string, value: CanonicalAnswer | undefined) => {
       if (
         !form ||
         submitBusy.current ||
         accessEnded ||
-        progressState?.status === "conflict"
+        isConflict
       )
         return;
 
       const updated = { ...answersRef.current };
       if (value === undefined || value === null) delete updated[questionId];
-      else updated[questionId] = value as CanonicalAnswer;
+      else updated[questionId] = value;
 
       const next = pruneHiddenAnswers(updated, form.definition.questions);
       answersRef.current = next;
@@ -261,10 +263,10 @@ export function usePatientSession(initialSlug: string) {
         return copy;
       });
     },
-    [form, updateProgress, progressState?.status, accessEnded],
+    [form, updateProgress, isConflict, accessEnded],
   );
 
-  const handleSaveProgress = useCallback(async () => {
+  const handleSaveProgress = async () => {
     if (saveBusy.current || submitBusy.current || accessEnded) return;
     saveBusy.current = true;
     setIsSavingProgress(true);
@@ -274,103 +276,86 @@ export function usePatientSession(initialSlug: string) {
       saveBusy.current = false;
       setIsSavingProgress(false);
     }
-  }, [accessEnded, saveProgressNow]);
+  };
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (
-        !form ||
-        submitBusy.current ||
-        accessEnded ||
-        progressState?.status === "conflict"
-      )
-        return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !form ||
+      submitBusy.current ||
+      accessEnded ||
+      isConflict
+    )
+      return;
 
-      const validation = validateSessionSubmission(
-        answers,
-        form.definition.questions,
-      );
-
-      if (!validation.valid) {
-        const errMap = validationErrorsToMap(validation.errors);
-        setFieldErrors(errMap);
-        setSubmitError(APP_MESSAGES.INTAKE_VALIDATION_FAILED);
-
-        const firstErrorQuestionId = validation.errors[0]?.questionId;
-        if (firstErrorQuestionId) {
-          focusQuestion(firstErrorQuestionId);
-        }
-        return;
-      }
-
-      submitBusy.current = true;
-      setIsSubmitting(true);
-      setSubmitError(null);
-
-      try {
-        await saveProgressNow();
-        if (hasSessionEnded() || hasSessionCompleted()) return;
-        if (hasConflict()) {
-          setSubmitError(APP_MESSAGES.INTAKE_CONFLICT);
-          return;
-        }
-
-        const response = await submitPatientSession(
-          activeSlug,
-          validation.sanitizedAnswers,
-        );
-        pauseProgress();
-        setSubmissionResult({
-          submissionId: response.data.submissionId,
-          submittedAt: response.data.submittedAt,
-          isIdempotentReplay: response.data.isIdempotentReplay,
-        });
-      } catch (err) {
-        if (err instanceof ApiError && err.code === "SESSION_COMPLETED") {
-          pauseProgress();
-          setSessionCompleted(true);
-          return;
-        }
-        if (isPatientSessionEnded(err)) {
-          pauseProgress();
-          setSessionEnded(true);
-        }
-        setFieldErrors(apiAnswerErrors(err));
-        setSubmitError(apiErrorMessage(err, APP_MESSAGES.INTAKE_SUBMIT_FAILED));
-      } finally {
-        submitBusy.current = false;
-        setIsSubmitting(false);
-      }
-    },
-    [
-      form,
+    const validation = validateSessionSubmission(
       answers,
-      accessEnded,
-      progressState?.status,
-      saveProgressNow,
-      hasSessionEnded,
-      hasSessionCompleted,
-      hasConflict,
-      activeSlug,
-      pauseProgress,
-    ],
-  );
+      form.definition.questions,
+    );
 
-  const handleResumeSuccess = useCallback(
-    (data: ResumeSessionData) => {
-      if (data.publicSlug && data.publicSlug !== activeSlug) {
-        setActiveSlug(data.publicSlug);
-        if (typeof window !== "undefined" && window.history?.replaceState) {
-          window.history.replaceState(null, "", `/intake/${data.publicSlug}`);
-        }
+    if (!validation.valid) {
+      const errMap = validationErrorsToMap(validation.errors);
+      setFieldErrors(errMap);
+      setSubmitError(APP_MESSAGES.INTAKE_VALIDATION_FAILED);
+
+      const firstErrorQuestionId = validation.errors[0]?.questionId;
+      if (firstErrorQuestionId) {
+        focusQuestion(firstErrorQuestionId);
       }
-      adoptActiveSession(data, { recoveryCode: data.newRecoveryCode });
-    },
-    [activeSlug, adoptActiveSession],
-  );
+      return;
+    }
 
-  const handleStartNewSession = useCallback(async () => {
+    submitBusy.current = true;
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await saveProgressNow();
+      if (hasSessionEnded() || hasSessionCompleted()) return;
+      if (isConflict) {
+        setSubmitError(APP_MESSAGES.INTAKE_CONFLICT);
+        return;
+      }
+
+      const response = await submitPatientSession(
+        activeSlug,
+        validation.sanitizedAnswers,
+      );
+      pauseProgress();
+      setSubmissionResult({
+        submissionId: response.data.submissionId,
+        submittedAt: response.data.submittedAt,
+        isIdempotentReplay: response.data.isIdempotentReplay,
+      });
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "SESSION_COMPLETED") {
+        pauseProgress();
+        setSessionCompleted(true);
+        return;
+      }
+      if (isPatientSessionEnded(err)) {
+        pauseProgress();
+        setSessionEnded(true);
+      }
+      setFieldErrors(apiAnswerErrors(err));
+      setSubmitError(apiErrorMessage(err, APP_MESSAGES.INTAKE_SUBMIT_FAILED));
+    } finally {
+      submitBusy.current = false;
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResumeSuccess = (data: ResumeSessionData) => {
+    if (data.publicSlug && data.publicSlug !== activeSlug) {
+      setActiveSlug(data.publicSlug);
+      if (typeof window !== "undefined" && window.history?.replaceState) {
+        window.history.replaceState(null, "", `/intake/${data.publicSlug}`);
+      }
+    }
+    adoptActiveSession(data, { recoveryCode: data.newRecoveryCode });
+  };
+
+  const handleStartNewSession = async () => {
     if (isStartingSession) return;
     setIsStartingSession(true);
     setSubmitError(null);
@@ -384,7 +369,7 @@ export function usePatientSession(initialSlug: string) {
     } finally {
       setIsStartingSession(false);
     }
-  }, [isStartingSession, activeSlug, adoptActiveSession]);
+  };
 
   const progressFieldErrors = useMemo(
     () =>
@@ -416,6 +401,8 @@ export function usePatientSession(initialSlug: string) {
     isSavingProgress,
     submissionResult,
     saveStatus,
+    isConflict,
+    saveErrorMessage,
     saveFieldErrors,
     progressFieldErrors,
     showRecoveryModal,

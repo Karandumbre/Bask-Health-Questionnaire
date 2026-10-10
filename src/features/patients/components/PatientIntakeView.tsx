@@ -39,6 +39,8 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     isSavingProgress,
     submissionResult,
     saveStatus,
+    isConflict,
+    saveErrorMessage,
     saveFieldErrors,
     progressFieldErrors,
     showRecoveryModal,
@@ -241,17 +243,30 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           </section>
         )}
 
-        {!accessEnded && (saveStatus === "error" || isSavingProgress) && (
-          <Button
-            variant="secondary"
-            loading={isSavingProgress}
-            loadingLabel={APP_MESSAGES.SAVING}
-            disabled={Object.keys(progressFieldErrors).length > 0}
-            onClick={() => void handleSaveProgress()}
-          >
-            {APP_MESSAGES.RETRY_SAVE}
-          </Button>
+        {!accessEnded && saveErrorMessage && (
+          <Alert>
+            {isConflict
+              ? APP_MESSAGES.INTAKE_CONFLICT
+              : Object.keys(progressFieldErrors).length ||
+                  Object.keys(saveFieldErrors).length
+                ? APP_MESSAGES.FIX_ANSWER_ERRORS
+                : `${saveErrorMessage} ${APP_MESSAGES.INTAKE_SAVE_FAILED}`}
+          </Alert>
         )}
+
+        {!accessEnded &&
+          !isConflict &&
+          (saveStatus === "error" || isSavingProgress) && (
+            <Button
+              variant="secondary"
+              loading={isSavingProgress}
+              loadingLabel={APP_MESSAGES.SAVING}
+              disabled={Object.keys(progressFieldErrors).length > 0}
+              onClick={() => void handleSaveProgress()}
+            >
+              {APP_MESSAGES.RETRY_SAVE}
+            </Button>
+          )}
 
         {/* Global Submit Error Banner */}
         {submitError && <Alert>{submitError}</Alert>}
@@ -275,7 +290,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
                   fieldErrors[q.id] ??
                   saveFieldErrors[q.id]
                 }
-                disabled={isSubmitting || accessEnded || saveStatus === "error"}
+                disabled={isSubmitting || accessEnded || isConflict}
               />
             ))
           )}
@@ -287,7 +302,10 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               loading={isSubmitting}
               loadingLabel={APP_MESSAGES.SUBMITTING}
               disabled={
-                isSubmitting || accessEnded || visibleQuestions.length === 0
+                isSubmitting ||
+                accessEnded ||
+                isConflict ||
+                visibleQuestions.length === 0
               }
               className="w-full sm:w-auto px-8 py-3 text-sm font-semibold rounded-xl shadow-xs bg-intake-primary-action text-intake-primary-action-fg hover:bg-intake-primary-action-hover cursor-pointer"
             >
@@ -310,7 +328,9 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       <RecoveryCodeModal
         recoveryCode={recoveryCode ?? ""}
         saving={isSavingProgress}
-        saveError={null}
+        saveError={
+          saveErrorMessage ? APP_MESSAGES.INTAKE_SAVE_FAILED : null
+        }
         isOpen={showRecoveryModal}
         onClose={() => setShowRecoveryModal(false)}
       />

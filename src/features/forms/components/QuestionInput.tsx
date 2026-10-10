@@ -23,12 +23,7 @@ export function QuestionInput({
   const id = `preview-${q.id}`;
   const helpId = q.description ? `${id}-help` : undefined;
   const errorId = error ? `${id}-error` : undefined;
-  const describedBy = getFieldDescribedBy({
-    descriptionId: helpId,
-    errorId,
-    hasDescription: Boolean(q.description),
-    hasError: Boolean(error),
-  });
+  const describedBy = getFieldDescribedBy(helpId, errorId);
 
   return (
     <div
@@ -45,9 +40,7 @@ export function QuestionInput({
             question={q}
             id={id}
             value={value}
-            onChange={(val) =>
-              onAnswerChange(q.id, val as CanonicalAnswer | undefined)
-            }
+            onChange={(val) => onAnswerChange(q.id, val)}
             error={error}
             ariaDescribedBy={describedBy}
             legend={q.label}
@@ -65,9 +58,7 @@ export function QuestionInput({
             question={q}
             id={id}
             value={value}
-            onChange={(val) =>
-              onAnswerChange(q.id, val as CanonicalAnswer | undefined)
-            }
+            onChange={(val) => onAnswerChange(q.id, val)}
             error={error}
             ariaDescribedBy={describedBy}
           />
@@ -88,9 +79,7 @@ export function QuestionInput({
             question={q}
             id={id}
             value={value}
-            onChange={(val) =>
-              onAnswerChange(q.id, val as CanonicalAnswer | undefined)
-            }
+            onChange={(val) => onAnswerChange(q.id, val)}
             error={error}
             ariaDescribedBy={describedBy}
           />
