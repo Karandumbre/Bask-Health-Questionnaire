@@ -27,7 +27,7 @@ import {
 } from "../domain/question-operations";
 import type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 
-export interface BuilderContextType {
+interface BuilderContextType {
   formId: string;
   formName: string;
   draftRevision: number;

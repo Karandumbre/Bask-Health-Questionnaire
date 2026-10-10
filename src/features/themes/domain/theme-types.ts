@@ -5,7 +5,7 @@ import { z } from "zod";
  * Granular design tokens for a single theme mode (light or dark).
  * Provides unambiguous contrast for backgrounds, surfaces, text, actions, and states.
  */
-export const ThemeModeTokensSchema = z.object({
+const ThemeModeTokensSchema = z.object({
   // Backgrounds & Surfaces
   background: z.string(),
   surface: z.string(),

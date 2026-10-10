@@ -8,7 +8,6 @@ const OptionSchema = z.object({
   id: z.string().min(1, APP_MESSAGES.OPTION_ID_MUST_NOT_BE_EMPTY),
   label: z.string(),
 });
-export type Option = z.infer<typeof OptionSchema>;
 
 /**
  * Visibility Condition:
@@ -18,7 +17,6 @@ const VisibilityConditionSchema = z.object({
   parentQuestionId: z.string(),
   equalsOptionId: z.string(),
 });
-export type VisibilityCondition = z.infer<typeof VisibilityConditionSchema>;
 
 /**
  * Validation constraints for text fields.
@@ -27,7 +25,6 @@ const TextValidationSchema = z.object({
   minLength: z.number().int().min(0).optional(),
   maxLength: z.number().int().min(0).optional(),
 });
-export type TextValidation = z.infer<typeof TextValidationSchema>;
 
 /**
  * Validation constraints for numeric fields.
@@ -37,7 +34,6 @@ const NumberValidationSchema = z.object({
   max: z.number().optional(),
   integerOnly: z.boolean().optional(),
 });
-export type NumberValidation = z.infer<typeof NumberValidationSchema>;
 
 /**
  * Base Question properties shared across all types.
@@ -89,12 +85,11 @@ export type MultiSelectQuestion = z.infer<typeof MultiSelectQuestionSchema>;
 const CheckboxQuestionSchema = BaseQuestionSchema.extend({
   type: z.literal("checkbox"),
 });
-export type CheckboxQuestion = z.infer<typeof CheckboxQuestionSchema>;
 
 /**
  * Discriminated Union of all Question types.
  */
-export const QuestionSchema = z.discriminatedUnion("type", [
+const QuestionSchema = z.discriminatedUnion("type", [
   ShortTextQuestionSchema,
   LongTextQuestionSchema,
   NumberQuestionSchema,

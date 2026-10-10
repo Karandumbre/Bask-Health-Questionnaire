@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { Input } from "./input";
 import { twMerge } from "tailwind-merge";
 
-export interface ChoiceOption {
+interface ChoiceOption {
   id: string;
   label: string;
 }

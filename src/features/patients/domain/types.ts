@@ -1,4 +1,3 @@
-import { APP_MESSAGES } from "@/lib/constants/messages";
 import { z } from "zod";
 
 /**
@@ -9,7 +8,7 @@ import { z } from "zod";
  * - multi_select: string[] (array of optionIds)
  * - checkbox: boolean
  */
-export const CanonicalAnswerSchema = z.union([
+const CanonicalAnswerSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
@@ -17,36 +16,5 @@ export const CanonicalAnswerSchema = z.union([
 ]);
 export type CanonicalAnswer = z.infer<typeof CanonicalAnswerSchema>;
 
-/**
- * Keyed by stable questionId.
- */
 export const PatientAnswersSchema = z.record(z.string(), CanonicalAnswerSchema);
 export type PatientAnswers = z.infer<typeof PatientAnswersSchema>;
-
-/**
- * Patient progress save request payload.
- */
-const ProgressSavePayloadSchema = z.object({
-  expectedSessionRevision: z.number().int().min(0),
-  answers: PatientAnswersSchema,
-});
-export type ProgressSavePayload = z.infer<typeof ProgressSavePayloadSchema>;
-
-/**
- * Patient final submission payload.
- */
-const SubmissionPayloadSchema = z.object({
-  answers: PatientAnswersSchema,
-});
-export type SubmissionPayload = z.infer<typeof SubmissionPayloadSchema>;
-
-/**
- * Session verification payload for resume.
- */
-const ResumeSessionPayloadSchema = z.object({
-  sessionReference: z
-    .string()
-    .min(1, APP_MESSAGES.SESSION_REFERENCE_IS_REQUIRED),
-  recoveryCode: z.string().min(1, APP_MESSAGES.RECOVERY_CODE_IS_REQUIRED),
-});
-export type ResumeSessionPayload = z.infer<typeof ResumeSessionPayloadSchema>;

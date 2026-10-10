@@ -1,7 +1,7 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { FormDefinition, Question, ThemeDefinition } from "./types";
 
-export type ConflictType =
+type ConflictType =
   | "property_collision"
   | "choice_collision"
   | "delete_vs_modify"
@@ -10,13 +10,13 @@ export type ConflictType =
   | "theme_collision"
   | "metadata_collision";
 
-export interface ConflictResolutionOption {
+interface ConflictResolutionOption {
   key: "local" | "server";
   label: string;
   value: unknown;
 }
 
-export interface ThreeWayConflict {
+interface ThreeWayConflict {
   id: string;
   type: ConflictType;
   questionId?: string;
