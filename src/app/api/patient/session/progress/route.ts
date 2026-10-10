@@ -7,6 +7,8 @@ import { savePatientProgress } from "@/features/patients/server/session-service"
 import {
   getSessionCookieName,
   parseSessionCookie,
+  clearSessionCapabilityCookie,
+  isSessionAccessError,
 } from "@/features/patients/server/patient-cookies";
 import { AppError } from "@/lib/errors";
 import type { PatientAnswers } from "@/features/patients/domain/types";
@@ -22,9 +24,11 @@ const saveProgressSchema = z.object({
  * Saves in-progress patient intake answers with revision protection and hidden answer pruning.
  */
 export async function PUT(request: NextRequest) {
+  let publicSlug: string | undefined;
   try {
     verifyRequestOrigin(request);
     const body = await parseRequestJson(request, saveProgressSchema);
+    publicSlug = body.publicSlug;
 
     const cookieName = getSessionCookieName(body.publicSlug);
     const cookieValue = request.cookies.get(cookieName)?.value;
@@ -51,6 +55,10 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    return handleRouteError(error);
+    const response = handleRouteError(error);
+    if (publicSlug && isSessionAccessError(error)) {
+      clearSessionCapabilityCookie(response, publicSlug);
+    }
+    return response;
   }
 }

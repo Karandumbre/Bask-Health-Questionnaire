@@ -1,11 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, type NextResponse } from "next/server";
 import { GET as getSessionHandler } from "@/app/api/patient/forms/[slug]/session/route";
 import { AppError } from "@/lib/errors";
 
 const mockAuthenticate = vi.fn();
 const mockParseCookie = vi.fn();
 const mockDbSelect = vi.fn();
+const mockClearCookie = vi.fn((response: NextResponse, slug: string) => {
+  response.cookies.delete(`bask_session_${slug}`);
+});
 
 vi.mock("@/features/patients/server/session-service", () => ({
   authenticatePatientSession: (...args: unknown[]) => mockAuthenticate(...args),
@@ -16,6 +19,11 @@ vi.mock("@/features/patients/server/patient-cookies", () => ({
   getSessionCookieName: (slug: string) => `bask_session_${slug}`,
   parseSessionCookie: (...args: unknown[]) => mockParseCookie(...args),
   setSessionCapabilityCookie: vi.fn(),
+  clearSessionCapabilityCookie: (response: NextResponse, slug: string) =>
+    mockClearCookie(response, slug),
+  isSessionAccessError: (error: unknown) =>
+    error instanceof AppError &&
+    ["SESSION_UNAUTHORIZED", "SESSION_EXPIRED"].includes(error.code),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -71,6 +79,28 @@ describe("Patient Session Inspection Route (GET)", () => {
     expect(json.data.active).toBe(false);
   });
 
+  it("clears expired credentials and marks the session ended", async () => {
+    mockParseCookie.mockReturnValueOnce({
+      sessionId: "s_1",
+      capabilityToken: "token_1",
+    });
+    mockAuthenticate.mockRejectedValueOnce(
+      new AppError("SESSION_EXPIRED", "Session expired", 410),
+    );
+    const response = await getSessionHandler(
+      createRequest("form-1", "s_1:token_1"),
+      { params: Promise.resolve({ slug: "form-1" }) },
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual({
+      active: false,
+      sessionEnded: true,
+    });
+    expect(response.headers.get("set-cookie")).toContain(
+      "bask_session_form-1=;",
+    );
+  });
+
   it("propagates unexpected database error as HTTP 500 without returning active: false", async () => {
     mockParseCookie.mockReturnValueOnce({
       sessionId: "s_1",
@@ -85,6 +115,7 @@ describe("Patient Session Inspection Route (GET)", () => {
       params: Promise.resolve({ slug: "form-1" }),
     });
     expect(res.status).toBe(500);
+    expect(mockClearCookie).not.toHaveBeenCalled();
     const json = await res.json();
     expect(json.success).toBe(false);
     expect(json.data).toBeUndefined();

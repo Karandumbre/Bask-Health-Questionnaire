@@ -9,6 +9,7 @@ import {
   getActiveSession,
   startPatientSession,
   submitPatientSession,
+  isPatientSessionEnded,
 } from "../client/patient-api";
 import { getVisibleQuestions, pruneHiddenAnswers } from "../domain/visibility";
 import {
@@ -59,9 +60,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     saveNow: saveProgressNow,
     pause: pauseProgress,
     hasConflict,
+    hasSessionEnded,
+    sessionEnded: progressSessionEnded,
   } = usePatientProgress(activeSlug);
-  const saveStatus =
-    progressState?.status === "saving"
+  const saveStatus = progressSessionEnded
+    ? "idle"
+    : progressState?.status === "saving"
       ? "saving"
       : progressState?.status === "saved"
         ? "saved"
@@ -69,6 +73,9 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
             progressState?.status === "conflict"
           ? "error"
           : "idle";
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const accessEnded = sessionEnded || progressSessionEnded;
+  const [isStartingSession, setIsStartingSession] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const submitBusy = useRef(false);
   const saveBusy = useRef(false);
@@ -117,7 +124,8 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               theme: sessionRes.data.theme,
             });
             setAnswers(sessionRes.data.currentAnswers as PatientAnswers);
-            answersRef.current = sessionRes.data.currentAnswers as PatientAnswers;
+            answersRef.current = sessionRes.data
+              .currentAnswers as PatientAnswers;
             setSubmissionResult({
               submissionId:
                 sessionRes.data.submission?.submissionId ??
@@ -146,6 +154,10 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           });
           setAnswers(sessionRes.data.currentAnswers as PatientAnswers);
         } else {
+          if (sessionRes.data.sessionEnded) {
+            setSessionEnded(true);
+            return;
+          }
           // Initialize fresh session
           const startRes = await startPatientSession(
             slug,
@@ -190,7 +202,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   // Keep answer updates outside React state updaters so replay cannot send writes.
   const handleAnswerChange = useCallback(
     (questionId: string, value: unknown) => {
-      if (!form || submitBusy.current || progressState?.status === "conflict")
+      if (
+        !form ||
+        submitBusy.current ||
+        accessEnded ||
+        progressState?.status === "conflict"
+      )
         return;
       const updated = { ...answersRef.current };
       if (value === undefined || value === null) delete updated[questionId];
@@ -205,11 +222,11 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         return copy;
       });
     },
-    [form, updateProgress, progressState?.status],
+    [form, updateProgress, progressState?.status, accessEnded],
   );
 
   const handleSaveProgress = async () => {
-    if (saveBusy.current || submitBusy.current) return;
+    if (saveBusy.current || submitBusy.current || accessEnded) return;
     saveBusy.current = true;
     setIsSavingProgress(true);
     try {
@@ -223,7 +240,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form || submitBusy.current || progressState?.status === "conflict")
+    if (
+      !form ||
+      submitBusy.current ||
+      accessEnded ||
+      progressState?.status === "conflict"
+    )
       return;
 
     // Validate submission client-side
@@ -260,6 +282,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       // Finish any in-flight write before final submission. A failed progress
       // save does not discard answers; the final endpoint validates them again.
       await saveProgressNow();
+      if (hasSessionEnded()) return;
       if (hasConflict()) {
         setSubmitError(APP_MESSAGES.INTAKE_CONFLICT);
         return;
@@ -275,6 +298,10 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         isIdempotentReplay: response.data.isIdempotentReplay,
       });
     } catch (err) {
+      if (isPatientSessionEnded(err)) {
+        pauseProgress();
+        setSessionEnded(true);
+      }
       setFieldErrors(apiAnswerErrors(err));
       setSubmitError(apiErrorMessage(err, APP_MESSAGES.INTAKE_SUBMIT_FAILED));
     } finally {
@@ -307,13 +334,36 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       definition: data.definition,
       theme: data.theme,
     });
+    setSessionEnded(false);
     setSessionReference(data.sessionReference);
     setRecoveryCode(data.newRecoveryCode);
     setAnswers(data.currentAnswers);
     answersRef.current = data.currentAnswers;
-    initializeProgress(data.currentAnswers, data.sessionRevision, data.publicSlug);
+    initializeProgress(
+      data.currentAnswers,
+      data.sessionRevision,
+      data.publicSlug,
+    );
     setFieldErrors({});
     setSubmitError(null);
+  };
+
+  const handleStartNewSession = async () => {
+    if (isStartingSession) return;
+    setIsStartingSession(true);
+    setSubmitError(null);
+    try {
+      const response = await startPatientSession(activeSlug);
+      handleResumeSuccess({
+        ...response.data,
+        currentAnswers: response.data.currentAnswers as PatientAnswers,
+        newRecoveryCode: response.data.recoveryCode,
+      });
+    } catch (error) {
+      setSubmitError(apiErrorMessage(error, APP_MESSAGES.INTAKE_LOAD_FAILED));
+    } finally {
+      setIsStartingSession(false);
+    }
   };
 
   const [patientThemeMode, setPatientThemeMode] = useState<"light" | "dark">(
@@ -446,7 +496,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         totalCount={visibleQuestions.length}
         saveStatus={saveStatus}
         saving={isSavingProgress}
-        disabled={isSubmitting || isSavingProgress}
+        disabled={isSubmitting || isSavingProgress || accessEnded}
         onSaveAndResume={() => {
           void handleSaveProgress();
           setShowRecoveryModal(true);
@@ -483,7 +533,35 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           )}
         </header>
 
-        {progressState?.errorMessage && (
+        {accessEnded && (
+          <section className="space-y-3" aria-labelledby="session-ended-title">
+            <Alert>
+              <h2 id="session-ended-title" className="font-semibold">
+                {APP_MESSAGES.INTAKE_SESSION_ENDED_TITLE}
+              </h2>
+              <p>{APP_MESSAGES.INTAKE_SESSION_ENDED_MESSAGE}</p>
+            </Alert>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="secondary"
+                disabled={isStartingSession}
+                onClick={() => setShowResumeModal(true)}
+              >
+                {APP_MESSAGES.RESUME_INTAKE}
+              </Button>
+              <Button
+                variant="primary"
+                loading={isStartingSession}
+                loadingLabel={APP_MESSAGES.STARTING_INTAKE}
+                onClick={() => void handleStartNewSession()}
+              >
+                {APP_MESSAGES.START_NEW_INTAKE}
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {!accessEnded && progressState?.errorMessage && (
           <Alert>
             {progressState.status === "conflict"
               ? APP_MESSAGES.INTAKE_CONFLICT
@@ -493,7 +571,8 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
                 : `${progressState.errorMessage} ${APP_MESSAGES.INTAKE_SAVE_FAILED}`}
           </Alert>
         )}
-        {(saveStatus === "error" || isSavingProgress) &&
+        {!accessEnded &&
+          (saveStatus === "error" || isSavingProgress) &&
           progressState?.status !== "conflict" && (
             <Button
               variant="secondary"
@@ -528,7 +607,11 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
                   fieldErrors[q.id] ??
                   saveFieldErrors[q.id]
                 }
-                disabled={isSubmitting || progressState?.status === "conflict"}
+                disabled={
+                  isSubmitting ||
+                  accessEnded ||
+                  progressState?.status === "conflict"
+                }
               />
             ))
           )}
@@ -541,6 +624,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               loadingLabel={APP_MESSAGES.SUBMITTING}
               disabled={
                 isSubmitting ||
+                accessEnded ||
                 progressState?.status === "conflict" ||
                 visibleQuestions.length === 0
               }

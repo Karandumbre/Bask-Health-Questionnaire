@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiRequest } from "@/lib/http/api-client";
+import { ApiError, apiRequest } from "@/lib/http/api-client";
 import {
   FormDefinitionSchema,
   ThemeDefinitionSchema,
@@ -22,6 +22,7 @@ export const activeSessionResponseSchema = z.object({
   data: z.discriminatedUnion("active", [
     z.object({
       active: z.literal(false),
+      sessionEnded: z.boolean().optional(),
     }),
     z.object({
       active: z.literal(true),
@@ -197,4 +198,12 @@ export function submitPatientSession(
     },
     signal,
   });
+}
+
+/** Session authorization failures end access; server/network failures remain retryable. */
+export function isPatientSessionEnded(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.code === "SESSION_EXPIRED" || error.code === "SESSION_UNAUTHORIZED")
+  );
 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AppError, ErrorCode } from "@/lib/errors";
 import { handleRouteError } from "@/lib/errors/route-handler";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import {
@@ -10,6 +9,8 @@ import {
   getSessionCookieName,
   parseSessionCookie,
   setSessionCapabilityCookie,
+  clearSessionCapabilityCookie,
+  isSessionAccessError,
 } from "@/features/patients/server/patient-cookies";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -36,10 +37,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const credentials = parseSessionCookie(cookieValue);
     if (!credentials) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
-        data: { active: false },
+        data: { active: false, sessionEnded: Boolean(cookieValue) },
       });
+      if (cookieValue) clearSessionCapabilityCookie(response, slug);
+      return response;
     }
 
     try {
@@ -62,7 +65,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         });
       }
 
-      let submissionInfo: { submissionId: string; submittedAt: string } | undefined;
+      let submissionInfo:
+        { submissionId: string; submittedAt: string } | undefined;
       if (session.status === "completed") {
         const [existingSubmission] = await db
           .select({ id: submissions.id, submittedAt: submissions.submittedAt })
@@ -94,19 +98,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
       });
     } catch (innerError) {
-      if (
-        innerError instanceof AppError &&
-        (innerError.status === 401 ||
-          innerError.status === 410 ||
-          innerError.code === ErrorCode.UNAUTHORIZED ||
-          innerError.code === ErrorCode.SESSION_UNAUTHORIZED ||
-          innerError.code === ErrorCode.SESSION_EXPIRED)
-      ) {
-        // Invalid or expired session cookie -> active: false
-        return NextResponse.json({
+      if (isSessionAccessError(innerError)) {
+        const response = NextResponse.json({
           success: true,
-          data: { active: false },
+          data: { active: false, sessionEnded: true },
         });
+        clearSessionCapabilityCookie(response, slug);
+        return response;
       }
       throw innerError;
     }

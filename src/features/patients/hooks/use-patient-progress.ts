@@ -7,7 +7,10 @@ import {
   type AutosaveState,
 } from "@/features/forms/client/draft-autosave";
 import { apiAnswerErrors } from "../client/answer-errors";
-import { savePatientProgress } from "../client/patient-api";
+import {
+  isPatientSessionEnded,
+  savePatientProgress,
+} from "../client/patient-api";
 import type { PatientAnswers } from "../domain/types";
 
 /** Use the same serialized, revision-aware saves as the editor. */
@@ -15,6 +18,8 @@ export function usePatientProgress(slug: string) {
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const sessionEndedRef = useRef(false);
   const slugRef = useRef(slug);
   useEffect(() => {
     slugRef.current = slug;
@@ -29,6 +34,8 @@ export function usePatientProgress(slug: string) {
         slugRef.current = overrideSlug;
       }
       const targetSlug = overrideSlug ?? slugRef.current;
+      sessionEndedRef.current = false;
+      setSessionEnded(false);
       setValidationErrors({});
       unsubscribe.current?.();
       controller.current?.pause();
@@ -46,7 +53,14 @@ export function usePatientProgress(slug: string) {
             if (!signal.aborted) setValidationErrors({});
             return response.data.sessionRevision;
           } catch (error) {
-            if (!signal.aborted) setValidationErrors(apiAnswerErrors(error));
+            if (!signal.aborted) {
+              setValidationErrors(apiAnswerErrors(error));
+              if (isPatientSessionEnded(error)) {
+                sessionEndedRef.current = true;
+                setSessionEnded(true);
+                next.pause();
+              }
+            }
             throw error;
           }
         },
@@ -77,14 +91,17 @@ export function usePatientProgress(slug: string) {
     () => controller.current?.getSnapshot().status === "conflict",
     [],
   );
+  const hasSessionEnded = useCallback(() => sessionEndedRef.current, []);
   const pause = useCallback(() => controller.current?.pause(), []);
   return {
     state,
     validationErrors,
+    sessionEnded,
     initialize,
     update,
     saveNow,
     pause,
     hasConflict,
+    hasSessionEnded,
   };
 }

@@ -1,5 +1,11 @@
 /** Shared application copy. Keep protocol identifiers and schema keys near their contracts. */
 export const APP_MESSAGES = {
+  INTAKE_SESSION_ENDED_TITLE: "Intake session ended",
+  INTAKE_SESSION_ENDED_MESSAGE:
+    "Your session has expired or is no longer authorized. Resume with your recovery code, or start a new intake. Any unsaved answers remain on this page until you start again.",
+  START_NEW_INTAKE: "Start new intake",
+  STARTING_INTAKE: "Starting intake...",
+  RESUME_INTAKE: "Resume intake",
   RECOVERY_CODE_UNAVAILABLE:
     "Use the recovery code you saved when this session was created. Saving progress does not issue a new code.",
   SHARE_PATIENT_LINK:

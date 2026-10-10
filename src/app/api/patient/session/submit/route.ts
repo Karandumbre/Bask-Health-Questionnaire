@@ -7,6 +7,8 @@ import { submitPatientSession } from "@/features/patients/server/submission-serv
 import {
   getSessionCookieName,
   parseSessionCookie,
+  clearSessionCapabilityCookie,
+  isSessionAccessError,
 } from "@/features/patients/server/patient-cookies";
 import { AppError } from "@/lib/errors";
 import type { PatientAnswers } from "@/features/patients/domain/types";
@@ -22,9 +24,11 @@ const submitSchema = z.object({
  * Returns existing confirmation on idempotent replays.
  */
 export async function POST(request: NextRequest) {
+  let publicSlug: string | undefined;
   try {
     verifyRequestOrigin(request);
     const body = await parseRequestJson(request, submitSchema);
+    publicSlug = body.publicSlug;
 
     const cookieName = getSessionCookieName(body.publicSlug);
     const cookieValue = request.cookies.get(cookieName)?.value;
@@ -53,6 +57,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    return handleRouteError(error);
+    const response = handleRouteError(error);
+    if (publicSlug && isSessionAccessError(error)) {
+      clearSessionCapabilityCookie(response, publicSlug);
+    }
+    return response;
   }
 }

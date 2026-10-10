@@ -1,5 +1,6 @@
 import { getRuntimeConfig, ENVIRONMENT_VALUES } from "@/lib/config/environment";
 import "server-only";
+import { AppError, ErrorCode } from "@/lib/errors";
 import type { NextResponse } from "next/server";
 
 export function getSessionCookieName(publicSlug: string): string {
@@ -51,4 +52,12 @@ export function clearSessionCapabilityCookie(
 ): void {
   const cookieName = getSessionCookieName(publicSlug);
   response.cookies.delete(cookieName);
+}
+
+export function isSessionAccessError(error: unknown): error is AppError {
+  return (
+    error instanceof AppError &&
+    (error.code === ErrorCode.SESSION_EXPIRED ||
+      error.code === ErrorCode.SESSION_UNAUTHORIZED)
+  );
 }
