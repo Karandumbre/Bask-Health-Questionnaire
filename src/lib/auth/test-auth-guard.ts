@@ -1,3 +1,5 @@
+import "server-only";
+import { z } from "zod";
 import crypto from "node:crypto";
 import type { VerifiedAuthUser } from "../supabase/server";
 
@@ -56,6 +58,8 @@ export interface TestUserPayload {
   email: string;
   issuedAt: number;
 }
+
+const payloadSchema = z.object({ id: z.string().uuid(), email: z.string().email(), issuedAt: z.number().int().positive() });
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -123,16 +127,14 @@ export function verifyTestAuthCookie(
   }
 
   try {
-    const payload = JSON.parse(
-      Buffer.from(data, "base64url").toString("utf8"),
-    ) as TestUserPayload;
+    const payload = payloadSchema.parse(JSON.parse(Buffer.from(data, "base64url").toString("utf8")));
 
     if (!payload.id || !UUID_REGEX.test(payload.id)) {
       return null;
     }
 
     // Tokens expire after 1 hour
-    if (Date.now() - payload.issuedAt > 3600 * 1000) {
+    if (payload.issuedAt > Date.now() || Date.now() - payload.issuedAt > 3600 * 1000) {
       return null;
     }
 
@@ -149,4 +151,11 @@ export function verifyTestAuthCookie(
   } catch {
     return null;
   }
+}
+
+export function authenticateTestReviewer(email: string, password: string) {
+  if (!isTestAuthPermitted() || email !== "reviewer@baskhealth.com" || password !== "ClinicalReview2026!") return null;
+  const user = { id: "a1111111-1111-4111-8111-111111111111", email };
+  const token = createTestAuthCookie(user);
+  return token ? { user, token } : null;
 }

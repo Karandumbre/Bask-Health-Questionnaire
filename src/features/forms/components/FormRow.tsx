@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckIcon, EditIcon, DeleteIcon } from "@/components/ui/icons";
 import type { useFormDashboard } from "../hooks/use-form-dashboard";
-import type { FormListItem } from "./FormDashboard";
+import type { FormListItem } from "../domain/dashboard-types";
 
 export function FormRow({
   form,

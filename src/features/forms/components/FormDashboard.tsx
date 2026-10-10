@@ -6,16 +6,8 @@ import { CreateFormDialog } from "./CreateFormDialog";
 import { FormRow } from "./FormRow";
 import { useFormDashboard } from "../hooks/use-form-dashboard";
 
-export interface FormListItem {
-  id: string;
-  name: string;
-  workspaceId: string;
-  latestPublishedVersionNumber: number | null;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  draftRevision: number | null;
-  draftUpdatedAt: string | Date | null;
-}
+import type { FormListItem } from "../domain/dashboard-types";
+export type { FormListItem } from "../domain/dashboard-types";
 
 export function FormDashboard({
   initialForms,
@@ -32,8 +24,8 @@ export function FormDashboard({
     searchQuery,
     setSearchQuery,
     isCreateModalOpen,
-    setIsCreateModalOpen,
-    setNewFormName,
+    openCreateDialog,
+    isMutating,
     errorMessage,
     handleLogout,
   } = model;
@@ -60,6 +52,7 @@ export function FormDashboard({
           </span>
           <Button
             onClick={handleLogout}
+            disabled={isMutating}
             className="text-xs text-gray-500 hover:text-gray-900 font-medium px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
           >
             Sign Out
@@ -81,10 +74,8 @@ export function FormDashboard({
           </div>
 
           <Button
-            onClick={() => {
-              setNewFormName("");
-              setIsCreateModalOpen(true);
-            }}
+            onClick={openCreateDialog}
+            disabled={isMutating}
             variant="primary"
             className="gap-2"
           >
@@ -125,7 +116,8 @@ export function FormDashboard({
               Get started by creating your first patient intake questionnaire.
             </p>
             <Button
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={openCreateDialog}
+              disabled={isMutating}
               className="text-xs font-semibold text-blue-600 hover:text-blue-700"
             >
               + Create Form Now

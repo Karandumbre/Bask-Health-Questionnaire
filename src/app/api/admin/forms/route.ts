@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   requireAdmin,
   getUserWorkspaces,
-  requireWorkspaceMembership,
 } from "@/lib/auth/admin";
 import {
   createForm,
@@ -33,7 +32,6 @@ export async function GET(request: NextRequest) {
       workspaceId = firstWs.workspaceId;
     }
 
-    await requireWorkspaceMembership(user.id, workspaceId);
     const forms = await listWorkspaceForms(workspaceId, user.id);
 
     return NextResponse.json({

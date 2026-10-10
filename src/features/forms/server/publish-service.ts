@@ -1,3 +1,4 @@
+import { lockActiveForm } from "./form-lock";
 import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import crypto from "node:crypto";
@@ -101,24 +102,7 @@ export async function publishForm(
     await tx.execute(
       sql`SELECT pg_advisory_xact_lock(hashtextextended(${operationId}, 1))`,
     );
-    // Lock the form container row
-    const [lockedForm] = await tx
-      .select()
-      .from(forms)
-      .where(eq(forms.id, formId))
-      .for("update")
-      .limit(1);
-
-    if (!lockedForm || lockedForm.archivedAt) {
-      throw new AppError(
-        "NOT_FOUND",
-        "Form not found or has been archived.",
-        404,
-        {
-          resourceType: "form",
-        },
-      );
-    }
+    const lockedForm = await lockActiveForm(tx, formId);
 
     const [replay] = await tx
       .select({

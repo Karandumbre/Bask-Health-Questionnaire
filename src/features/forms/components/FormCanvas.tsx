@@ -10,33 +10,14 @@ import { useState } from "react";
 import { useBuilder } from "../context/builder-context";
 import {
   getVisibleQuestions,
-  pruneHiddenAnswers,
 } from "@/features/patients/domain/visibility";
-import type {
-  PatientAnswers,
-  CanonicalAnswer,
-} from "@/features/patients/domain/types";
+import { usePreviewAnswers } from "../hooks/use-preview-answers";
 export function FormCanvas() {
   const { definition, theme, activeMode, previewViewport } = useBuilder();
 
   // Preview mode answers state
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
-  const [previewAnswers, setPreviewAnswers] = useState<PatientAnswers>({});
-
-  const handlePreviewAnswerChange = (
-    questionId: string,
-    val: CanonicalAnswer | undefined,
-  ) => {
-    setPreviewAnswers((prev) => {
-      const next: PatientAnswers = { ...prev };
-      if (val === undefined) {
-        delete next[questionId];
-      } else {
-        next[questionId] = val;
-      }
-      return pruneHiddenAnswers(next, definition.questions);
-    });
-  };
+  const { answers: previewAnswers, updateAnswer: handlePreviewAnswerChange } = usePreviewAnswers(definition.questions);
 
   return (
     <main className="flex-1 bg-gray-100/60 overflow-y-auto h-[calc(100vh-3.5rem)] p-6 flex flex-col items-center">
@@ -71,7 +52,7 @@ export function FormCanvas() {
         <div
           style={themeToCssVariables(theme, themeMode)}
           data-patient-theme
-          className={`w-full transition-all duration-200 pb-20 ${
+          className={`w-full rounded-xl bg-[var(--theme-bg)] p-4 transition-all duration-200 pb-20 ${
             previewViewport === "mobile"
               ? "max-w-sm rounded-[36px] border-8 border-gray-900 shadow-2xl p-4 bg-gray-50 my-2"
               : "max-w-xl"

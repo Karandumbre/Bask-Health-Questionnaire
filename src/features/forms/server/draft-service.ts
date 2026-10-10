@@ -1,3 +1,4 @@
+import { lockActiveForm } from "./form-lock";
 import { revisionSchema } from "@/lib/validation/primitives";
 import "server-only";
 import { eq, and, isNull, desc, count } from "drizzle-orm";
@@ -171,8 +172,8 @@ export async function getFormDraft(formId: string, userId: string) {
   return {
     form,
     draft,
-    definition: draft.definitionJson as FormDefinition,
-    theme: draft.themeJson as ThemeDefinition,
+    definition: FormDefinitionSchema.parse(draft.definitionJson),
+    theme: ThemeDefinitionSchema.parse(draft.themeJson),
   };
 }
 
@@ -191,7 +192,7 @@ export async function renameForm(params: RenameFormParams) {
 
   return await db.transaction(async (tx) => {
     // Lock form then draft in the same order as publication and autosave.
-    await tx.select().from(forms).where(eq(forms.id, formId)).for("update");
+    await lockActiveForm(tx, formId);
     const [draft] = await tx
       .select()
       .from(formDrafts)
@@ -236,7 +237,7 @@ export async function updateDraft(params: UpdateDraftParams) {
   const parsedDefinition = FormDefinitionSchema.parse(definition);
   const parsedTheme = ThemeDefinitionSchema.parse(theme);
   return db.transaction(async (tx) => {
-    await tx.select().from(forms).where(eq(forms.id, formId)).for("update");
+    await lockActiveForm(tx, formId);
     const [updatedDraft] = await tx
       .update(formDrafts)
       .set({
@@ -311,23 +312,10 @@ export async function archiveForm(formId: string, userId: string) {
 export async function deleteUnpublishedForm(formId: string, userId: string) {
   await requireFormWorkspaceAccess(formId, userId, "owner");
 
-  // Check if any published version exists
-  const [versionCountResult] = await db
-    .select({ val: count() })
-    .from(publishedVersions)
-    .where(eq(publishedVersions.formId, formId));
-
-  const pubCount = versionCountResult ? versionCountResult.val : 0;
-  if (pubCount > 0) {
-    throw new AppError(
-      "FORBIDDEN",
-      "Forms with published versions cannot be deleted. Archive the form instead to preserve audit records.",
-      403,
-      { resourceType: "form" },
-    );
-  }
-
-  return await db.transaction(async (tx) => {
+  return db.transaction(async (tx) => {
+    await lockActiveForm(tx, formId);
+    const [versionCount] = await tx.select({ val: count() }).from(publishedVersions).where(eq(publishedVersions.formId, formId));
+    if ((versionCount?.val ?? 0) > 0) throw new AppError("FORBIDDEN", "Forms with published versions cannot be deleted. Archive the form instead.", 403, { resourceType: "form" });
     await tx.delete(formDrafts).where(eq(formDrafts.formId, formId));
     const [deletedForm] = await tx
       .delete(forms)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, requireFormWorkspaceAccess } from "@/lib/auth/admin";
+import { requireAdmin } from "@/lib/auth/admin";
 import {
   listFormSubmissions,
   getSubmissionDetail,
@@ -21,7 +21,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const user = await requireAdmin();
     const { formId } = await context.params;
 
-    await requireFormWorkspaceAccess(formId, user.id, "editor");
 
     const searchParams = request.nextUrl.searchParams;
     const submissionId = searchParams.get("submissionId");

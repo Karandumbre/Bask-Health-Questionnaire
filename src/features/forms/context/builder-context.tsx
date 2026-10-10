@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
 import type {
@@ -53,7 +54,7 @@ export interface BuilderContextType {
   updateTheme: (newTheme: ThemeDefinition) => void;
   saveNow: () => Promise<boolean>;
   saveForPublish: () => Promise<number | null>;
-  resolveConflictReload: () => Promise<void>;
+  resolveConflictReload: () => Promise<boolean>;
   resolveConflictForce: () => Promise<void>;
   setMode: (mode: "editor" | "preview") => void;
   setViewport: (vp: "desktop" | "mobile") => void;
@@ -192,11 +193,9 @@ export function BuilderProvider({
 
   const updateFormMeta = useCallback(
     (updates: { title?: string; description?: string }) => {
+      if (updates.title !== undefined) setFormName(updates.title);
       setDefinition((prev) => {
         const nextDef = { ...prev, ...updates };
-        if (updates.title) {
-          setFormName(updates.title);
-        }
         return nextDef;
       });
     },
@@ -221,8 +220,11 @@ export function BuilderProvider({
       setDefinition(data.definition);
       setTheme(data.theme);
       setFormName(data.definition.title);
+      setSelectedQuestionId((previous) => data.definition.questions.some((q) => q.id === previous) ? previous : data.definition.questions[0]?.id ?? null);
+      return true;
     } catch {
       autosave.fail();
+      return false;
     }
   };
 
@@ -248,7 +250,7 @@ export function BuilderProvider({
   }, [hasUnsavedChanges]);
 
   // Validation errors for publish modal
-  const publishValidationErrors = validateFormForPublish(definition).errors;
+  const publishValidationErrors = useMemo(() => validateFormForPublish(definition).errors, [definition]);
 
   return (
     <BuilderContext.Provider

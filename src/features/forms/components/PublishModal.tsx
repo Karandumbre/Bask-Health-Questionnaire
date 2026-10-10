@@ -1,6 +1,7 @@
 "use client";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
+import { Alert } from "@/components/ui/alert";
 import { Dialog } from "@/components/ui/dialog";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { publishForm } from "../client/forms-api";
@@ -59,7 +60,7 @@ function PublishDialog() {
       const data = await publishForm(formId, revision, operationId);
       // Publication advances the server draft revision. Synchronize before the
       // editor resumes so its next save uses the acknowledged revision.
-      await resolveConflictReload();
+      if (!(await resolveConflictReload())) setErrorMessage("The form was published, but the draft could not refresh. Reload the editor before continuing.");
 
       setPublishResult({
         versionNumber: data.versionNumber,
@@ -116,6 +117,7 @@ function PublishDialog() {
         </Button>
       </div>
 
+      {errorMessage && publishResult && <Alert>{errorMessage}</Alert>}
       {copyError && (
         <p role="alert" className="text-xs text-red-600">
           {copyError}

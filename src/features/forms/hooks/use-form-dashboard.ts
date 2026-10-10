@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { logout } from "@/features/auth/client/auth-api";
 import { createForm, deleteForm, renameForm } from "../client/forms-api";
-import type { FormListItem } from "../components/FormDashboard";
+import type { FormListItem } from "../domain/dashboard-types";
 
 export function useFormDashboard(initialForms: FormListItem[]) {
   const router = useRouter();
@@ -27,7 +27,9 @@ export function useFormDashboard(initialForms: FormListItem[]) {
 
   const handleCreateForm = async (e: FormEvent) => {
     e.preventDefault();
-    if (!newFormName.trim()) return;
+    if (!newFormName.trim() || busy.current) return;
+    busy.current = true;
+    setIsMutating(true);
 
     setIsCreating(true);
     setErrorMessage(null);
@@ -40,6 +42,8 @@ export function useFormDashboard(initialForms: FormListItem[]) {
       setErrorMessage(apiErrorMessage(error, "Network error creating form."));
     } finally {
       setIsCreating(false);
+      busy.current = false;
+      setIsMutating(false);
     }
   };
 
@@ -99,16 +103,21 @@ export function useFormDashboard(initialForms: FormListItem[]) {
   };
 
   const handleLogout = async () => {
+    if (busy.current) return;
+    busy.current = true; setIsMutating(true);
     try {
       await logout();
       router.push("/admin/login");
       router.refresh();
     } catch (error) {
       setErrorMessage(apiErrorMessage(error, "Network error signing out."));
-    }
+    } finally { busy.current = false; setIsMutating(false); }
   };
 
+  const openCreateDialog = () => { setNewFormName(""); setErrorMessage(null); setIsCreateModalOpen(true); };
+
   return {
+    openCreateDialog,
     filteredForms,
     searchQuery,
     setSearchQuery,

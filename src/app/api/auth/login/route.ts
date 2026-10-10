@@ -3,10 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import { handleRouteError } from "@/lib/errors/route-handler";
 import { AppError } from "@/lib/errors";
-import {
-  isTestAuthPermitted,
-  createTestAuthCookie,
-} from "@/lib/auth/test-auth-guard";
+import { authenticateTestReviewer } from "@/lib/auth/test-auth-guard";
+import { z } from "zod";
+import { parseRequestJson } from "@/lib/http/request-validation";
 
 /**
  * POST /api/auth/login
@@ -18,17 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     verifyRequestOrigin(request);
 
-    const body = await request.json().catch(() => ({}));
-    const email = typeof body.email === "string" ? body.email.trim() : "";
-    const password = typeof body.password === "string" ? body.password : "";
-
-    if (!email || !password) {
-      throw new AppError(
-        "UNAUTHORIZED",
-        "Email and password are required.",
-        400,
-      );
-    }
+    const { email, password } = await parseRequestJson(request, z.object({ email: z.string().trim().email(), password: z.string().min(1) }));
 
     const supabase = await createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -37,29 +26,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (error || !data.user) {
-      if (
-        isTestAuthPermitted() &&
-        email === "reviewer@baskhealth.com" &&
-        password === "ClinicalReview2026!"
-      ) {
-        const testUser = {
-          id: "a1111111-1111-4111-8111-111111111111",
-          email: "reviewer@baskhealth.com",
-        };
-        const token = createTestAuthCookie(testUser);
-        if (token) {
-          const response = NextResponse.json({
-            success: true,
-            user: testUser,
-          });
-          response.cookies.set("bask_test_auth", token, {
-            httpOnly: true,
-            sameSite: "lax",
-            path: "/",
-            maxAge: 3600,
-          });
-          return response;
-        }
+      const fixture = authenticateTestReviewer(email, password);
+      if (fixture) {
+        const response = NextResponse.json({ success: true, user: fixture.user });
+        response.cookies.set("bask_test_auth", fixture.token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 3600, secure: process.env.NODE_ENV === "production" });
+        return response;
       }
 
       throw new AppError("UNAUTHORIZED", "Invalid reviewer credentials.", 401);

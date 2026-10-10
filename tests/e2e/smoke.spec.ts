@@ -159,7 +159,7 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
     // Confirm that publish is blocked with a validation error
     await expect(page.locator("text=Cannot Publish")).toBeVisible();
     await expect(
-      page.locator("text=Condition parent question must be required"),
+      page.locator("text=Parent question must be marked Required"),
     ).toBeVisible();
     await expect(
       page.locator('button:has-text("Confirm & Publish")'),

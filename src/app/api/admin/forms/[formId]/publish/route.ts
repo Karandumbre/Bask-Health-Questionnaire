@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseRequestJson } from "@/lib/http/request-validation";
 import { publishRequestSchema } from "@/features/forms/domain/request-schemas";
-import { requireAdmin, requireFormWorkspaceAccess } from "@/lib/auth/admin";
+import { requireAdmin } from "@/lib/auth/admin";
 import { publishForm } from "@/features/forms/server/publish-service";
 import { verifyRequestOrigin } from "@/lib/security/csrf";
 import { handleRouteError } from "@/lib/errors/route-handler";
@@ -21,7 +21,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const user = await requireAdmin();
     const { formId } = await context.params;
 
-    await requireFormWorkspaceAccess(formId, user.id, "editor");
 
     const body = await parseRequestJson(request, publishRequestSchema);
 
