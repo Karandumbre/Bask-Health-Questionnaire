@@ -23,6 +23,7 @@ import {
 
 export function AdminHeader() {
   const {
+    formId,
     formName,
     draftRevision,
     saveStatus,
@@ -142,6 +143,13 @@ export function AdminHeader() {
           <ViewIcon className="w-3.5 h-3.5" />
           <span>{APP_MESSAGES.PATIENT_PREVIEW}</span>
         </Button>
+
+        <Link
+          href={ROUTES.formResponses(formId)}
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md text-gray-600 hover:text-gray-900 transition-all hover:bg-white/60"
+        >
+          <span>Responses</span>
+        </Link>
       </div>
 
       {/* Right section: Save Status & Publish Button */}

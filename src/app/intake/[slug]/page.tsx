@@ -20,3 +20,4 @@ export default async function PatientIntakePage({ params }: PageProps) {
 
   return <PatientIntakeView slug={slug} />;
 }
+

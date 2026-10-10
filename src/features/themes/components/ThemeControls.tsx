@@ -20,45 +20,53 @@ export function ThemeControls({
   onModeChange: (mode: "light" | "dark") => void;
 }) {
   return (
-    <div className="mb-4 flex w-full max-w-2xl flex-wrap items-center gap-2">
-      {editable && (
-        <>
-          <label htmlFor="theme-preset" className="text-xs font-medium">
-            {APP_MESSAGES.THEME_2}
-          </label>
-          <Select
-            id="theme-preset"
-            className="w-auto"
-            value={theme.isCustomShuffle ? "custom" : theme.presetName}
-            onChange={(event) => {
-              const preset = THEME_PRESETS[event.target.value];
-              if (preset) updateTheme(preset);
-            }}
-          >
-            {Object.keys(THEME_PRESETS).map((name) => (
-              <option key={name}>{name}</option>
-            ))}
-            {theme.isCustomShuffle && (
-              <option value="custom">{APP_MESSAGES.CUSTOM_SHUFFLE}</option>
-            )}
-          </Select>
-          <Button
-            variant="secondary"
-            onClick={() => updateTheme(generateShuffledTheme())}
-          >
-            {APP_MESSAGES.SHUFFLE}
-          </Button>
-        </>
-      )}
-      {!editable && (
+    <div className="mb-4 flex w-full max-w-2xl flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
+      <div className="flex items-center gap-2">
+        <label htmlFor="theme-preset" className="text-xs font-medium text-gray-700">
+          {APP_MESSAGES.THEME_2}:
+        </label>
+        <Select
+          id="theme-preset"
+          className="w-auto text-xs py-1.5"
+          disabled={!editable}
+          value={theme.isCustomShuffle ? "custom" : theme.presetName}
+          onChange={(event) => {
+            const preset = THEME_PRESETS[event.target.value];
+            if (preset) updateTheme(preset);
+          }}
+        >
+          {Object.keys(THEME_PRESETS).map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+          {theme.isCustomShuffle && (
+            <option value="custom">{APP_MESSAGES.CUSTOM_SHUFFLE}</option>
+          )}
+        </Select>
         <Button
           variant="secondary"
-          onClick={() => onModeChange(mode === "light" ? "dark" : "light")}
+          disabled={!editable}
+          className="text-xs py-1.5 px-3"
+          onClick={() =>
+            updateTheme(
+              generateShuffledTheme(
+                Math.floor(Math.random() * 360),
+                theme.presetName,
+              ),
+            )
+          }
         >
-          {APP_MESSAGES.USE} {mode === "light" ? "dark" : "light"}{" "}
-          {APP_MESSAGES.MODE}
+          {APP_MESSAGES.SHUFFLE}
         </Button>
-      )}
+      </div>
+
+      <Button
+        variant="secondary"
+        className="text-xs py-1.5 px-3"
+        onClick={() => onModeChange(mode === "light" ? "dark" : "light")}
+      >
+        {APP_MESSAGES.USE} {mode === "light" ? "dark" : "light"}{" "}
+        {APP_MESSAGES.MODE}
+      </Button>
     </div>
   );
 }

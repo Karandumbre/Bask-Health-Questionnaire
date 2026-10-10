@@ -33,9 +33,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npx next start -p 3000",
+    command: "npx next start -p 3000 -H 127.0.0.1",
     url: ENVIRONMENT_DEFAULTS.PLAYWRIGHT_BASE_URL,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 60000,
     env: {
       [ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]]:

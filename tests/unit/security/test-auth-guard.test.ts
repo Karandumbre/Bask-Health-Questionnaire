@@ -107,20 +107,26 @@ describe("Test Auth Guard — Fail-Closed Security Boundary", () => {
     expect(isTestAuthPermitted()).toBe(false);
   });
 
-  it("fails closed against unverified remote databases", () => {
+  it("fails closed against unverified remote databases and enforces allowlist", () => {
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.ENABLE_TEST_AUTH]] =
       ENVIRONMENT_VALUES.ENABLED;
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.TEST_AUTH_SECRET]] =
       validSecret;
+    // Arbitrary remote database not in allowlist
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]] =
       "postgres://postgres:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres";
 
     // Without IS_TEST_DATABASE=true
     expect(isTestAuthPermitted()).toBe(false);
 
-    // With explicit IS_TEST_DATABASE=true
+    // Even with IS_TEST_DATABASE=true, unallowlisted remote DB must fail closed
     process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.IS_TEST_DATABASE]] =
       ENVIRONMENT_VALUES.ENABLED;
+    expect(isTestAuthPermitted()).toBe(false);
+
+    // With verified allowlisted test project (vjstbqhzfnwrkksgavfv) or localhost
+    process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_URL]] =
+      "postgres://postgres.vjstbqhzfnwrkksgavfv:password@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres";
     expect(isTestAuthPermitted()).toBe(true);
   });
 

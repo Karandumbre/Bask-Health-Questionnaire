@@ -6,6 +6,7 @@ import {
   submissions,
   patientSessions,
   publishedVersions,
+  forms,
 } from "@/lib/db/schema";
 import { requireFormWorkspaceAccess } from "@/lib/auth/admin";
 import { AppError } from "@/lib/errors";
@@ -40,9 +41,11 @@ export async function listFormSubmissions(params: ListSubmissionsParams) {
       id: submissions.id,
       sessionId: submissions.sessionId,
       sessionReference: patientSessions.sessionReference,
+      formName: forms.name,
       publishedVersionId: submissions.publishedVersionId,
       versionNumber: publishedVersions.versionNumber,
       answerSnapshot: submissions.answerSnapshot,
+      status: patientSessions.status,
       submittedAt: submissions.submittedAt,
     })
     .from(submissions)
@@ -50,6 +53,7 @@ export async function listFormSubmissions(params: ListSubmissionsParams) {
       publishedVersions,
       eq(submissions.publishedVersionId, publishedVersions.id),
     )
+    .innerJoin(forms, eq(publishedVersions.formId, forms.id))
     .innerJoin(patientSessions, eq(submissions.sessionId, patientSessions.id))
     .where(eq(publishedVersions.formId, formId))
     .orderBy(desc(submissions.submittedAt))
@@ -75,11 +79,13 @@ export async function getSubmissionDetail(params: GetSubmissionDetailParams) {
       id: submissions.id,
       sessionId: submissions.sessionId,
       sessionReference: patientSessions.sessionReference,
+      formName: forms.name,
       publishedVersionId: submissions.publishedVersionId,
       versionNumber: publishedVersions.versionNumber,
       definitionSnapshot: publishedVersions.definitionSnapshot,
       themeSnapshot: publishedVersions.themeSnapshot,
       answerSnapshot: submissions.answerSnapshot,
+      status: patientSessions.status,
       submittedAt: submissions.submittedAt,
     })
     .from(submissions)
@@ -87,6 +93,7 @@ export async function getSubmissionDetail(params: GetSubmissionDetailParams) {
       publishedVersions,
       eq(submissions.publishedVersionId, publishedVersions.id),
     )
+    .innerJoin(forms, eq(publishedVersions.formId, forms.id))
     .innerJoin(patientSessions, eq(submissions.sessionId, patientSessions.id))
     .where(
       and(

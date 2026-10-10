@@ -97,6 +97,13 @@ export function FormRow({
       <td className="py-3.5 px-4 text-right">
         <div className="flex items-center justify-end gap-2">
           <Link
+            href={ROUTES.formResponses(form.id)}
+            className="text-xs font-semibold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-md transition-colors"
+          >
+            Responses
+          </Link>
+
+          <Link
             href={ROUTES.editForm(form.id)}
             className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 px-2.5 py-1 rounded-md transition-colors"
           >

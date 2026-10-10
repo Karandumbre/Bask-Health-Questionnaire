@@ -12,6 +12,7 @@ export const ROUTES = {
   adminForms: "/admin/forms",
   adminLogin: "/admin/login",
   editForm: (formId: string) => `/admin/forms/${formId}/edit`,
+  formResponses: (formId: string) => `/admin/forms/${formId}/responses`,
 } as const;
 export const HTTP = {
   jsonContentType: "application/json",
@@ -25,6 +26,8 @@ export const API_ROUTES = {
   form: (id: string) => `/api/admin/forms/${encodeURIComponent(id)}`,
   publishForm: (id: string) =>
     `/api/admin/forms/${encodeURIComponent(id)}/publish`,
+  formResponses: (id: string) =>
+    `/api/admin/forms/${encodeURIComponent(id)}/responses`,
 } as const;
 export const QUESTION_DEFAULTS = {
   label: (index: number) => `Question ${index + 1}`,

@@ -264,6 +264,10 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     setSaveStatus("saved");
   };
 
+  const [patientThemeMode, setPatientThemeMode] = useState<"light" | "dark">(
+    "light",
+  );
+
   // Filter visible questions in configured order
   const visibleQuestions = useMemo(() => {
     if (!form) return [];
@@ -283,8 +287,36 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     return count;
   }, [visibleQuestions, answers]);
 
-  // CSS variables from published theme
-  const cssVars = form ? themeToCssVariables(form.theme, "light") : {};
+  // Calculate unanswered required questions for quick jump navigation
+  const unansweredRequiredQuestions = useMemo(() => {
+    return visibleQuestions.filter((q) => {
+      if (!q.required) return false;
+      const val = answers[q.id];
+      if (val === undefined || val === null) return true;
+      if (typeof val === "string" && val.trim().length === 0) return true;
+      if (Array.isArray(val) && val.length === 0) return true;
+      if (q.type === "checkbox" && val !== true) return true;
+      return false;
+    });
+  }, [visibleQuestions, answers]);
+
+  const handleJumpToNextUnanswered = useCallback(() => {
+    const nextQ = unansweredRequiredQuestions[0];
+    if (!nextQ) return;
+    const el = document.querySelector(`[data-question-id="${nextQ.id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const input = el.querySelector<HTMLElement>(
+        "input, textarea, select, button",
+      );
+      input?.focus();
+    }
+  }, [unansweredRequiredQuestions]);
+
+  // CSS variables from published theme in active mode
+  const cssVars = form
+    ? themeToCssVariables(form.theme, patientThemeMode)
+    : {};
 
   // 1. Loading state
   if (loading) {
@@ -350,7 +382,8 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   // 4. Active Intake View
   return (
     <main
-      className="min-h-screen bg-gray-50/50 pb-20 selection:bg-blue-100"
+      data-patient-theme
+      className="min-h-screen bg-intake-bg text-intake-text-primary pb-20 selection:bg-blue-100 transition-colors"
       style={cssVars as React.CSSProperties}
     >
       {/* Sticky Progress & Recovery Header */}
@@ -360,26 +393,32 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         saveStatus={saveStatus}
         onSaveAndResume={() => setShowRecoveryModal(true)}
         onResumeExisting={() => setShowResumeModal(true)}
+        themeMode={patientThemeMode}
+        onToggleThemeMode={() =>
+          setPatientThemeMode((prev) => (prev === "dark" ? "light" : "dark"))
+        }
+        onJumpToNextUnanswered={handleJumpToNextUnanswered}
+        unansweredRequiredCount={unansweredRequiredQuestions.length}
       />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
         {/* Form Title & Description Header */}
-        <header className="bg-white border border-gray-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-2">
+        <header className="bg-intake-surface border border-intake-border rounded-2xl p-5 sm:p-6 shadow-2xs space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-gray-400">
+            <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-intake-text-secondary">
               Patient Intake
             </span>
             {sessionReference && (
-              <span className="text-caption font-mono font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+              <span className="text-caption font-mono font-medium text-intake-text-secondary bg-intake-bg border border-intake-border px-2 py-0.5 rounded-md">
                 Ref: {sessionReference}
               </span>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-intake-text-primary tracking-tight">
             {form.definition.title}
           </h1>
           {form.definition.description && (
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+            <p className="text-xs sm:text-sm text-intake-text-secondary leading-relaxed whitespace-pre-wrap">
               {form.definition.description}
             </p>
           )}
@@ -399,7 +438,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         {/* Intake Questions Form */}
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {visibleQuestions.length === 0 ? (
-            <div className="text-center py-10 bg-white border border-gray-200 rounded-2xl p-6 text-gray-500 text-sm">
+            <div className="text-center py-10 bg-intake-surface border border-intake-border rounded-2xl p-6 text-intake-text-secondary text-sm">
               No questions are currently available for this intake.
             </div>
           ) : (
@@ -420,9 +459,8 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
             <Button
               type="submit"
-              variant="primary"
               disabled={isSubmitting || visibleQuestions.length === 0}
-              className="w-full sm:w-auto px-8 py-3 text-sm font-semibold rounded-xl shadow-xs cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3 text-sm font-semibold rounded-xl shadow-xs bg-intake-primary-action text-intake-primary-action-fg hover:bg-intake-primary-action-hover cursor-pointer"
             >
               {isSubmitting ? "Submitting..." : "Submit Responses"}
             </Button>
@@ -430,7 +468,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
             <button
               type="button"
               onClick={() => setShowRecoveryModal(true)}
-              className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors py-2 cursor-pointer"
+              className="text-xs font-medium text-intake-text-secondary hover:text-intake-text-primary transition-colors py-2 cursor-pointer"
             >
               Need to finish later? View recovery code
             </button>

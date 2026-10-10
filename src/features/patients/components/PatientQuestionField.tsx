@@ -1,6 +1,4 @@
-"use client";
-
-import { useId } from "react";
+import { useId, memo } from "react";
 import type { Question } from "@/features/forms/domain/types";
 import { Input, Textarea } from "@/components/ui/input";
 
@@ -13,7 +11,7 @@ interface PatientQuestionFieldProps {
   disabled?: boolean;
 }
 
-export function PatientQuestionField({
+export const PatientQuestionField = memo(function PatientQuestionField({
   question,
   index,
   value,
@@ -33,8 +31,8 @@ export function PatientQuestionField({
       data-question-id={question.id}
       className={`p-4 sm:p-5 rounded-2xl border transition-all duration-150 ${
         hasError
-          ? "border-red-300 bg-red-50/20"
-          : "border-gray-200/90 bg-white shadow-2xs hover:border-gray-300"
+          ? "border-red-400 bg-red-50/20"
+          : "border-intake-border bg-intake-surface shadow-2xs hover:border-intake-border-focus"
       }`}
     >
       {/* Question Header */}
@@ -46,9 +44,9 @@ export function PatientQuestionField({
               ? inputId
               : undefined
           }
-          className="block text-sm font-semibold text-gray-900 leading-snug"
+          className="block text-sm font-semibold text-intake-text-primary leading-snug"
         >
-          <span className="text-gray-400 font-mono text-xs mr-1.5 font-normal">
+          <span className="text-intake-text-secondary font-mono text-xs mr-1.5 font-normal">
             {index + 1}.
           </span>
           {question.label}
@@ -61,7 +59,7 @@ export function PatientQuestionField({
         </label>
 
         {question.description && (
-          <p id={descId} className="text-xs text-gray-500 mt-1">
+          <p id={descId} className="text-xs text-intake-text-secondary mt-1">
             {question.description}
           </p>
         )}
@@ -153,8 +151,8 @@ export function PatientQuestionField({
                   htmlFor={optionInputId}
                   className={`flex items-center gap-3 p-3 rounded-xl border text-xs sm:text-sm cursor-pointer transition-colors min-h-touch-target select-none ${
                     isSelected
-                      ? "border-blue-600 bg-blue-50/60 font-semibold text-blue-950"
-                      : "border-gray-200 bg-white hover:bg-gray-50 text-gray-800"
+                      ? "border-intake-border-focus bg-intake-surface font-semibold text-intake-text-primary ring-1 ring-intake-border-focus"
+                      : "border-intake-border bg-intake-surface hover:border-intake-border-focus text-intake-text-primary"
                   } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <input
@@ -165,7 +163,7 @@ export function PatientQuestionField({
                     disabled={disabled}
                     checked={isSelected}
                     onChange={() => onChange(opt.id)}
-                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    className="h-4 w-4 accent-intake-primary-action cursor-pointer"
                   />
                   <span>{opt.label}</span>
                 </label>
@@ -196,8 +194,8 @@ export function PatientQuestionField({
                   htmlFor={optionInputId}
                   className={`flex items-center gap-3 p-3 rounded-xl border text-xs sm:text-sm cursor-pointer transition-colors min-h-touch-target select-none ${
                     isChecked
-                      ? "border-blue-600 bg-blue-50/60 font-semibold text-blue-950"
-                      : "border-gray-200 bg-white hover:bg-gray-50 text-gray-800"
+                      ? "border-intake-border-focus bg-intake-surface font-semibold text-intake-text-primary ring-1 ring-intake-border-focus"
+                      : "border-intake-border bg-intake-surface hover:border-intake-border-focus text-intake-text-primary"
                   } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <input
@@ -213,7 +211,7 @@ export function PatientQuestionField({
                         onChange(selectedArray.filter((id) => id !== opt.id));
                       }
                     }}
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    className="h-4 w-4 accent-intake-primary-action cursor-pointer"
                   />
                   <span>{opt.label}</span>
                 </label>
@@ -227,8 +225,8 @@ export function PatientQuestionField({
             htmlFor={inputId}
             className={`flex items-start gap-3 p-3.5 rounded-xl border text-xs sm:text-sm cursor-pointer transition-colors min-h-touch-target select-none ${
               Boolean(value)
-                ? "border-blue-600 bg-blue-50/60 font-semibold text-blue-950"
-                : "border-gray-200 bg-white hover:bg-gray-50 text-gray-800"
+                ? "border-intake-border-focus bg-intake-surface font-semibold text-intake-text-primary ring-1 ring-intake-border-focus"
+                : "border-intake-border bg-intake-surface hover:border-intake-border-focus text-intake-text-primary"
             } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <input
@@ -242,7 +240,7 @@ export function PatientQuestionField({
               aria-describedby={
                 hasError ? errorId : question.description ? descId : undefined
               }
-              className="mt-0.5 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer shrink-0"
+              className="mt-0.5 h-4 w-4 accent-intake-primary-action cursor-pointer shrink-0"
             />
             <span className="leading-snug">{question.label}</span>
           </label>
@@ -262,4 +260,4 @@ export function PatientQuestionField({
       )}
     </div>
   );
-}
+});

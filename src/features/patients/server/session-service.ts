@@ -247,18 +247,20 @@ export async function resumePatientSession(
       );
     }
 
-    // 2. Sliding window rate limiting check
+    // 2. Sliding window rate limiting check (bounded 15-minute cooldown, not permanent)
     const MAX_ATTEMPTS = RECOVERY_MAX_ATTEMPTS;
-    const LOCKOUT_MS = RECOVERY_LOCKOUT_MS; // 15 minutes
+    const LOCKOUT_MS = RECOVERY_LOCKOUT_MS; // 15 minutes bounded cooldown
+    const lastAttempt = session.recoveryLastAttemptAt ?? session.updatedAt;
+    const isWithinCooldown =
+      lastAttempt !== null && now - lastAttempt.getTime() < LOCKOUT_MS;
 
-    if (session.recoveryAttemptsCount >= MAX_ATTEMPTS) {
-      if (session.recoveryLastAttemptAt) {
-        const elapsed = now - session.recoveryLastAttemptAt.getTime();
-        if (elapsed < LOCKOUT_MS) {
-          const retryAfterSeconds = Math.ceil((LOCKOUT_MS - elapsed) / 1000);
-          throw AppError.resumeRateLimited(retryAfterSeconds);
-        }
-      }
+    if (session.recoveryAttemptsCount >= MAX_ATTEMPTS && isWithinCooldown) {
+      const elapsed = lastAttempt ? now - lastAttempt.getTime() : 0;
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((LOCKOUT_MS - elapsed) / 1000),
+      );
+      throw AppError.resumeRateLimited(retryAfterSeconds);
     }
 
     // 3. Constant-time recovery code verification
@@ -269,21 +271,18 @@ export async function resumePatientSession(
     );
 
     if (!isValid) {
-      // Record failed attempt
+      // Record failed attempt with bounded atomic counter (resets if outside cooldown window)
       await tx
         .update(patientSessions)
         .set({
           recoveryAttemptsCount:
-            (session.recoveryLastAttemptAt &&
-            now - session.recoveryLastAttemptAt.getTime() < LOCKOUT_MS
-              ? session.recoveryAttemptsCount
-              : 0) + 1,
+            (isWithinCooldown ? session.recoveryAttemptsCount : 0) + 1,
           recoveryLastAttemptAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(patientSessions.id, session.id));
 
-      // Return the failure so the attempt counter commits before throwing.
+      // Return identical generic failure so attempt counter commits before throwing (no session enumeration)
       return {
         error: AppError.sessionUnauthorized(
           APP_MESSAGES.INVALID_SESSION_REFERENCE_OR_RECOVERY_CODE,

@@ -213,4 +213,59 @@ test.describe("Administrator Form Builder Smoke Flow", () => {
     // Close publish modal
     await page.click('button:has-text("Done")');
   });
+
+  test("draft create, rename, and delete lifecycle on dashboard", async ({
+    page,
+  }) => {
+    // 1. Login
+    await page.goto("/admin/login");
+    await page.fill("#email", "reviewer@baskhealth.com");
+    await page.fill("#password", "ClinicalReview2026!");
+    await page.click('button[type="submit"]');
+    await page.waitForURL("**/admin/forms", { timeout: 15000 });
+
+    // 2. Create draft
+    const initialTitle = `Temporary Intake ${Date.now()}`;
+    await page.click('button:has-text("Create New Form")');
+    await page.waitForSelector("#new-form-name");
+    await page.fill("#new-form-name", initialTitle);
+    await page.click('button:has-text("Create & Open")');
+
+    // Wait for builder edit page
+    await page.waitForURL("**/admin/forms/**/edit", { timeout: 15000 });
+
+    // 3. Return to forms dashboard
+    await page.goto("/admin/forms");
+    await page.waitForSelector("table");
+    const table = page.locator("table");
+    const row = table.locator("tr").filter({ hasText: initialTitle });
+    await expect(row).toBeVisible({ timeout: 15000 });
+
+    // 4. Rename draft
+    const renamedTitle = `${initialTitle} (Renamed)`;
+    await row.getByRole("button", { name: /Rename form/i }).click();
+    const renameInput = table.locator('input[type="text"]');
+    await expect(renameInput).toBeVisible({ timeout: 15000 });
+    await renameInput.fill(renamedTitle);
+    await table.locator('button:has-text("Save")').click();
+
+    // Verify renamed title appears in the table
+    await expect(table.locator("tr", { hasText: renamedTitle })).toBeVisible({
+      timeout: 15000,
+    });
+
+    // 5. Delete draft
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    const renamedRow = page.locator("tr", { hasText: renamedTitle });
+    await renamedRow
+      .getByRole("button", { name: /Archive or delete form/i })
+      .click();
+
+    // Verify draft is removed from table
+    await expect(page.locator("tr", { hasText: renamedTitle })).toHaveCount(0, {
+      timeout: 15000,
+    });
+  });
 });

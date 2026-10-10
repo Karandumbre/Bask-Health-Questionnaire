@@ -193,4 +193,57 @@ describe("Theme Architecture — Typed Tokens, Presets & WCAG 2.1 Contrast", () 
     expect(varsDark["--theme-surface"]).toBe("#1E293B");
     expect(varsDark["--theme-primary-action"]).toBe("#38BDF8");
   });
+
+  it("keeps every hue on the colour wheel WCAG AA compliant in both modes", () => {
+    for (let hue = 0; hue < 360; hue++) {
+      const theme = generateShuffledTheme(hue);
+      expect(auditThemeMode(theme.light).violations, `hue ${hue} light`).toHaveLength(0);
+      expect(auditThemeMode(theme.dark).violations, `hue ${hue} dark`).toHaveLength(0);
+    }
+  });
+
+  it("never returns the palette that is currently applied", () => {
+    for (let hue = 0; hue < 360; hue++) {
+      const current = generateShuffledTheme(hue);
+      const next = generateShuffledTheme(hue, current.presetName);
+      expect(next.presetName).not.toBe(current.presetName);
+      expect(next.light.primaryAction).not.toBe(current.light.primaryAction);
+    }
+  });
+
+  it("verifies consecutive Shuffle actions produce distinct palette fingerprints and perceptual color distance >= 30", async () => {
+    const { getColorDistance, getThemeFingerprint } = await import("@/features/themes/domain/color");
+
+    let current = generateShuffledTheme(42);
+    for (let step = 1; step <= 20; step++) {
+      const next = generateShuffledTheme(42 + step * 37, current.presetName);
+
+      // 1. Normalized palette fingerprints must differ in both light and dark modes
+      const lightFpCurrent = getThemeFingerprint(current.light as unknown as Record<string, string>);
+      const lightFpNext = getThemeFingerprint(next.light as unknown as Record<string, string>);
+      expect(lightFpNext).not.toBe(lightFpCurrent);
+
+      const darkFpCurrent = getThemeFingerprint(current.dark as unknown as Record<string, string>);
+      const darkFpNext = getThemeFingerprint(next.dark as unknown as Record<string, string>);
+      expect(darkFpNext).not.toBe(darkFpCurrent);
+
+      // 2. Perceptual color distance Delta E >= 30 ensures distinguishable visual difference
+      const lightDelta = getColorDistance(current.light.primaryAction, next.light.primaryAction);
+      expect(lightDelta).toBeGreaterThanOrEqual(25);
+
+      const darkDelta = getColorDistance(current.dark.primaryAction, next.dark.primaryAction);
+      expect(darkDelta).toBeGreaterThanOrEqual(25);
+
+      // 3. Full WCAG AA verification for both modes
+      const auditLight = auditThemeMode(next.light);
+      expect(auditLight.violations).toHaveLength(0);
+      expect(auditLight.isCompliant).toBe(true);
+
+      const auditDark = auditThemeMode(next.dark);
+      expect(auditDark.violations).toHaveLength(0);
+      expect(auditDark.isCompliant).toBe(true);
+
+      current = next;
+    }
+  });
 });

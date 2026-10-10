@@ -59,3 +59,28 @@ export function getContrastRatio(hex1: string, hex2: string): number {
   const darker = Math.min(lum1, lum2);
   return (brighter + 0.05) / (darker + 0.05);
 }
+
+/**
+ * Calculates Euclidean perceptual color distance (Delta E_rgb) between two hex colors.
+ * Values >= 30 represent distinct, clearly distinguishable colors to human vision.
+ */
+export function getColorDistance(hex1: string, hex2: string): number {
+  const rgb1 = parseHexColor(hex1);
+  const rgb2 = parseHexColor(hex2);
+  const dr = rgb1.r - rgb2.r;
+  const dg = rgb1.g - rgb2.g;
+  const db = rgb1.b - rgb2.b;
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
+/**
+ * Generates a normalized palette fingerprint from all hex values in a theme definition.
+ */
+export function getThemeFingerprint(tokens: Record<string, string>): string {
+  const sorted = Object.entries(tokens)
+    .filter(([, v]) => typeof v === "string" && v.startsWith("#"))
+    .sort(([k1], [k2]) => k1.localeCompare(k2))
+    .map(([k, v]) => `${k}:${v.toUpperCase()}`)
+    .join(";");
+  return sorted;
+}

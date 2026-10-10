@@ -330,7 +330,17 @@ export async function deleteUnpublishedForm(formId: string, userId: string) {
   await requireFormWorkspaceAccess(formId, userId, "owner");
 
   return db.transaction(async (tx) => {
-    await lockActiveForm(tx, formId);
+    const [form] = await tx
+      .select()
+      .from(forms)
+      .where(eq(forms.id, formId))
+      .for("update")
+      .limit(1);
+    if (!form) {
+      throw new AppError("NOT_FOUND", APP_MESSAGES.FORM_NOT_FOUND, 404, {
+        resourceType: "form",
+      });
+    }
     const [versionCount] = await tx
       .select({ val: count() })
       .from(publishedVersions)

@@ -10,6 +10,8 @@ import { z } from "zod";
 import crypto from "node:crypto";
 import type { VerifiedAuthUser } from "../supabase/server";
 
+import { isDatabaseAllowlistedForTesting } from "@/lib/db/test-db-isolation";
+
 /**
  * Strict security boundary for automated test authentication.
  *
@@ -17,7 +19,7 @@ import type { VerifiedAuthUser } from "../supabase/server";
  * 1. Must explicitly opt-in: ENABLE_TEST_AUTH === ENVIRONMENT_VALUES.ENABLED
  * 2. Disabled on EVERY Vercel environment (production, preview, development)
  * 3. Fails closed if APP_ENV is production, or if TEST_AUTH_SECRET is missing or < 32 characters
- * 4. Fails closed against unverified remote production databases
+ * 4. Fails closed against unverified remote production databases (must be on explicit test allowlist)
  * 5. Uses HMAC-SHA256 signatures with timing-safe verification
  */
 export function isTestAuthPermitted(): boolean {
@@ -60,18 +62,17 @@ export function isTestAuthPermitted(): boolean {
     return false;
   }
 
-  // 5. Never allow against unflagged production or remote shared databases
-  const dbUrl = (
-    readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) || ENVIRONMENT_DEFAULTS.EMPTY
-  ).toLowerCase();
-  const isLocal =
-    dbUrl.includes(ENVIRONMENT_DEFAULTS.LOCAL_HOST) ||
-    dbUrl.includes(ENVIRONMENT_DEFAULTS.LOOPBACK_HOST);
+  // 5. Never allow against unflagged production or databases not in the explicit test allowlist
   if (
-    !isLocal &&
     readEnvironment(ENVIRONMENT_KEYS.IS_TEST_DATABASE) !==
-      ENVIRONMENT_VALUES.ENABLED
+    ENVIRONMENT_VALUES.ENABLED
   ) {
+    return false;
+  }
+
+  const dbUrl =
+    readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) || ENVIRONMENT_DEFAULTS.EMPTY;
+  if (!isDatabaseAllowlistedForTesting(dbUrl)) {
     return false;
   }
 

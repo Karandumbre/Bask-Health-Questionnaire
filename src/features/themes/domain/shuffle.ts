@@ -20,10 +20,15 @@ function hslToRgb(h: number, s: number, l: number): RgbColor {
  */
 export function generateShuffledTheme(
   seed: number = Date.now(),
+  avoidPresetName?: string,
 ): ThemeDefinition {
-  // Derive primary hue from seed: select harmonic clinical hues (blue, teal, green, purple, slate)
-  const baseHues = [200, 215, 160, 175, 260, 280, 210, 190];
-  const primaryHue = baseHues[Math.abs(seed) % baseHues.length] ?? 210;
+  // Derive the primary hue from the full colour wheel. Contrast is enforced
+  // below by adjusting lightness, so any hue yields an AA-compliant palette.
+  let primaryHue = ((Math.trunc(seed) % 360) + 360) % 360;
+  // Guarantee a visibly different palette from the one currently applied.
+  if (avoidPresetName === `Shuffle-${primaryHue}`) {
+    primaryHue = (primaryHue + 137) % 360;
+  }
 
   // Dynamically compute light primary: decrease lightness until contrast on white >= 4.5:1
   let lLight = 32;
