@@ -6,6 +6,10 @@ import type {
   CanonicalAnswer,
   PatientAnswers,
 } from "@/features/patients/domain/types";
+import {
+  validateSessionProgress,
+  validateSessionSubmission,
+} from "@/features/patients/domain/validation";
 import type { Question } from "../domain/types";
 
 export function usePreviewAnswers(questions: Question[]) {
@@ -25,5 +29,23 @@ export function usePreviewAnswers(questions: Question[]) {
       return pruneHiddenAnswers(next, questions);
     });
   };
-  return { answers: visibleAnswers, updateAnswer };
+  const [submissionAttempted, setSubmissionAttempted] = useState(false);
+  const validation = useMemo(
+    () =>
+      (submissionAttempted
+        ? validateSessionSubmission
+        : validateSessionProgress)(visibleAnswers, questions),
+    [visibleAnswers, questions, submissionAttempted],
+  );
+  const validateSubmission = () => {
+    setSubmissionAttempted(true);
+    return validateSessionSubmission(visibleAnswers, questions);
+  };
+  return {
+    answers: visibleAnswers,
+    updateAnswer,
+    validation,
+    submissionAttempted,
+    validateSubmission,
+  };
 }

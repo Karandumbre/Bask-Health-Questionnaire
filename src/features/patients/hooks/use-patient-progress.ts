@@ -6,29 +6,40 @@ import {
   DraftAutosave,
   type AutosaveState,
 } from "@/features/forms/client/draft-autosave";
+import { apiAnswerErrors } from "../client/answer-errors";
 import { savePatientProgress } from "../client/patient-api";
 import type { PatientAnswers } from "../domain/types";
 
 /** Use the same serialized, revision-aware saves as the editor. */
 export function usePatientProgress(slug: string) {
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const controller = useRef<DraftAutosave<PatientAnswers> | null>(null);
   const unsubscribe = useRef<(() => void) | null>(null);
   const [state, setState] = useState<AutosaveState | null>(null);
   const initialize = useCallback(
     (answers: PatientAnswers, revision: number) => {
+      setValidationErrors({});
       unsubscribe.current?.();
       controller.current?.pause();
       const next = new DraftAutosave(
         answers,
         revision,
         async (snapshot, expectedRevision, signal) => {
-          const response = await savePatientProgress(
-            slug,
-            expectedRevision,
-            snapshot,
-            signal,
-          );
-          return response.data.sessionRevision;
+          try {
+            const response = await savePatientProgress(
+              slug,
+              expectedRevision,
+              snapshot,
+              signal,
+            );
+            if (!signal.aborted) setValidationErrors({});
+            return response.data.sessionRevision;
+          } catch (error) {
+            if (!signal.aborted) setValidationErrors(apiAnswerErrors(error));
+            throw error;
+          }
         },
         APPLICATION.autosaveDelayMs,
       );
@@ -45,10 +56,10 @@ export function usePatientProgress(slug: string) {
     },
     [slug],
   );
-  const update = useCallback(
-    (answers: PatientAnswers) => controller.current?.update(answers),
-    [],
-  );
+  const update = useCallback((answers: PatientAnswers) => {
+    setValidationErrors({});
+    controller.current?.update(answers);
+  }, []);
   const saveNow = useCallback(
     async () => (await controller.current?.flush()) ?? false,
     [],
@@ -58,5 +69,13 @@ export function usePatientProgress(slug: string) {
     [],
   );
   const pause = useCallback(() => controller.current?.pause(), []);
-  return { state, initialize, update, saveNow, pause, hasConflict };
+  return {
+    state,
+    validationErrors,
+    initialize,
+    update,
+    saveNow,
+    pause,
+    hasConflict,
+  };
 }

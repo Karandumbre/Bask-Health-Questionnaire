@@ -15,18 +15,26 @@ export function QuestionInput({
   question: q,
   answers,
   onAnswerChange,
+  error,
 }: {
   question: Question;
+  error?: string;
   answers: PatientAnswers;
   onAnswerChange: (id: string, value: CanonicalAnswer | undefined) => void;
 }) {
   const value = answers[q.id];
   const id = `preview-${q.id}`;
   const help = q.description ? `${id}-help` : undefined;
+  const describedBy =
+    [help, error ? `${id}-error` : undefined].filter(Boolean).join(" ") ||
+    undefined;
   return (
-    <div className="rounded-xl border border-intake-border bg-intake-surface p-5 text-intake-text-primary shadow-xs">
+    <div
+      data-question-id={q.id}
+      className={`rounded-xl border bg-intake-surface p-5 text-intake-text-primary shadow-xs ${error ? "border-intake-error-border" : "border-intake-border"}`}
+    >
       {q.type === "single_select" || q.type === "multi_select" ? (
-        <fieldset aria-describedby={help}>
+        <fieldset aria-describedby={describedBy} aria-invalid={Boolean(error)}>
           <legend className="text-sm font-semibold">
             {q.label}
             {q.required && <span className="ml-1 text-red-600">*</span>}
@@ -54,6 +62,8 @@ export function QuestionInput({
                     className="accent-intake-primary-action focus:ring-intake-focus-ring"
                     type={q.type === "single_select" ? "radio" : "checkbox"}
                     name={id}
+                    aria-describedby={describedBy}
+                    aria-invalid={Boolean(error)}
                     checked={selected}
                     onChange={() => {
                       if (q.type === "single_select")
@@ -83,7 +93,8 @@ export function QuestionInput({
           >
             <Input
               id={id}
-              aria-describedby={help}
+              aria-describedby={describedBy}
+              aria-invalid={Boolean(error)}
               aria-required={q.required}
               type="checkbox"
               checked={value === true}
@@ -111,7 +122,8 @@ export function QuestionInput({
           {q.type === "long_text" ? (
             <Textarea
               id={id}
-              aria-describedby={help}
+              aria-describedby={describedBy}
+              aria-invalid={Boolean(error)}
               rows={3}
               className={fieldClass}
               value={typeof value === "string" ? value : ""}
@@ -121,7 +133,8 @@ export function QuestionInput({
           ) : (
             <Input
               id={id}
-              aria-describedby={help}
+              aria-describedby={describedBy}
+              aria-invalid={Boolean(error)}
               className={fieldClass}
               type={q.type === "number" ? "number" : "text"}
               value={
@@ -130,6 +143,11 @@ export function QuestionInput({
                   : ""
               }
               placeholder={q.placeholder}
+              min={q.type === "number" ? q.validation?.min : undefined}
+              max={q.type === "number" ? q.validation?.max : undefined}
+              step={
+                q.type === "number" && q.validation?.integerOnly ? 1 : "any"
+              }
               onChange={(event) =>
                 onAnswerChange(
                   q.id,
@@ -143,6 +161,15 @@ export function QuestionInput({
             />
           )}
         </FormField>
+      )}
+      {error && (
+        <p
+          id={`${id}-error`}
+          role="alert"
+          className="mt-2 text-xs font-semibold text-intake-error"
+        >
+          {error}
+        </p>
       )}
     </div>
   );

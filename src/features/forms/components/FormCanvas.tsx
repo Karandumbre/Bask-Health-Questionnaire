@@ -1,13 +1,14 @@
 "use client";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { EditorQuestionCard } from "./EditorQuestionCard";
 import { QuestionInput } from "./QuestionInput";
 import { ThemeControls } from "@/features/themes/components/ThemeControls";
 import { themeToCssVariables } from "@/features/themes/domain/theme-tokens";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useBuilder } from "../context/builder-context";
 import { getVisibleQuestions } from "@/features/patients/domain/visibility";
 import { usePreviewAnswers } from "../hooks/use-preview-answers";
@@ -17,8 +18,14 @@ export function FormCanvas() {
 
   // Preview mode answers state
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
-  const { answers: previewAnswers, updateAnswer: handlePreviewAnswerChange } =
-    usePreviewAnswers(definition.questions);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const {
+    answers: previewAnswers,
+    updateAnswer: handlePreviewAnswerChange,
+    validation,
+    submissionAttempted,
+    validateSubmission,
+  } = usePreviewAnswers(definition.questions);
 
   return (
     <main className="flex-1 bg-gray-100/60 overflow-y-auto h-editor-height p-6 flex flex-col items-center">
@@ -61,6 +68,7 @@ export function FormCanvas() {
       ) : (
         /* Patient Simulator Preview View */
         <div
+          ref={previewRef}
           style={themeToCssVariables(theme, themeMode)}
           data-patient-theme
           className={`w-full rounded-xl bg-intake-bg p-4 transition-all duration-200 pb-20 ${
@@ -102,13 +110,37 @@ export function FormCanvas() {
                   question={q}
                   answers={previewAnswers}
                   onAnswerChange={handlePreviewAnswerChange}
+                  error={
+                    validation.errors.find((error) => error.questionId === q.id)
+                      ?.issue
+                  }
                 />
               ),
             )}
 
+            {submissionAttempted &&
+              (validation.valid ? (
+                <p role="status" className="text-xs text-intake-text-primary">
+                  {APP_MESSAGES.PREVIEW_VALIDATION_PASSED}
+                </p>
+              ) : (
+                <Alert>{APP_MESSAGES.INTAKE_VALIDATION_FAILED}</Alert>
+              ))}
             <div className="pt-2">
               <Button
                 type="button"
+                onClick={() => {
+                  const result = validateSubmission();
+                  const first = result.errors[0]?.questionId;
+                  const card = Array.from(
+                    previewRef.current?.querySelectorAll<HTMLElement>(
+                      "[data-question-id]",
+                    ) ?? [],
+                  ).find((element) => element.dataset.questionId === first);
+                  card
+                    ?.querySelector<HTMLElement>("input, textarea, select")
+                    ?.focus();
+                }}
                 className="w-full bg-intake-primary-action text-intake-primary-action-fg font-semibold text-xs py-3 rounded-xl shadow-xs hover:bg-intake-primary-action-hover transition-colors"
               >
                 {APP_MESSAGES.SUBMIT_INTAKE_SIMULATION}

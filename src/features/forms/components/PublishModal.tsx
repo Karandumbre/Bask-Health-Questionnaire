@@ -26,7 +26,7 @@ export function PublishModal() {
 function PublishDialog() {
   const {
     formId,
-    draftRevision,
+    saveStatus,
     saveForPublish,
     resolveConflictReload,
     definition,
@@ -72,7 +72,7 @@ function PublishDialog() {
       setPublishResult({
         versionNumber: data.versionNumber,
         publicSlug: data.publicSlug,
-        publicUrl: data.publicUrl,
+        publicUrl: new URL(data.publicUrl, window.location.origin).href,
       });
     } catch (error) {
       setErrorMessage(
@@ -161,7 +161,10 @@ function PublishDialog() {
             >
               {APP_MESSAGES.PUBLIC_PATIENT_URL}
             </label>
-            <div className="flex items-center gap-2">
+            <p className="mb-2 text-xs text-gray-500">
+              {APP_MESSAGES.SHARE_PATIENT_LINK}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
               <Input
                 type="text"
                 readOnly
@@ -183,6 +186,7 @@ function PublishDialog() {
                 rel="noreferrer"
                 className="p-2 text-gray-500 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
                 title={APP_MESSAGES.OPEN_INTAKE_IN_NEW_TAB}
+                aria-label={APP_MESSAGES.OPEN_INTAKE_IN_NEW_TAB}
               >
                 <ExternalIcon className="w-4 h-4" />
               </a>
@@ -253,7 +257,9 @@ function PublishDialog() {
                   {APP_MESSAGES.CONDITIONAL_RULES}
                 </div>
                 <div>
-                  {APP_MESSAGES.DRAFT_REVISION} {draftRevision}
+                  {saveStatus === "saved"
+                    ? APP_MESSAGES.ALL_CHANGES_SAVED
+                    : APP_MESSAGES.SAVE_REQUIRED_BEFORE_PUBLISH}
                 </div>
                 <div>{APP_MESSAGES.ALL_CLINICAL_INVARIANTS_VERIFIED}</div>
               </div>

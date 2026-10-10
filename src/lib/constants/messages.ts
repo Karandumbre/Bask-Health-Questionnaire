@@ -2,6 +2,12 @@
 export const APP_MESSAGES = {
   RECOVERY_CODE_UNAVAILABLE:
     "Use the recovery code you saved when this session was created. Saving progress does not issue a new code.",
+  SHARE_PATIENT_LINK:
+    "Share this complete link with patients. No URL prefix is needed.",
+  PREVIEW_VALIDATION_PASSED:
+    "Preview validation passed. Nothing was submitted.",
+  FIX_ANSWER_ERRORS:
+    "Correct the highlighted fields before saving or submitting.",
   REFRESH: "Refresh",
   REFRESH_RESPONSES: "Refresh responses",
   RESPONSE_DETAIL: "Intake Response Detail",
@@ -96,6 +102,8 @@ export const APP_MESSAGES = {
   DESKTOP_VIEWPORT: "Desktop viewport",
   MOBILE_VIEWPORT: "Mobile viewport",
   SAVED: "Saved",
+  ALL_CHANGES_SAVED: "All changes saved",
+  SAVE_REQUIRED_BEFORE_PUBLISH: "Changes must be saved before publishing",
   SAVING: "Saving...",
   UNSAVED: "Unsaved",
   CONFLICT: "Conflict",

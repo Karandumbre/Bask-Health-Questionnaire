@@ -22,6 +22,7 @@ export class DraftAutosave<T> {
   private acknowledged: T;
   private editVersion = 0;
   private savedVersion = 0;
+  private saveOutcomeKnown = true;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running: Promise<boolean> | null = null;
   private request: AbortController | null = null;
@@ -76,6 +77,15 @@ export class DraftAutosave<T> {
     this.editVersion++;
     this.clearTimer();
     if (this.state.conflict) return;
+    if (
+      !this.running &&
+      this.saveOutcomeKnown &&
+      this.isEqual(snapshot, this.acknowledged)
+    ) {
+      this.savedVersion = this.editVersion;
+      this.notify({ status: "saved", errorMessage: null });
+      return;
+    }
     this.notify({ status: this.running ? "saving" : "editing" });
     if (this.active)
       this.timer = setTimeout(() => {
@@ -101,6 +111,8 @@ export class DraftAutosave<T> {
       const request = new AbortController();
       this.request = request;
       this.notify({ status: "saving", errorMessage: null });
+      // A failed request may have committed, so an undo must still be verified.
+      this.saveOutcomeKnown = false;
       try {
         const revision = await this.save(
           snapshot,
@@ -113,7 +125,10 @@ export class DraftAutosave<T> {
             APP_MESSAGES.THE_SAVE_RESPONSE_DID_NOT_ADVANCE_THE_DRAFT_REVISION,
           );
         }
-        this.savedVersion = version;
+        this.saveOutcomeKnown = true;
+        this.savedVersion = this.isEqual(this.latest, snapshot)
+          ? this.editVersion
+          : version;
         this.acknowledged = snapshot;
         this.notify({ revision, lastSavedAt: new Date() });
         // Edits made during this request are still dirty. Save them using the
@@ -177,6 +192,7 @@ export class DraftAutosave<T> {
     this.editVersion++;
     this.savedVersion = this.editVersion;
     this.acknowledged = snapshot;
+    this.saveOutcomeKnown = true;
     this.notify({
       revision,
       status: "saved",

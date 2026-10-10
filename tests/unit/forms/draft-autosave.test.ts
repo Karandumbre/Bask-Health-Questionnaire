@@ -3,6 +3,7 @@ import {
   DraftAutosave,
   type AutosaveState,
 } from "@/features/forms/client/draft-autosave";
+import { APPLICATION } from "@/lib/constants/application";
 import { ApiError } from "@/lib/http/api-client";
 
 function deferred<T>() {
@@ -278,5 +279,97 @@ describe("Draft Autosave Reliability — Controlled Concurrency & State Invarian
     expect(snapshots).toContain("editing");
     expect(snapshots).toContain("saving");
     expect(snapshots[snapshots.length - 1]).toBe("saved");
+  });
+  it("coalesces editor typing for two seconds but flushes immediately before publication", async () => {
+    const save = vi.fn().mockResolvedValueOnce(2).mockResolvedValueOnce(3);
+    const autosave = new DraftAutosave<string>(
+      "initial",
+      1,
+      save,
+      APPLICATION.draftAutosaveDelayMs,
+    );
+    autosave.update("first edit");
+    await vi.advanceTimersByTimeAsync(1500);
+    autosave.update("final edit");
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(save).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save.mock.calls[0]?.slice(0, 2)).toEqual(["final edit", 1]);
+    autosave.update("publish edit");
+    expect(await autosave.flush()).toBe(true);
+    expect(save.mock.calls[1]?.slice(0, 2)).toEqual(["publish edit", 2]);
+  });
+
+  it("does not save equal content in new objects or an edit undone before saving", async () => {
+    const save = vi.fn();
+    const autosave = new DraftAutosave(
+      { label: "original" },
+      1,
+      save,
+      2000,
+      (left, right) => JSON.stringify(left) === JSON.stringify(right),
+    );
+    autosave.update({ label: "original" });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(save).not.toHaveBeenCalled();
+    autosave.update({ label: "changed" });
+    autosave.update({ label: "original" });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(save).not.toHaveBeenCalled();
+    expect(autosave.getSnapshot()).toMatchObject({
+      revision: 1,
+      status: "saved",
+    });
+  });
+
+  it("does not send a duplicate follow-up when in-flight edits return to the saved snapshot", async () => {
+    const response = deferred<number>();
+    const save = vi.fn().mockReturnValue(response.promise);
+    const autosave = new DraftAutosave<string>("initial", 1, save);
+    autosave.update("first edit");
+    const done = autosave.flush();
+    autosave.update("temporary edit");
+    autosave.update("first edit");
+    response.resolve(2);
+    expect(await done).toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(autosave.getSnapshot()).toMatchObject({
+      revision: 2,
+      status: "saved",
+    });
+  });
+
+  it("verifies an undo after an ambiguous save failure instead of falsely marking it saved", async () => {
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Lost response"))
+      .mockResolvedValueOnce(2);
+    const autosave = new DraftAutosave<string>("initial", 1, save);
+    autosave.update("possibly committed");
+    expect(await autosave.flush()).toBe(false);
+    autosave.update("another edit");
+    autosave.update("initial");
+    expect(autosave.getSnapshot().status).toBe("editing");
+    expect(await autosave.flush()).toBe(true);
+    expect(save.mock.calls[1]?.slice(0, 2)).toEqual(["initial", 1]);
+  });
+
+  it("still sends an explicit conflict resolution when local content matches the old acknowledged draft", async () => {
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError("Conflict", 409, "REVISION_CONFLICT", {
+          currentRevision: 3,
+        }),
+      )
+      .mockResolvedValueOnce(4);
+    const autosave = new DraftAutosave<string>("initial", 1, save);
+    autosave.update("changed");
+    expect(await autosave.flush()).toBe(false);
+    expect(autosave.getSnapshot().status).toBe("conflict");
+    autosave.update("initial");
+    expect(await autosave.forceSave(3)).toBe(true);
+    expect(save.mock.calls[1]?.slice(0, 2)).toEqual(["initial", 3]);
   });
 });

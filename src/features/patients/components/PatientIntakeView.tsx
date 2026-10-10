@@ -11,7 +11,10 @@ import {
   submitPatientSession,
 } from "../client/patient-api";
 import { getVisibleQuestions, pruneHiddenAnswers } from "../domain/visibility";
-import { validateSessionSubmission } from "../domain/validation";
+import {
+  validateSessionSubmission,
+  validateSessionProgress,
+} from "../domain/validation";
 import type { PatientAnswers, CanonicalAnswer } from "../domain/types";
 import { PatientQuestionField } from "./PatientQuestionField";
 import { PatientProgressBar } from "./PatientProgressBar";
@@ -23,6 +26,7 @@ import { Alert } from "@/components/ui/alert";
 import { IntakeLoading } from "./IntakeLoading";
 import { usePatientProgress } from "../hooks/use-patient-progress";
 import { Button } from "@/components/ui/button";
+import { apiAnswerErrors } from "../client/answer-errors";
 import { apiErrorMessage } from "@/lib/http/api-client";
 
 interface PatientIntakeViewProps {
@@ -48,6 +52,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const {
     state: progressState,
+    validationErrors: saveFieldErrors,
     initialize: initializeProgress,
     update: updateProgress,
     saveNow: saveProgressNow,
@@ -163,10 +168,10 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     (questionId: string, value: unknown) => {
       if (!form || submitBusy.current || progressState?.status === "conflict")
         return;
-      const next = pruneHiddenAnswers(
-        { ...answersRef.current, [questionId]: value as CanonicalAnswer },
-        form.definition.questions,
-      );
+      const updated = { ...answersRef.current };
+      if (value === undefined || value === null) delete updated[questionId];
+      else updated[questionId] = value as CanonicalAnswer;
+      const next = pruneHiddenAnswers(updated, form.definition.questions);
       answersRef.current = next;
       setAnswers(next);
       updateProgress(next);
@@ -218,6 +223,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           `[data-question-id="${firstErrorQuestionId}"]`,
         );
         el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        el?.querySelector<HTMLElement>("input, textarea, select")?.focus();
       }
       return;
     }
@@ -245,6 +251,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         isIdempotentReplay: response.data.isIdempotentReplay,
       });
     } catch (err) {
+      setFieldErrors(apiAnswerErrors(err));
       setSubmitError(apiErrorMessage(err, APP_MESSAGES.INTAKE_SUBMIT_FAILED));
     } finally {
       submitBusy.current = false;
@@ -288,6 +295,19 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     if (!form) return [];
     return getVisibleQuestions(form.definition.questions, answers);
   }, [form, answers]);
+
+  const progressFieldErrors = useMemo(
+    () =>
+      form
+        ? Object.fromEntries(
+            validateSessionProgress(
+              answers,
+              form.definition.questions,
+            ).errors.map((error) => [error.questionId, error.issue]),
+          )
+        : {},
+    [answers, form],
+  );
 
   // Count answered visible questions
   const answeredCount = useMemo(() => {
@@ -437,7 +457,10 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           <Alert>
             {progressState.status === "conflict"
               ? APP_MESSAGES.INTAKE_CONFLICT
-              : `${progressState.errorMessage} ${APP_MESSAGES.INTAKE_SAVE_FAILED}`}
+              : Object.keys(progressFieldErrors).length ||
+                  Object.keys(saveFieldErrors).length
+                ? APP_MESSAGES.FIX_ANSWER_ERRORS
+                : `${progressState.errorMessage} ${APP_MESSAGES.INTAKE_SAVE_FAILED}`}
           </Alert>
         )}
         {(saveStatus === "error" || isSavingProgress) &&
@@ -446,6 +469,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               variant="secondary"
               loading={isSavingProgress}
               loadingLabel={APP_MESSAGES.SAVING}
+              disabled={Object.keys(progressFieldErrors).length > 0}
               onClick={() => void handleSaveProgress()}
             >
               {APP_MESSAGES.RETRY_SAVE}
@@ -469,7 +493,11 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
                 index={idx}
                 value={answers[q.id]}
                 onChange={(val) => handleAnswerChange(q.id, val)}
-                error={fieldErrors[q.id]}
+                error={
+                  progressFieldErrors[q.id] ??
+                  fieldErrors[q.id] ??
+                  saveFieldErrors[q.id]
+                }
                 disabled={isSubmitting || progressState?.status === "conflict"}
               />
             ))

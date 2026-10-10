@@ -31,7 +31,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
       data-question-id={question.id}
       className={`p-4 sm:p-5 rounded-2xl border transition-all duration-150 ${
         hasError
-          ? "border-red-400 bg-red-50/20"
+          ? "border-intake-error-border bg-intake-error-bg"
           : "border-intake-border bg-intake-surface shadow-2xs hover:border-intake-border-focus"
       }`}
     >
@@ -82,7 +82,9 @@ export const PatientQuestionField = memo(function PatientQuestionField({
             }
             maxLength={question.validation?.maxLength}
             className={`text-sm py-2.5 px-3.5 rounded-xl ${
-              hasError ? "border-red-400 focus:ring-red-400" : ""
+              hasError
+                ? "border-intake-error-border focus:ring-intake-error-border"
+                : ""
             }`}
           />
         )}
@@ -102,7 +104,9 @@ export const PatientQuestionField = memo(function PatientQuestionField({
             }
             maxLength={question.validation?.maxLength}
             className={`text-sm py-2.5 px-3.5 rounded-xl ${
-              hasError ? "border-red-400 focus:ring-red-400" : ""
+              hasError
+                ? "border-intake-error-border focus:ring-intake-error-border"
+                : ""
             }`}
           />
         )}
@@ -127,7 +131,9 @@ export const PatientQuestionField = memo(function PatientQuestionField({
               hasError ? errorId : question.description ? descId : undefined
             }
             className={`text-sm py-2.5 px-3.5 rounded-xl ${
-              hasError ? "border-red-400 focus:ring-red-400" : ""
+              hasError
+                ? "border-intake-error-border focus:ring-intake-error-border"
+                : ""
             }`}
           />
         )}
@@ -252,7 +258,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
         <p
           id={errorId}
           role="alert"
-          className="mt-2 text-xs font-semibold text-red-600 flex items-center gap-1"
+          className="mt-2 text-xs font-semibold text-intake-error flex items-center gap-1"
         >
           <span aria-hidden="true">⚠️</span>
           <span>{error}</span>

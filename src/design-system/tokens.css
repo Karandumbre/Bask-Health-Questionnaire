@@ -165,6 +165,9 @@
 
 /* Inline aliases must resolve against the nearest preview theme scope. */
 @theme inline {
+  --color-intake-error: var(--theme-error);
+  --color-intake-error-bg: var(--theme-error-bg);
+  --color-intake-error-border: var(--theme-error-border);
   --color-intake-bg: var(--theme-bg);
   --color-intake-surface: var(--theme-surface);
   --color-intake-border: var(--theme-border);

@@ -27,9 +27,8 @@ export function useDraftAutosave(
         initialRevision,
         (snapshot, revision, signal) =>
           saveFormDraft(formId, snapshot, revision, signal),
-        APPLICATION.autosaveDelayMs,
-        (left, right) =>
-          left.definition === right.definition && left.theme === right.theme,
+        APPLICATION.draftAutosaveDelayMs,
+        (left, right) => JSON.stringify(left) === JSON.stringify(right),
       ),
   );
   // Update before another event (such as Save) can read an older render's draft.

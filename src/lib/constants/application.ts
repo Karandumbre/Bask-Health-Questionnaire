@@ -2,6 +2,7 @@
 export const APPLICATION = {
   requestTimeoutMs: 30_000,
   autosaveDelayMs: 800,
+  draftAutosaveDelayMs: 2_000,
   clipboardFeedbackMs: 2_000,
   testAuthCookieName: "bask_test_auth",
   testAuthLifetimeSeconds: 3_600,
