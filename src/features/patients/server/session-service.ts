@@ -14,7 +14,6 @@ import {
   generateCapabilityToken,
   hashCapabilityToken,
   encryptRecoveryReplay,
-  decryptRecoveryReplay,
 } from "@/lib/security/credentials";
 import { FormDefinition } from "@/features/forms/domain/types";
 import { PatientAnswers } from "../domain/types";
@@ -273,43 +272,6 @@ export async function resumePatientSession(
     );
 
     if (!isValid) {
-      // Check for safe retry within bounded replay window (2 minutes)
-      const RECOVERY_REPLAY_WINDOW_MS = 2 * 60 * 1000;
-      const replayElapsed = session.previousRecoveryRotatedAt
-        ? now - session.previousRecoveryRotatedAt.getTime()
-        : Infinity;
-
-      if (
-        session.previousRecoveryHash &&
-        session.recoveryReplayPayload &&
-        replayElapsed >= 0 &&
-        replayElapsed < RECOVERY_REPLAY_WINDOW_MS &&
-        verifyRecoveryCode(
-          recoveryCode,
-          session.previousRecoveryHash,
-          getSessionPepper(),
-        )
-      ) {
-        const replayed = decryptRecoveryReplay(
-          session.recoveryReplayPayload,
-          getSessionPepper(),
-        );
-        if (replayed) {
-          return {
-            sessionId: session.id,
-            sessionReference: session.sessionReference,
-            newRecoveryCode: replayed.newRecoveryCode,
-            newCapabilityToken: replayed.newCapabilityToken,
-            publicSlug: version.publicSlug,
-            versionNumber: version.versionNumber,
-            definition: version.definitionSnapshot as FormDefinition,
-            theme: version.themeSnapshot,
-            currentAnswers: session.answerJson as PatientAnswers,
-            sessionRevision: session.revision,
-          };
-        }
-      }
-
       // Record failed attempt with bounded atomic counter (resets if outside cooldown window)
       await tx
         .update(patientSessions)

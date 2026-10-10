@@ -415,6 +415,9 @@ export function usePatientSession(initialSlug: string) {
     handleResumeSuccess,
     handleStartNewSession,
     retryLoad: () => setLoadAttempt((prev) => prev + 1),
-    retryConfirmation: () => setConfirmationAttempt((prev) => prev + 1),
+    retryConfirmation: () => {
+      setConfirmationError(false);
+      setConfirmationAttempt((prev) => prev + 1);
+    },
   };
 }

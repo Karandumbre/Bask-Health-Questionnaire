@@ -353,7 +353,7 @@ test.describe("Phase 3B journeys (real backend)", () => {
     await expect(dialog.getByText("Intake Response Detail")).toBeVisible({
       timeout: 15000,
     });
-    await expect(dialog.getByText("Snapshot Version 1")).toBeVisible();
+    await expect(dialog.getByText(/Submitted .* · Version 1$/)).toBeVisible();
     await expect(dialog.getByText(LABEL_NAME_V1)).toBeVisible();
     await expect(dialog.getByText(LABEL_NAME_V2)).toHaveCount(0);
     await expect(dialog.getByTestId("response-field-q_smoker")).toContainText(
