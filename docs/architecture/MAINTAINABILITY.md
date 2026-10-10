@@ -21,3 +21,9 @@ Unit tests cover API errors, request validation, conditions, hidden-answer pruni
 Conflict resolution uses the last acknowledged autosave snapshot as the common base for a three-way merge. The controller advances that base only after a successful save or an explicit server reload, so in-flight local edits cannot become the base prematurely. The editor offers per-conflict choices before saving against the latest server revision. The separate comparison utility supports two-way summaries and optional base-aware deletion attribution.
 
 Patient-facing pages/API routes and the responses UI are implemented under their feature directories. Dated verification entries in `docs/PROGRESS.md` record prior unit, database, and E2E runs; they are historical evidence, not checks performed by this cleanup.
+
+## Async feedback and failure isolation
+
+`Button` owns accessible pending feedback and duplicate-click disabling. Async actions expose their own pending state, safe alerts, and explicit retry controls. `Spinner` uses the shared primitive recipe. Synchronous editing and theme actions remain immediate. Route loading/error boundaries provide section recovery without exposing server diagnostics. Response refresh failures preserve loaded rows; detail requests are aborted when the dialog closes or another response opens.
+
+Patient progress uses `use-patient-progress` with the same serialized `DraftAutosave` controller as the editor. A failed save preserves local answers and the acknowledged revision; conflicts require explicit recovery. Submission waits for active progress writes, and completed submission pauses autosave. The proxy treats refresh outages as recoverable; protected routes still verify identity independently.

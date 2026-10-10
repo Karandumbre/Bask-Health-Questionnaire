@@ -28,8 +28,8 @@ export function EditorQuestionCard({
     >
       {/* Top Header of Question Card */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+        <div className="flex min-w-0 items-start gap-2">
+          <span className="text-xs font-mono font-bold shrink-0 text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
             #{index + 1}
           </span>
           <span className="text-sm font-semibold text-gray-900">
@@ -38,8 +38,12 @@ export function EditorQuestionCard({
                 {APP_MESSAGES.UNTITLED_QUESTION}
               </span>
             )}
+            {q.required && (
+              <span className="ml-1 text-red-500 font-bold" aria-hidden="true">
+                *
+              </span>
+            )}
           </span>
-          {q.required && <span className="text-red-500 font-bold">*</span>}
         </div>
 
         {/* Quick Action Buttons on Selected Field */}

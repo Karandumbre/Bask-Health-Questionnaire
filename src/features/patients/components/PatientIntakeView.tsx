@@ -451,16 +451,17 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               : `${progressState.errorMessage} ${APP_MESSAGES.INTAKE_SAVE_FAILED}`}
           </Alert>
         )}
-        {(saveStatus === "error" || isSavingProgress) && progressState?.status !== "conflict" && (
-          <Button
-            variant="secondary"
-            loading={isSavingProgress}
-            loadingLabel={APP_MESSAGES.SAVING}
-            onClick={() => void handleSaveProgress()}
-          >
-            {APP_MESSAGES.RETRY_SAVE}
-          </Button>
-        )}
+        {(saveStatus === "error" || isSavingProgress) &&
+          progressState?.status !== "conflict" && (
+            <Button
+              variant="secondary"
+              loading={isSavingProgress}
+              loadingLabel={APP_MESSAGES.SAVING}
+              onClick={() => void handleSaveProgress()}
+            >
+              {APP_MESSAGES.RETRY_SAVE}
+            </Button>
+          )}
 
         {/* Global Submit Error Banner */}
         {submitError && <Alert>{submitError}</Alert>}

@@ -22,11 +22,15 @@ export function ThemeControls({
   return (
     <div className="mb-4 flex w-full max-w-2xl flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
       <div className="flex items-center gap-2">
-        <label htmlFor="theme-preset" className="text-xs font-medium text-gray-700">
+        <label
+          htmlFor="theme-preset"
+          className="text-xs font-medium text-gray-700"
+        >
           {APP_MESSAGES.THEME_2}:
         </label>
         <Select
           id="theme-preset"
+          wrapperClassName="w-auto"
           className="w-auto text-xs py-1.5"
           disabled={!editable}
           value={theme.isCustomShuffle ? "custom" : theme.presetName}
@@ -36,7 +40,9 @@ export function ThemeControls({
           }}
         >
           {Object.keys(THEME_PRESETS).map((name) => (
-            <option key={name} value={name}>{name}</option>
+            <option key={name} value={name}>
+              {name}
+            </option>
           ))}
           {theme.isCustomShuffle && (
             <option value="custom">{APP_MESSAGES.CUSTOM_SHUFFLE}</option>

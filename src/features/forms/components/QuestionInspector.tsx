@@ -54,18 +54,21 @@ export function QuestionInspector() {
   return (
     <aside className="w-88 shrink-0 border-l border-gray-200 bg-white flex flex-col h-editor-height overflow-y-auto select-none">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <div>
+      <div className="p-4 border-b border-gray-200 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-micro font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
             {selectedQuestion.type.replace("_", " ")}
           </span>
-          <h3 className="text-xs font-bold text-gray-900 mt-1.5">
+          <h3 className="text-xs font-bold text-gray-900">
             {APP_MESSAGES.QUESTION_SETTINGS}
           </h3>
         </div>
-        <span className="text-micro font-mono text-gray-400">
+        <p
+          className="truncate text-micro font-mono text-gray-400 select-text"
+          title={selectedQuestion.id}
+        >
           {APP_MESSAGES.ID} {selectedQuestion.id}
-        </span>
+        </p>
       </div>
 
       <div className="p-4 space-y-5 flex-1">

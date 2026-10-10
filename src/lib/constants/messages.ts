@@ -3,6 +3,7 @@ export const APP_MESSAGES = {
   RECOVERY_CODE_UNAVAILABLE:
     "Use the recovery code you saved when this session was created. Saving progress does not issue a new code.",
   REFRESH: "Refresh",
+  REFRESH_RESPONSES: "Refresh responses",
   RESPONSE_DETAIL: "Intake Response Detail",
   CLOSE_DIALOG: "Close dialog",
   LOADING: "Loading...",

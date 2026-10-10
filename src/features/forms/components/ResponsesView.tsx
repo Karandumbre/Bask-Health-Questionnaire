@@ -46,7 +46,13 @@ export function ResponsesView({
   const listBusy = useRef(false);
   const listRequest = useRef<AbortController | null>(null);
   const detailRequest = useRef<AbortController | null>(null);
-  useEffect(() => () => { detailRequest.current?.abort(); listRequest.current?.abort(); }, []);
+  useEffect(
+    () => () => {
+      detailRequest.current?.abort();
+      listRequest.current?.abort();
+    },
+    [],
+  );
   const handleRefresh = async () => {
     if (listBusy.current) return;
     listBusy.current = true;
@@ -55,10 +61,15 @@ export function ResponsesView({
     setLoadingList(true);
     setListError(null);
     try {
-      const next = await fetchFormSubmissions(formId, { signal: controller.signal });
+      const next = await fetchFormSubmissions(formId, {
+        signal: controller.signal,
+      });
       if (!controller.signal.aborted) setSubmissions(next);
     } catch (error) {
-      if (!controller.signal.aborted) setListError(apiErrorMessage(error, APP_MESSAGES.RESPONSES_LOAD_FAILED));
+      if (!controller.signal.aborted)
+        setListError(
+          apiErrorMessage(error, APP_MESSAGES.RESPONSES_LOAD_FAILED),
+        );
     } finally {
       listBusy.current = false;
       if (!controller.signal.aborted) setLoadingList(false);
@@ -182,16 +193,16 @@ export function ResponsesView({
               {submissions.length === 1 ? "Response" : "Responses"}
             </span>
           </div>
+          <Button
+            variant="secondary"
+            loading={loadingList}
+            loadingLabel={APP_MESSAGES.LOADING_RESPONSES}
+            onClick={() => void handleRefresh()}
+          >
+            {listError ? APP_MESSAGES.RETRY : APP_MESSAGES.REFRESH_RESPONSES}
+          </Button>
         </div>
 
-        <Button
-          variant="secondary"
-          loading={loadingList}
-          loadingLabel={APP_MESSAGES.LOADING_RESPONSES}
-          onClick={() => void handleRefresh()}
-        >
-          {listError ? APP_MESSAGES.RETRY : APP_MESSAGES.REFRESH}
-        </Button>
         {listError && <Alert>{listError}</Alert>}
 
         {/* Responses Table / List */}
@@ -328,7 +339,9 @@ export function ResponsesView({
           {loadingDetail && (
             <div className="p-12 text-center space-y-3">
               <Spinner className="w-8 h-8 text-blue-600" />
-              <p role="status" className="text-xs text-gray-500 font-medium">{APP_MESSAGES.LOADING_RESPONSE_DETAIL}</p>
+              <p role="status" className="text-xs text-gray-500 font-medium">
+                {APP_MESSAGES.LOADING_RESPONSE_DETAIL}
+              </p>
             </div>
           )}
 

@@ -134,7 +134,10 @@ function PublishDialog() {
       {/* Branch 1: Published Success State */}
       {publishResult ? (
         <div className="space-y-4 pt-2">
-          <div role="status" className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
+          <div
+            role="status"
+            className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3"
+          >
             <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
               <CheckIcon className="w-5 h-5" />
             </div>

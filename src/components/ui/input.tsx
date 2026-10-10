@@ -1,5 +1,6 @@
 import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import type { ComponentProps } from "react";
+import { ChevronDownIcon } from "./icons";
 import { twMerge } from "tailwind-merge";
 
 const fieldStyles = COMPONENT_STYLES.field;
@@ -34,6 +35,24 @@ export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
   );
 }
 
-export function Select({ className, ...props }: ComponentProps<"select">) {
-  return <select className={twMerge(fieldStyles, className)} {...props} />;
+export function Select({
+  className,
+  wrapperClassName,
+  ...props
+}: ComponentProps<"select"> & { wrapperClassName?: string }) {
+  return (
+    <span
+      className={twMerge(COMPONENT_STYLES.select.wrapper, wrapperClassName)}
+    >
+      <select
+        className={twMerge(
+          fieldStyles,
+          className,
+          COMPONENT_STYLES.select.control,
+        )}
+        {...props}
+      />
+      <ChevronDownIcon className={COMPONENT_STYLES.select.arrow} />
+    </span>
+  );
 }

@@ -93,6 +93,7 @@ export function AdminHeader() {
             {isEditingTitle ? (
               <Input
                 type="text"
+                aria-label={APP_MESSAGES.FORM_TITLE}
                 value={tempTitle}
                 onChange={(e) => setTempTitle(e.target.value)}
                 onBlur={handleTitleBlur}

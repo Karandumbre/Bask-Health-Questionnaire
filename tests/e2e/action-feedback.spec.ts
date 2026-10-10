@@ -42,7 +42,9 @@ test("login failure releases the button and exposes an accessible alert", async 
   await expect(
     page.getByRole("button", { name: "Signing in..." }),
   ).toHaveAttribute("aria-busy", "true");
-  await expect(page.locator("form").getByRole("alert")).toContainText(failure.error.message);
+  await expect(page.locator("form").getByRole("alert")).toContainText(
+    failure.error.message,
+  );
   await expect(
     page.getByRole("button", { name: "Sign in to Intake Studio" }),
   ).toBeEnabled();
@@ -128,18 +130,18 @@ for (const width of [1440, 390]) {
     await expect(page.getByLabel("Your name", { exact: false })).toHaveValue(
       "Fictional Patient",
     );
-    await page
-      .getByRole("button", { name: "Retry Save", exact: true })
-      .click();
+    await page.getByRole("button", { name: "Retry Save", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Saving...", exact: true }),
+      page.getByRole("button", { name: "Saving...", exact: true }).last(),
     ).toHaveAttribute("aria-busy", "true");
     await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
     await page.getByRole("button", { name: "Submit Responses" }).click();
     await expect(
       page.getByRole("button", { name: "Submitting..." }),
     ).toBeDisabled();
-    await expect(page.locator("main").getByRole("alert")).toContainText(failure.error.message);
+    await expect(page.locator("main").getByRole("alert")).toContainText(
+      failure.error.message,
+    );
     await expect(page.getByLabel("Your name", { exact: false })).toHaveValue(
       "Fictional Patient",
     );

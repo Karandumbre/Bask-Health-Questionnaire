@@ -16,6 +16,12 @@ export const COMPONENT_STYLES = {
   },
   field:
     "w-full text-xs bg-white border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-50",
+  select: {
+    wrapper: "relative inline-grid w-full min-w-0",
+    control: "col-start-1 row-start-1 appearance-none pr-9",
+    arrow:
+      "pointer-events-none col-start-1 row-start-1 mr-3 h-4 w-4 justify-self-end self-center text-gray-500",
+  },
   choice:
     "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50",
   dialog:

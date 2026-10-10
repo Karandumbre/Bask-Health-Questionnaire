@@ -29,7 +29,7 @@ export function QuestionInput({
         <fieldset aria-describedby={help}>
           <legend className="text-sm font-semibold">
             {q.label}
-            {q.required && " *"}
+            {q.required && <span className="ml-1 text-red-600">*</span>}
           </legend>
           {q.description && (
             <p
@@ -75,6 +75,32 @@ export function QuestionInput({
             })}
           </div>
         </fieldset>
+      ) : q.type === "checkbox" ? (
+        <div>
+          <label
+            htmlFor={id}
+            className="flex cursor-pointer items-start gap-3 text-xs font-semibold"
+          >
+            <Input
+              id={id}
+              aria-describedby={help}
+              aria-required={q.required}
+              type="checkbox"
+              checked={value === true}
+              className="mt-0.5 shrink-0 accent-intake-primary-action focus:ring-intake-focus-ring"
+              onChange={(event) => onAnswerChange(q.id, event.target.checked)}
+            />
+            <span>
+              {q.label}
+              {q.required && <span className="ml-1 text-red-600">*</span>}
+            </span>
+          </label>
+          {q.description && (
+            <p id={help} className="mt-1 text-xs text-intake-text-secondary">
+              {q.description}
+            </p>
+          )}
+        </div>
       ) : (
         <FormField
           id={id}
@@ -91,15 +117,6 @@ export function QuestionInput({
               value={typeof value === "string" ? value : ""}
               placeholder={q.placeholder}
               onChange={(event) => onAnswerChange(q.id, event.target.value)}
-            />
-          ) : q.type === "checkbox" ? (
-            <Input
-              id={id}
-              aria-describedby={help}
-              type="checkbox"
-              checked={value === true}
-              className="accent-intake-primary-action"
-              onChange={(event) => onAnswerChange(q.id, event.target.checked)}
             />
           ) : (
             <Input
