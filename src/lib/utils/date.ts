@@ -1,6 +1,6 @@
 import { APP_MESSAGES } from "../constants/messages";
 
-export function toValidDate(date: string | Date | number): Date | null {
+function toValidDate(date: string | Date | number): Date | null {
   const d = date instanceof Date ? date : new Date(date);
   return Number.isNaN(d.getTime()) ? null : d;
 }

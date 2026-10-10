@@ -4,7 +4,7 @@ import { apiRequest, successSchema } from "@/lib/http/api-client";
 import { FormDefinitionSchema, ThemeDefinitionSchema } from "../domain/types";
 import { PatientAnswersSchema } from "@/features/patients/domain/types";
 
-export const BaseSubmissionSchema = z.object({
+const BaseSubmissionSchema = z.object({
   id: z.string(),
   sessionId: z.string(),
   sessionReference: z.string(),
@@ -18,17 +18,16 @@ export const BaseSubmissionSchema = z.object({
     .transform((d) => (typeof d === "string" ? d : d.toISOString())),
 });
 
-export const SubmissionListItemSchema = BaseSubmissionSchema;
-export type SubmissionListItem = z.infer<typeof SubmissionListItemSchema>;
+export type SubmissionListItem = z.infer<typeof BaseSubmissionSchema>;
 
-export const SubmissionDetailSchema = BaseSubmissionSchema.extend({
+const SubmissionDetailSchema = BaseSubmissionSchema.extend({
   definitionSnapshot: FormDefinitionSchema,
   themeSnapshot: ThemeDefinitionSchema,
 });
 export type SubmissionDetail = z.infer<typeof SubmissionDetailSchema>;
 
 const listResponseSchema = successSchema.extend({
-  submissions: z.array(SubmissionListItemSchema),
+  submissions: z.array(BaseSubmissionSchema),
   totalCount: z.number().int().optional(),
   limit: z.number().int().optional(),
   offset: z.number().int().optional(),

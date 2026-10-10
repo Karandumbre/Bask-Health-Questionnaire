@@ -37,7 +37,7 @@ export function rgbToHex(r: number, g: number, b: number): string {
 /**
  * Calculates relative luminance per WCAG 2.1 formula.
  */
-export function getRelativeLuminance(rgb: RgbColor): number {
+function getRelativeLuminance(rgb: RgbColor): number {
   const normalize = (val: number) => {
     const s = val / 255;
     return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);

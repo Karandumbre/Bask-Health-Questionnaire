@@ -26,7 +26,7 @@ export type PatientAnswers = z.infer<typeof PatientAnswersSchema>;
 /**
  * Patient progress save request payload.
  */
-export const ProgressSavePayloadSchema = z.object({
+const ProgressSavePayloadSchema = z.object({
   expectedSessionRevision: z.number().int().min(0),
   answers: PatientAnswersSchema,
 });
@@ -35,7 +35,7 @@ export type ProgressSavePayload = z.infer<typeof ProgressSavePayloadSchema>;
 /**
  * Patient final submission payload.
  */
-export const SubmissionPayloadSchema = z.object({
+const SubmissionPayloadSchema = z.object({
   answers: PatientAnswersSchema,
 });
 export type SubmissionPayload = z.infer<typeof SubmissionPayloadSchema>;
@@ -43,7 +43,7 @@ export type SubmissionPayload = z.infer<typeof SubmissionPayloadSchema>;
 /**
  * Session verification payload for resume.
  */
-export const ResumeSessionPayloadSchema = z.object({
+const ResumeSessionPayloadSchema = z.object({
   sessionReference: z
     .string()
     .min(1, APP_MESSAGES.SESSION_REFERENCE_IS_REQUIRED),

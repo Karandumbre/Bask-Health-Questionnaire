@@ -6,7 +6,7 @@ import {
 } from "@/features/forms/domain/types";
 import { PatientAnswersSchema, type PatientAnswers } from "../domain/types";
 
-export const patientFormResponseSchema = z.object({
+const patientFormResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     publicSlug: z.string(),
@@ -17,7 +17,7 @@ export const patientFormResponseSchema = z.object({
   }),
 });
 
-export const BasePatientSessionSchema = z.object({
+const BasePatientSessionSchema = z.object({
   sessionId: z.string(),
   sessionReference: z.string(),
   publicSlug: z.string(),
@@ -29,7 +29,7 @@ export const BasePatientSessionSchema = z.object({
 });
 export type BasePatientSession = z.infer<typeof BasePatientSessionSchema>;
 
-export const activeSessionResponseSchema = z.object({
+const activeSessionResponseSchema = z.object({
   success: z.literal(true),
   data: z.discriminatedUnion("active", [
     z.object({
@@ -54,17 +54,14 @@ export type ActivePatientSession = Extract<
   { active: true }
 >;
 
-export const startSessionResponseSchema = z.object({
+const startSessionResponseSchema = z.object({
   success: z.literal(true),
   data: BasePatientSessionSchema.extend({
     recoveryCode: z.string(),
   }),
 });
-export type StartPatientSessionData = z.infer<
-  typeof startSessionResponseSchema
->["data"];
 
-export const saveProgressResponseSchema = z.object({
+const saveProgressResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     sessionRevision: z.number(),
@@ -72,7 +69,7 @@ export const saveProgressResponseSchema = z.object({
   }),
 });
 
-export const resumeSessionResponseSchema = z.object({
+const resumeSessionResponseSchema = z.object({
   success: z.literal(true),
   data: BasePatientSessionSchema.extend({
     newRecoveryCode: z.string(),
@@ -82,7 +79,7 @@ export type ResumeSessionData = z.infer<
   typeof resumeSessionResponseSchema
 >["data"];
 
-export const submitResponseSchema = z.object({
+const submitResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     submissionId: z.string(),

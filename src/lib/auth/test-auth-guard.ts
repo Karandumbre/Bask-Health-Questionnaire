@@ -80,7 +80,7 @@ export function isTestAuthPermitted(): boolean {
   return true;
 }
 
-export interface TestUserPayload {
+interface TestUserPayload {
   id: string;
   email: string;
   issuedAt: number;

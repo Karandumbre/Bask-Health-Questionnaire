@@ -26,7 +26,6 @@ import {
   cloneQuestionWithNewId,
 } from "../domain/question-operations";
 import type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
-export type { SaveStatus, ConflictDetails } from "../client/draft-autosave";
 
 export interface BuilderContextType {
   formId: string;
