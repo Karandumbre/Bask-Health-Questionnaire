@@ -4,11 +4,12 @@ import { ROUTES } from "@/lib/constants/application";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { apiErrorMessage } from "@/lib/http/api-client";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { login } from "@/features/auth/client/auth-api";
-import { useState, type FormEvent, Suspense } from "react";
+import { useState, useRef, type FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangleIcon } from "@/components/ui/icons";
 
@@ -19,11 +20,14 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const busy = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (busy.current) return;
+    busy.current = true;
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -40,6 +44,7 @@ function LoginForm() {
         ),
       );
     } finally {
+      busy.current = false;
       setIsLoading(false);
     }
   };
@@ -59,6 +64,7 @@ function LoginForm() {
           type="email"
           autoComplete="email"
           required
+          disabled={isLoading}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="reviewer@baskhealth.com"
@@ -78,6 +84,7 @@ function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
+          disabled={isLoading}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••••"
@@ -85,16 +92,17 @@ function LoginForm() {
       </div>
 
       {errorMessage && (
-        <div className="rounded-lg bg-red-50 p-2.5 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+        <Alert className="flex items-start gap-2">
           <AlertTriangleIcon className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <span>{errorMessage}</span>
-        </div>
+        </Alert>
       )}
 
       <div>
         <Button
           type="submit"
-          disabled={isLoading}
+          loading={isLoading}
+          loadingLabel={APP_MESSAGES.SIGNING_IN}
           variant="primary"
           className="w-full"
         >

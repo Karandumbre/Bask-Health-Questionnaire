@@ -69,6 +69,7 @@ export function CreateFormDialog({
                 type="text"
                 required
                 id="new-form-name"
+                disabled={isCreating}
                 placeholder={APP_MESSAGES.E_G_ADULT_ADHD_INITIAL_SCREENING}
                 value={newFormName}
                 onChange={(e) => setNewFormName(e.target.value)}
@@ -96,11 +97,13 @@ export function CreateFormDialog({
               </Button>
               <Button
                 type="submit"
+                loading={isCreating}
+                loadingLabel={APP_MESSAGES.CREATING}
                 disabled={isCreating || !newFormName.trim()}
                 variant="primary"
                 className="py-2"
               >
-                {isCreating ? "Creating..." : APP_MESSAGES.CREATE_OPEN}
+                {APP_MESSAGES.CREATE_OPEN}
               </Button>
             </div>
           </form>

@@ -636,3 +636,11 @@ Moved logical setting keys, external variable names, environment values, and def
 - Performance Evidence: Documented in `docs/architecture/PERFORMANCE_100_FIELD.md` with Chromium 156.0.8078.4 CDP methodology (keystroke latency 1.8ms).
 - `graphify update .`: Code graph refreshed (984 nodes, 2712 edges, 46 communities).
 
+
+## Repository cleanup — 2026-10-10
+
+Removed the obsolete Phase 1 prompt/proposal, Copilot commit prompt and its sole VS Code setting, unused browser Supabase factory, and unused programmatic migration wrapper. The migration CLI still calls the shared migration engine. Removed the unused Autoprefixer dependency and its orphaned dependencies from the lockfile. Existing environment files and user edits were preserved. Historical entries above retain file paths and verification claims from their original checkpoints.
+
+Updated the checklist and maintenance boundaries to reflect current source and remaining deliverables. The performance document now distinguishes the domain benchmark from unverified browser timing claims; fresh per-field callbacks prevent assuming that React.memo isolates typing renders. No UI behavior was changed.
+
+Cleared disposable local build/test outputs and caches. Validation: lint, typecheck, and all 152 unit tests passed. The initial production build compiled but failed during tracing with a missing generated `_global-error/page.js.nft.json`; the retry passed. `graphify update .` succeeded (952 nodes, 2690 edges). Its CLI refreshed code relationships; document semantics need a separate semantic refresh, and SQL extraction remains unavailable without `tree_sitter_sql`. Database integration tests, migrations, and browser E2E were not run during this cleanup.

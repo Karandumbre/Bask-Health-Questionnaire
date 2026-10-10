@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { Alert } from "@/components/ui/alert";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { resumePatientSession } from "../client/patient-api";
 import { apiErrorMessage } from "@/lib/http/api-client";
+import type {
+  FormDefinition,
+  ThemeDefinition,
+} from "@/features/forms/domain/types";
 import type { PatientAnswers } from "../domain/types";
 
 interface ResumeModalProps {
@@ -17,6 +23,10 @@ interface ResumeModalProps {
     newRecoveryCode: string;
     currentAnswers: PatientAnswers;
     sessionRevision: number;
+    publicSlug: string;
+    versionNumber: number;
+    definition: FormDefinition;
+    theme: ThemeDefinition;
   }) => void;
 }
 
@@ -25,6 +35,7 @@ export function ResumeModal({
   onClose,
   onResumeSuccess,
 }: ResumeModalProps) {
+  const busy = useRef(false);
   const [sessionReference, setSessionReference] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,13 +43,13 @@ export function ResumeModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy.current) return;
     if (!sessionReference.trim() || !recoveryCode.trim()) {
-      setErrorMessage(
-        "Please enter both your session reference and recovery code.",
-      );
+      setErrorMessage(APP_MESSAGES.RESUME_REQUIRED);
       return;
     }
 
+    busy.current = true;
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -49,6 +60,10 @@ export function ResumeModal({
       );
 
       onResumeSuccess({
+        publicSlug: response.data.publicSlug,
+        versionNumber: response.data.versionNumber,
+        definition: response.data.definition,
+        theme: response.data.theme,
         sessionId: response.data.sessionId,
         sessionReference: response.data.sessionReference,
         newRecoveryCode: response.data.newRecoveryCode,
@@ -57,13 +72,9 @@ export function ResumeModal({
       });
       onClose();
     } catch (err) {
-      setErrorMessage(
-        apiErrorMessage(
-          err,
-          "Failed to resume session. Please verify your reference and recovery code.",
-        ),
-      );
+      setErrorMessage(apiErrorMessage(err, APP_MESSAGES.RESUME_FAILED));
     } finally {
+      busy.current = false;
       setIsLoading(false);
     }
   };
@@ -124,14 +135,7 @@ export function ResumeModal({
           />
         </div>
 
-        {errorMessage && (
-          <p
-            role="alert"
-            className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200"
-          >
-            {errorMessage}
-          </p>
-        )}
+        {errorMessage && <Alert>{errorMessage}</Alert>}
 
         <div className="flex gap-2 pt-2 justify-end">
           <Button
@@ -142,8 +146,13 @@ export function ResumeModal({
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} variant="primary">
-            {isLoading ? "Restoring..." : "Restore Progress"}
+          <Button
+            type="submit"
+            loading={isLoading}
+            loadingLabel={APP_MESSAGES.RESTORING}
+            variant="primary"
+          >
+            {APP_MESSAGES.RESTORE_PROGRESS}
           </Button>
         </div>
       </form>

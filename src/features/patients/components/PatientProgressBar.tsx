@@ -1,10 +1,15 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { APP_MESSAGES } from "@/lib/constants/messages";
 import { useMemo } from "react";
 
 interface PatientProgressBarProps {
   answeredCount: number;
   totalCount: number;
+  saving?: boolean;
+  disabled?: boolean;
   saveStatus?: "idle" | "saving" | "saved" | "error";
   onSaveAndResume?: () => void;
   onResumeExisting?: () => void;
@@ -18,6 +23,8 @@ export function PatientProgressBar({
   answeredCount,
   totalCount,
   saveStatus = "idle",
+  saving = false,
+  disabled = false,
   onSaveAndResume,
   onResumeExisting,
   themeMode = "light",
@@ -38,33 +45,13 @@ export function PatientProgressBar({
     >
       <div className="max-w-2xl mx-auto flex flex-col gap-2">
         <div className="flex items-center justify-between text-xs sm:text-sm">
-          <div className="flex items-center gap-2 font-medium">
+          <div role="status" className="flex items-center gap-2 font-medium">
             <span className="text-intake-text-secondary">
               {answeredCount} of {totalCount} answered ({percentage}%)
             </span>
             {saveStatus === "saving" && (
               <span className="inline-flex items-center gap-1 text-xs text-blue-500 font-medium">
-                <svg
-                  className="animate-spin h-3 w-3 text-blue-500"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8H4z"
-                  />
-                </svg>
+                <Spinner />
                 Saving...
               </span>
             )}
@@ -87,7 +74,7 @@ export function PatientProgressBar({
             )}
             {saveStatus === "error" && (
               <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-medium">
-                Unsaved (offline)
+                {APP_MESSAGES.UNSAVED}
               </span>
             )}
           </div>
@@ -95,19 +82,19 @@ export function PatientProgressBar({
           <div className="flex items-center gap-2">
             {/* Jump to Next Unanswered button for long forms */}
             {onJumpToNextUnanswered && unansweredRequiredCount > 0 && (
-              <button
+              <Button
                 type="button"
                 onClick={onJumpToNextUnanswered}
                 className="text-xs font-semibold px-2 py-1 rounded-md border border-intake-border-focus bg-intake-surface text-intake-text-primary hover:bg-intake-bg focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
                 aria-label={`Jump to next required question (${unansweredRequiredCount} remaining)`}
               >
                 Next Required ({unansweredRequiredCount})
-              </button>
+              </Button>
             )}
 
             {/* Light/Dark Mode Switcher */}
             {onToggleThemeMode && (
-              <button
+              <Button
                 type="button"
                 onClick={onToggleThemeMode}
                 aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
@@ -115,26 +102,30 @@ export function PatientProgressBar({
                 className="text-xs px-2 py-1 rounded-md border font-medium border-intake-border bg-intake-bg text-intake-text-primary hover:border-intake-border-focus focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
               >
                 {themeMode === "light" ? "🌙 Dark" : "☀️ Light"}
-              </button>
+              </Button>
             )}
 
             {onResumeExisting && (
-              <button
+              <Button
                 type="button"
+                disabled={disabled}
                 onClick={onResumeExisting}
                 className="text-xs font-medium text-intake-text-secondary hover:text-intake-text-primary underline underline-offset-2 transition-colors cursor-pointer hidden sm:inline"
               >
                 Resume with code
-              </button>
+              </Button>
             )}
             {onSaveAndResume && (
-              <button
+              <Button
                 type="button"
+                disabled={disabled}
+                loading={saving}
+                loadingLabel={APP_MESSAGES.SAVING}
                 onClick={onSaveAndResume}
                 className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-intake-border bg-intake-bg hover:border-intake-border-focus text-intake-text-primary focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
               >
                 Save &amp; Exit
-              </button>
+              </Button>
             )}
           </div>
         </div>

@@ -1,5 +1,55 @@
 /** Shared application copy. Keep protocol identifiers and schema keys near their contracts. */
 export const APP_MESSAGES = {
+  RECOVERY_CODE_UNAVAILABLE:
+    "Use the recovery code you saved when this session was created. Saving progress does not issue a new code.",
+  REFRESH: "Refresh",
+  RESPONSE_DETAIL: "Intake Response Detail",
+  CLOSE_DIALOG: "Close dialog",
+  LOADING: "Loading...",
+  RETRY: "Retry",
+  RETRYING: "Retrying...",
+  CREATING: "Creating...",
+  DELETING: "Deleting...",
+  SIGNING_OUT: "Signing out...",
+  PUBLISHING: "Publishing...",
+  RESTORING: "Restoring...",
+  SUBMITTING: "Submitting...",
+  COPYING: "Copying...",
+  LOADING_RESPONSE_DETAIL: "Loading response details...",
+  LOADING_RESPONSES: "Loading responses...",
+  RESPONSES_LOAD_FAILED:
+    "Unable to load responses. Please retry. Existing responses have not been deleted.",
+  DETAIL_LOAD_FAILED:
+    "Unable to load this response. Please retry or close the dialog to view another response.",
+  FORMS_LOAD_FAILED: "Unable to load your forms. Please retry.",
+  FORM_RENAMED: "Form renamed successfully.",
+  FORM_REMOVED: "Form deleted or archived successfully.",
+  CONFLICT_LOAD_FAILED:
+    "Unable to load the latest draft. Your local changes are still available. Please retry.",
+  CONFLICT_ACTION_FAILED:
+    "Unable to resolve the draft conflict. Your local changes are still available. Please retry.",
+  DRAFT_SAVE_FAILED:
+    "Your changes could not be saved. Keep this page open and retry.",
+  INTAKE_LOAD_FAILED: "Unable to load your intake. Please retry.",
+  INTAKE_SAVE_FAILED:
+    "Your latest answers could not be saved. They remain on this page. Keep it open and retry.",
+  INTAKE_CONFLICT:
+    "This session changed in another tab or device. Your answers remain on this page. Resume with your recovery code to load the latest session before editing again.",
+  INTAKE_SUBMIT_FAILED:
+    "Unable to submit your intake. Your answers remain on this page. Please retry.",
+  INTAKE_VALIDATION_FAILED:
+    "Please resolve the highlighted questions before submitting your intake.",
+  RESUME_REQUIRED:
+    "Please enter both your session reference and recovery code.",
+  RESUME_FAILED:
+    "Unable to resume. Please verify your reference and recovery code, then retry.",
+  SAVE_PROGRESS: "Save progress",
+  SUBMIT_RESPONSES: "Submit Responses",
+  RESTORE_PROGRESS: "Restore Progress",
+  ROUTE_ERROR_TITLE: "Unable to load this section",
+  ROUTE_ERROR_MESSAGE:
+    "Please retry. You can also return to the home page to open another section.",
+  BACK_HOME: "Back to home",
   NETWORK_ERROR_DURING_AUTHENTICATION_PLEASE_RETRY:
     "Network error during authentication. Please retry.",
   REVIEWER_EMAIL: "Reviewer Email",

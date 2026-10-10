@@ -13,7 +13,12 @@ import type { FormListItem } from "../domain/dashboard-types";
 export function useFormDashboard(initialForms: FormListItem[]) {
   const router = useRouter();
   const busy = useRef(false);
-  const [isMutating, setIsMutating] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: "create" | "rename" | "delete" | "logout";
+    formId?: string;
+  } | null>(null);
+  const isMutating = pendingAction !== null;
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formsList, setFormsList] = useState<FormListItem[]>(initialForms);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -33,8 +38,9 @@ export function useFormDashboard(initialForms: FormListItem[]) {
     e.preventDefault();
     if (!newFormName.trim() || busy.current) return;
     busy.current = true;
-    setIsMutating(true);
+    setPendingAction({ type: "create" });
 
+    setSuccessMessage(null);
     setIsCreating(true);
     setErrorMessage(null);
 
@@ -49,7 +55,7 @@ export function useFormDashboard(initialForms: FormListItem[]) {
     } finally {
       setIsCreating(false);
       busy.current = false;
-      setIsMutating(false);
+      setPendingAction(null);
     }
   };
 
@@ -60,17 +66,20 @@ export function useFormDashboard(initialForms: FormListItem[]) {
 
     if (busy.current) return;
     busy.current = true;
-    setIsMutating(true);
+    setPendingAction({ type: "delete", formId });
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       await deleteForm(formId);
       setFormsList((prev) => prev.filter((f) => f.id !== formId));
+      setSuccessMessage(APP_MESSAGES.FORM_REMOVED);
     } catch (error) {
       setErrorMessage(
         apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_DELETING_FORM),
       );
     } finally {
       busy.current = false;
-      setIsMutating(false);
+      setPendingAction(null);
     }
   };
 
@@ -84,17 +93,20 @@ export function useFormDashboard(initialForms: FormListItem[]) {
 
     if (busy.current) return;
     busy.current = true;
-    setIsMutating(true);
+    setPendingAction({ type: "rename", formId });
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    const name = renamingName.trim();
     try {
       const form = formsList.find((item) => item.id === formId);
       if (!form) return;
-      await renameForm(formId, renamingName.trim(), form.draftRevision ?? 0);
+      await renameForm(formId, name, form.draftRevision ?? 0);
       setFormsList((prev) =>
         prev.map((f) =>
           f.id === formId
             ? {
                 ...f,
-                name: renamingName.trim(),
+                name,
                 draftRevision: (f.draftRevision ?? 0) + 1,
                 updatedAt: new Date(),
               }
@@ -102,20 +114,23 @@ export function useFormDashboard(initialForms: FormListItem[]) {
         ),
       );
       setRenamingFormId(null);
+      setSuccessMessage(APP_MESSAGES.FORM_RENAMED);
     } catch (error) {
       setErrorMessage(
         apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_RENAMING_FORM),
       );
     } finally {
       busy.current = false;
-      setIsMutating(false);
+      setPendingAction(null);
     }
   };
 
   const handleLogout = async () => {
     if (busy.current) return;
     busy.current = true;
-    setIsMutating(true);
+    setPendingAction({ type: "logout" });
+    setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       await logout();
       router.push(ROUTES.adminLogin);
@@ -126,7 +141,7 @@ export function useFormDashboard(initialForms: FormListItem[]) {
       );
     } finally {
       busy.current = false;
-      setIsMutating(false);
+      setPendingAction(null);
     }
   };
 
@@ -157,5 +172,7 @@ export function useFormDashboard(initialForms: FormListItem[]) {
     handleSaveRename,
     handleLogout,
     isMutating,
+    pendingAction,
+    successMessage,
   };
 }

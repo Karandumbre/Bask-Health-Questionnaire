@@ -8,7 +8,6 @@ import {
   fetchPublishedForm,
   getActiveSession,
   startPatientSession,
-  savePatientProgress,
   submitPatientSession,
 } from "../client/patient-api";
 import { getVisibleQuestions, pruneHiddenAnswers } from "../domain/visibility";
@@ -19,6 +18,10 @@ import { PatientProgressBar } from "./PatientProgressBar";
 import { RecoveryCodeModal } from "./RecoveryCodeModal";
 import { ResumeModal } from "./ResumeModal";
 import { SubmissionConfirmation } from "./SubmissionConfirmation";
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { Alert } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { usePatientProgress } from "../hooks/use-patient-progress";
 import { Button } from "@/components/ui/button";
 import { apiErrorMessage } from "@/lib/http/api-client";
 
@@ -43,9 +46,27 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   // UI state
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const {
+    state: progressState,
+    initialize: initializeProgress,
+    update: updateProgress,
+    saveNow: saveProgressNow,
+    pause: pauseProgress,
+    hasConflict,
+  } = usePatientProgress(slug);
+  const saveStatus =
+    progressState?.status === "saving"
+      ? "saving"
+      : progressState?.status === "saved"
+        ? "saved"
+        : progressState?.status === "failed" ||
+            progressState?.status === "conflict"
+          ? "error"
+          : "idle";
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const submitBusy = useRef(false);
+  const saveBusy = useRef(false);
+  const [isSavingProgress, setIsSavingProgress] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -59,10 +80,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   const [showRecoveryModal, setShowRecoveryModal] = useState<boolean>(false);
   const [showResumeModal, setShowResumeModal] = useState<boolean>(false);
 
-  // Autosave coordination
-  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const sessionRevisionRef = useRef<number>(0);
-
+  const answersRef = useRef<PatientAnswers>({});
   // Initialize form and session
   useEffect(() => {
     let isCancelled = false;
@@ -86,9 +104,18 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         if (sessionRes.data.active) {
           // Resume active session
           setSessionReference(sessionRes.data.sessionReference);
-          sessionRevisionRef.current = sessionRes.data.sessionRevision;
+          initializeProgress(
+            sessionRes.data.currentAnswers as PatientAnswers,
+            sessionRes.data.sessionRevision,
+          );
+          answersRef.current = sessionRes.data.currentAnswers as PatientAnswers;
+          setForm({
+            publicSlug: sessionRes.data.publicSlug,
+            versionNumber: sessionRes.data.versionNumber,
+            definition: sessionRes.data.definition,
+            theme: sessionRes.data.theme,
+          });
           setAnswers(sessionRes.data.currentAnswers as PatientAnswers);
-          setSaveStatus("saved");
         } else {
           // Initialize fresh session
           const startRes = await startPatientSession(
@@ -99,18 +126,22 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
 
           setSessionReference(startRes.data.sessionReference);
           setRecoveryCode(startRes.data.recoveryCode);
-          sessionRevisionRef.current = startRes.data.sessionRevision;
+          initializeProgress(
+            startRes.data.currentAnswers as PatientAnswers,
+            startRes.data.sessionRevision,
+          );
+          answersRef.current = startRes.data.currentAnswers as PatientAnswers;
+          setForm({
+            publicSlug: startRes.data.publicSlug,
+            versionNumber: startRes.data.versionNumber,
+            definition: startRes.data.definition,
+            theme: startRes.data.theme,
+          });
           setAnswers(startRes.data.currentAnswers as PatientAnswers);
-          setSaveStatus("idle");
         }
       } catch (err) {
         if (!isCancelled) {
-          setLoadError(
-            apiErrorMessage(
-              err,
-              "Unable to load intake form. Please check the URL or try again later.",
-            ),
-          );
+          setLoadError(apiErrorMessage(err, APP_MESSAGES.INTAKE_LOAD_FAILED));
         }
       } finally {
         if (!isCancelled) {
@@ -124,71 +155,47 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     return () => {
       isCancelled = true;
       abortController.abort();
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-      }
     };
-  }, [slug]);
+  }, [slug, loadAttempt, initializeProgress]);
 
-  // Execute debounced progress save
-  const triggerDebouncedSave = useCallback(
-    (currentRevision: number, nextAnswers: PatientAnswers) => {
-      if (autosaveTimerRef.current) {
-        clearTimeout(autosaveTimerRef.current);
-      }
-
-      setSaveStatus("saving");
-
-      autosaveTimerRef.current = setTimeout(async () => {
-        try {
-          const res = await savePatientProgress(
-            slug,
-            currentRevision,
-            nextAnswers,
-          );
-          sessionRevisionRef.current = res.data.sessionRevision;
-          setSaveStatus("saved");
-        } catch {
-          setSaveStatus("error");
-        }
-      }, 750);
-    },
-    [slug],
-  );
-
-  // Field change handler
+  // Keep answer updates outside React state updaters so replay cannot send writes.
   const handleAnswerChange = useCallback(
     (questionId: string, value: unknown) => {
-      if (!form) return;
-
-      setAnswers((prev) => {
-        const next: PatientAnswers = {
-          ...prev,
-          [questionId]: value as CanonicalAnswer,
-        };
-        // Prune hidden answers immediately when a question change causes dependent questions to hide
-        const pruned = pruneHiddenAnswers(next, form.definition.questions);
-
-        // Schedule debounced CAS save with the latest revision
-        triggerDebouncedSave(sessionRevisionRef.current, pruned);
-        return pruned;
-      });
-
-      // Clear field-level error
+      if (!form || submitBusy.current || progressState?.status === "conflict")
+        return;
+      const next = pruneHiddenAnswers(
+        { ...answersRef.current, [questionId]: value as CanonicalAnswer },
+        form.definition.questions,
+      );
+      answersRef.current = next;
+      setAnswers(next);
+      updateProgress(next);
       setFieldErrors((prev) => {
-        if (!prev[questionId]) return prev;
         const copy = { ...prev };
         delete copy[questionId];
         return copy;
       });
     },
-    [form, triggerDebouncedSave],
+    [form, updateProgress, progressState?.status],
   );
+
+  const handleSaveProgress = async () => {
+    if (saveBusy.current || submitBusy.current) return;
+    saveBusy.current = true;
+    setIsSavingProgress(true);
+    try {
+      await saveProgressNow();
+    } finally {
+      saveBusy.current = false;
+      setIsSavingProgress(false);
+    }
+  };
 
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form || isSubmitting) return;
+    if (!form || submitBusy.current || progressState?.status === "conflict")
+      return;
 
     // Validate submission client-side
     const validation = validateSessionSubmission(
@@ -202,9 +209,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         errMap[err.questionId] = err.issue;
       }
       setFieldErrors(errMap);
-      setSubmitError(
-        "Please resolve the highlighted questions before submitting your intake.",
-      );
+      setSubmitError(APP_MESSAGES.INTAKE_VALIDATION_FAILED);
 
       // Scroll to the first error
       const firstErrorQuestionId = validation.errors[0]?.questionId;
@@ -217,32 +222,32 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       return;
     }
 
+    submitBusy.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
 
-    // Cancel any pending debounced autosave before submitting
-    if (autosaveTimerRef.current) {
-      clearTimeout(autosaveTimerRef.current);
-    }
-
     try {
+      // Finish any in-flight write before final submission. A failed progress
+      // save does not discard answers; the final endpoint validates them again.
+      await saveProgressNow();
+      if (hasConflict()) {
+        setSubmitError(APP_MESSAGES.INTAKE_CONFLICT);
+        return;
+      }
       const response = await submitPatientSession(
         slug,
         validation.sanitizedAnswers,
       );
+      pauseProgress();
       setSubmissionResult({
         submissionId: response.data.submissionId,
         submittedAt: response.data.submittedAt,
         isIdempotentReplay: response.data.isIdempotentReplay,
       });
     } catch (err) {
-      setSubmitError(
-        apiErrorMessage(
-          err,
-          "Failed to submit intake responses. Please verify your connection and try again.",
-        ),
-      );
+      setSubmitError(apiErrorMessage(err, APP_MESSAGES.INTAKE_SUBMIT_FAILED));
     } finally {
+      submitBusy.current = false;
       setIsSubmitting(false);
     }
   };
@@ -254,14 +259,24 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     newRecoveryCode: string;
     currentAnswers: PatientAnswers;
     sessionRevision: number;
+    publicSlug: string;
+    versionNumber: number;
+    definition: FormDefinition;
+    theme: ThemeDefinition;
   }) => {
+    setForm({
+      publicSlug: data.publicSlug,
+      versionNumber: data.versionNumber,
+      definition: data.definition,
+      theme: data.theme,
+    });
     setSessionReference(data.sessionReference);
     setRecoveryCode(data.newRecoveryCode);
     setAnswers(data.currentAnswers);
-    sessionRevisionRef.current = data.sessionRevision;
+    answersRef.current = data.currentAnswers;
+    initializeProgress(data.currentAnswers, data.sessionRevision);
     setFieldErrors({});
     setSubmitError(null);
-    setSaveStatus("saved");
   };
 
   const [patientThemeMode, setPatientThemeMode] = useState<"light" | "dark">(
@@ -314,17 +329,15 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
   }, [unansweredRequiredQuestions]);
 
   // CSS variables from published theme in active mode
-  const cssVars = form
-    ? themeToCssVariables(form.theme, patientThemeMode)
-    : {};
+  const cssVars = form ? themeToCssVariables(form.theme, patientThemeMode) : {};
 
   // 1. Loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium text-gray-600">
+          <Spinner className="w-8 h-8 text-blue-600" />
+          <p role="status" className="text-sm font-medium text-gray-600">
             Loading intake form...
           </p>
         </div>
@@ -352,7 +365,9 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           <Button
             type="button"
             variant="secondary"
-            onClick={() => window.location.reload()}
+            loading={loading}
+            loadingLabel={APP_MESSAGES.RETRYING}
+            onClick={() => setLoadAttempt((attempt) => attempt + 1)}
             className="w-full"
           >
             Retry
@@ -391,7 +406,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         answeredCount={answeredCount}
         totalCount={visibleQuestions.length}
         saveStatus={saveStatus}
-        onSaveAndResume={() => setShowRecoveryModal(true)}
+        saving={isSavingProgress}
+        disabled={isSubmitting || isSavingProgress}
+        onSaveAndResume={() => {
+          void handleSaveProgress();
+          setShowRecoveryModal(true);
+        }}
         onResumeExisting={() => setShowResumeModal(true)}
         themeMode={patientThemeMode}
         onToggleThemeMode={() =>
@@ -424,16 +444,26 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           )}
         </header>
 
-        {/* Global Submit Error Banner */}
-        {submitError && (
-          <div
-            role="alert"
-            className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2 shadow-2xs"
-          >
-            <span className="font-bold text-sm leading-none">⚠️</span>
-            <div className="flex-1">{submitError}</div>
-          </div>
+        {progressState?.errorMessage && (
+          <Alert>
+            {progressState.status === "conflict"
+              ? APP_MESSAGES.INTAKE_CONFLICT
+              : `${progressState.errorMessage} ${APP_MESSAGES.INTAKE_SAVE_FAILED}`}
+          </Alert>
         )}
+        {(saveStatus === "error" || isSavingProgress) && progressState?.status !== "conflict" && (
+          <Button
+            variant="secondary"
+            loading={isSavingProgress}
+            loadingLabel={APP_MESSAGES.SAVING}
+            onClick={() => void handleSaveProgress()}
+          >
+            {APP_MESSAGES.RETRY_SAVE}
+          </Button>
+        )}
+
+        {/* Global Submit Error Banner */}
+        {submitError && <Alert>{submitError}</Alert>}
 
         {/* Intake Questions Form */}
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -450,7 +480,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
                 value={answers[q.id]}
                 onChange={(val) => handleAnswerChange(q.id, val)}
                 error={fieldErrors[q.id]}
-                disabled={isSubmitting}
+                disabled={isSubmitting || progressState?.status === "conflict"}
               />
             ))
           )}
@@ -459,27 +489,36 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
             <Button
               type="submit"
-              disabled={isSubmitting || visibleQuestions.length === 0}
+              loading={isSubmitting}
+              loadingLabel={APP_MESSAGES.SUBMITTING}
+              disabled={
+                isSubmitting ||
+                progressState?.status === "conflict" ||
+                visibleQuestions.length === 0
+              }
               className="w-full sm:w-auto px-8 py-3 text-sm font-semibold rounded-xl shadow-xs bg-intake-primary-action text-intake-primary-action-fg hover:bg-intake-primary-action-hover cursor-pointer"
             >
-              {isSubmitting ? "Submitting..." : "Submit Responses"}
+              {APP_MESSAGES.SUBMIT_RESPONSES}
             </Button>
 
-            <button
+            <Button
+              disabled={isSubmitting}
               type="button"
               onClick={() => setShowRecoveryModal(true)}
               className="text-xs font-medium text-intake-text-secondary hover:text-intake-text-primary transition-colors py-2 cursor-pointer"
             >
               Need to finish later? View recovery code
-            </button>
+            </Button>
           </div>
         </form>
       </div>
 
       {/* Recovery Code Modal */}
       <RecoveryCodeModal
-        recoveryCode={
-          recoveryCode || "Session active. Code available upon saving progress."
+        recoveryCode={recoveryCode}
+        saving={isSavingProgress}
+        saveError={
+          progressState?.errorMessage ? APP_MESSAGES.INTAKE_SAVE_FAILED : null
         }
         isOpen={showRecoveryModal}
         onClose={() => setShowRecoveryModal(false)}

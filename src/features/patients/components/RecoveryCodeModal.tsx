@@ -1,22 +1,29 @@
 "use client";
 
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { Alert } from "@/components/ui/alert";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
+import { Spinner } from "@/components/ui/spinner";
 import { CheckIcon } from "@/components/ui/icons";
 
 interface RecoveryCodeModalProps {
   recoveryCode: string;
+  saving?: boolean;
+  saveError?: string | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function RecoveryCodeModal({
   recoveryCode,
+  saving = false,
+  saveError = null,
   isOpen,
   onClose,
 }: RecoveryCodeModalProps) {
-  const { copied, copy } = useClipboard();
+  const { copied, copying, copyError, copy } = useClipboard();
 
   return (
     <Dialog
@@ -44,14 +51,25 @@ export function RecoveryCodeModal({
           One-Time Recovery Code
         </span>
         <span className="font-mono text-base sm:text-lg font-bold text-gray-900 tracking-wider select-all">
-          {recoveryCode}
+          {recoveryCode || APP_MESSAGES.RECOVERY_CODE_UNAVAILABLE}
         </span>
       </div>
 
+      {saving && (
+        <p role="status" className="flex items-center gap-2 text-xs">
+          <Spinner />
+          {APP_MESSAGES.SAVING}
+        </p>
+      )}
+      {saveError && <Alert>{saveError}</Alert>}
+      {copyError && <Alert>{copyError}</Alert>}
       <div className="flex flex-col gap-2 pt-1">
         <Button
           type="button"
-          onClick={() => copy(recoveryCode)}
+          disabled={!recoveryCode}
+          loading={copying}
+          loadingLabel={APP_MESSAGES.COPYING}
+          onClick={() => void copy(recoveryCode)}
           variant="secondary"
           className="w-full flex items-center justify-center gap-1.5 py-2.5"
         >

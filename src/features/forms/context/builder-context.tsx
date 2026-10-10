@@ -36,6 +36,7 @@ export interface BuilderContextType {
   theme: ThemeDefinition;
   selectedQuestionId: string | null;
   saveStatus: SaveStatus;
+  saveError: string | null;
   lastSavedAt: Date | null;
   conflictDetails: ConflictDetails | null;
   activeMode: "editor" | "preview";
@@ -59,7 +60,7 @@ export interface BuilderContextType {
   saveNow: () => Promise<boolean>;
   saveForPublish: () => Promise<number | null>;
   resolveConflictReload: () => Promise<boolean>;
-  resolveConflictForce: () => Promise<void>;
+  resolveConflictForce: () => Promise<boolean>;
   resolveWithMergedDraft: (
     mergedDef: FormDefinition,
     mergedTheme: ThemeDefinition,
@@ -100,6 +101,7 @@ export function BuilderProvider({
     autosave,
     revision: draftRevision,
     status: saveStatus,
+    errorMessage: saveError,
     lastSavedAt,
     conflict: conflictDetails,
   } = useDraftAutosave(formId, initialRevision, { definition, theme });
@@ -244,8 +246,9 @@ export function BuilderProvider({
   };
 
   const resolveConflictForce = async () => {
-    if (conflictDetails)
-      await autosave.forceSave(conflictDetails.serverRevision);
+    return conflictDetails
+      ? await autosave.forceSave(conflictDetails.serverRevision)
+      : false;
   };
 
   const resolveWithMergedDraft = async (
@@ -296,6 +299,7 @@ export function BuilderProvider({
         baseTheme: baseDraft.theme,
         selectedQuestionId,
         saveStatus,
+        saveError,
         lastSavedAt,
         conflictDetails,
         activeMode,

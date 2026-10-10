@@ -9,7 +9,7 @@ import { publishForm } from "../client/forms-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useBuilder } from "../context/builder-context";
 import {
   SendIcon,
@@ -35,6 +35,7 @@ function PublishDialog() {
     selectQuestion,
   } = useBuilder();
 
+  const busy = useRef(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState<{
     versionNumber: number;
@@ -42,11 +43,13 @@ function PublishDialog() {
     publicUrl: string;
   } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { copied, copyError, copy } = useClipboard();
+  const { copied, copying, copyError, copy } = useClipboard();
 
   const [operationId] = useState(() => crypto.randomUUID());
 
   const handlePublish = async () => {
+    if (busy.current) return;
+    busy.current = true;
     setIsPublishing(true);
     setErrorMessage(null);
 
@@ -79,6 +82,7 @@ function PublishDialog() {
         ),
       );
     } finally {
+      busy.current = false;
       setIsPublishing(false);
     }
   };
@@ -130,7 +134,7 @@ function PublishDialog() {
       {/* Branch 1: Published Success State */}
       {publishResult ? (
         <div className="space-y-4 pt-2">
-          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
+          <div role="status" className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
             <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
               <CheckIcon className="w-5 h-5" />
             </div>
@@ -163,6 +167,8 @@ function PublishDialog() {
                 className="flex-1 text-xs bg-gray-50 border border-gray-300 rounded-lg p-2 font-mono text-gray-700"
               />
               <Button
+                loading={copying}
+                loadingLabel={APP_MESSAGES.COPYING}
                 onClick={() => void copy(publishResult.publicUrl)}
                 className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
@@ -251,11 +257,7 @@ function PublishDialog() {
             </div>
           )}
 
-          {errorMessage && (
-            <div className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
-              {errorMessage}
-            </div>
-          )}
+          {errorMessage && <Alert>{errorMessage}</Alert>}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
@@ -272,6 +274,8 @@ function PublishDialog() {
             <Button
               type="button"
               disabled={publishValidationErrors.length > 0 || isPublishing}
+              loading={isPublishing}
+              loadingLabel={APP_MESSAGES.PUBLISHING}
               onClick={handlePublish}
               variant="primary"
               className="py-2"

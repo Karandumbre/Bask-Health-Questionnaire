@@ -1,3 +1,5 @@
+import { APP_MESSAGES } from "@/lib/constants/messages";
+import { AppError } from "@/lib/errors";
 import { redirect } from "next/navigation";
 import { ROUTES } from "@/lib/constants/application";
 import { requireAdmin, requireFormWorkspaceAccess } from "@/lib/auth/admin";
@@ -15,7 +17,8 @@ export default async function FormResponsesPage({ params }: PageProps) {
   let user;
   try {
     user = await requireAdmin();
-  } catch {
+  } catch (error) {
+    if (!(error instanceof AppError) || error.status !== 401) throw error;
     redirect(`/admin/login?next=/admin/forms/${formId}/responses`);
   }
 
@@ -29,9 +32,12 @@ export default async function FormResponsesPage({ params }: PageProps) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
           <div className="bg-white border border-gray-200 rounded-xl p-8 max-w-md w-full text-center shadow-xs">
-            <h2 className="text-base font-semibold text-gray-900">Access Denied</h2>
+            <h2 className="text-base font-semibold text-gray-900">
+              Access Denied
+            </h2>
             <p className="text-xs text-gray-500 mt-2">
-              You do not have permission to view clinical responses for this form.
+              You do not have permission to view clinical responses for this
+              form.
             </p>
             <a
               href={ROUTES.adminForms}
@@ -43,9 +49,12 @@ export default async function FormResponsesPage({ params }: PageProps) {
         </div>
       );
     }
-    redirect(ROUTES.adminForms);
+    if (error instanceof AppError && error.status === 404)
+      redirect(ROUTES.adminForms);
+    throw error;
   }
 
+  let initialError: string | null = null;
   let submissionsRaw: Awaited<ReturnType<typeof listFormSubmissions>> = [];
   try {
     submissionsRaw = await listFormSubmissions({
@@ -53,28 +62,32 @@ export default async function FormResponsesPage({ params }: PageProps) {
       userId: user.id,
     });
   } catch {
+    initialError = APP_MESSAGES.RESPONSES_LOAD_FAILED;
     submissionsRaw = [];
   }
 
-  const initialSubmissions: SubmissionListItem[] = submissionsRaw.map((sub) => ({
-    id: sub.id,
-    sessionId: sub.sessionId,
-    sessionReference: sub.sessionReference,
-    formName: sub.formName ?? formAccess.form.name,
-    publishedVersionId: sub.publishedVersionId,
-    versionNumber: sub.versionNumber,
-    answerSnapshot: (sub.answerSnapshot ?? {}) as Record<string, unknown>,
-    status: sub.status ?? "completed",
-    submittedAt:
-      typeof sub.submittedAt === "string"
-        ? sub.submittedAt
-        : sub.submittedAt.toISOString(),
-  }));
+  const initialSubmissions: SubmissionListItem[] = submissionsRaw.map(
+    (sub) => ({
+      id: sub.id,
+      sessionId: sub.sessionId,
+      sessionReference: sub.sessionReference,
+      formName: sub.formName ?? formAccess.form.name,
+      publishedVersionId: sub.publishedVersionId,
+      versionNumber: sub.versionNumber,
+      answerSnapshot: (sub.answerSnapshot ?? {}) as Record<string, unknown>,
+      status: sub.status ?? "completed",
+      submittedAt:
+        typeof sub.submittedAt === "string"
+          ? sub.submittedAt
+          : sub.submittedAt.toISOString(),
+    }),
+  );
 
   return (
     <ResponsesView
       formId={formAccess.form.id}
       formName={formAccess.form.name}
+      initialError={initialError}
       initialSubmissions={initialSubmissions}
     />
   );

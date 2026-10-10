@@ -1,5 +1,5 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
-import { ApiError } from "@/lib/http/api-client";
+import { ApiError, apiErrorMessage } from "@/lib/http/api-client";
 
 export type SaveStatus =
   "saved" | "editing" | "saving" | "failed" | "conflict" | "offline";
@@ -13,6 +13,7 @@ export interface AutosaveState {
   status: SaveStatus;
   lastSavedAt: Date | null;
   conflict: ConflictDetails | null;
+  errorMessage: string | null;
 }
 
 /** Serializes writes and tracks acknowledged edits separately from newer edits. */
@@ -46,6 +47,7 @@ export class DraftAutosave<T> {
       status: "saved",
       lastSavedAt: null,
       conflict: null,
+      errorMessage: null,
     };
   }
 
@@ -98,7 +100,7 @@ export class DraftAutosave<T> {
       const expectedRevision = this.state.revision;
       const request = new AbortController();
       this.request = request;
-      this.notify({ status: "saving" });
+      this.notify({ status: "saving", errorMessage: null });
       try {
         const revision = await this.save(
           snapshot,
@@ -122,6 +124,7 @@ export class DraftAutosave<T> {
           const currentRevision = error.details?.currentRevision;
           this.notify({
             status: "conflict",
+            errorMessage: error.message,
             conflict: {
               serverRevision:
                 typeof currentRevision === "number"
@@ -132,7 +135,13 @@ export class DraftAutosave<T> {
             },
           });
         } else {
-          this.notify({ status: "failed" });
+          this.notify({
+            status: "failed",
+            errorMessage: apiErrorMessage(
+              error,
+              APP_MESSAGES.DRAFT_SAVE_FAILED,
+            ),
+          });
         }
         this.clearTimer();
         return false;
@@ -142,7 +151,7 @@ export class DraftAutosave<T> {
     }
     if (!this.active) return false;
     this.clearTimer();
-    this.notify({ status: "saved", conflict: null });
+    this.notify({ status: "saved", conflict: null, errorMessage: null });
     return true;
   }
 
@@ -172,12 +181,16 @@ export class DraftAutosave<T> {
       revision,
       status: "saved",
       conflict: null,
+      errorMessage: null,
       lastSavedAt: new Date(),
     });
   }
 
   fail() {
-    this.notify({ status: "failed" });
+    this.notify({
+      status: "failed",
+      errorMessage: APP_MESSAGES.DRAFT_SAVE_FAILED,
+    });
   }
   resume() {
     this.active = true;

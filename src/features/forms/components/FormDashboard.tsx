@@ -1,6 +1,7 @@
 "use client";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusIcon, SearchIcon } from "@/components/ui/icons";
@@ -28,6 +29,8 @@ export function FormDashboard({
     isCreateModalOpen,
     openCreateDialog,
     isMutating,
+    pendingAction,
+    successMessage,
     errorMessage,
     handleLogout,
   } = model;
@@ -53,6 +56,8 @@ export function FormDashboard({
             {userEmail}
           </span>
           <Button
+            loading={pendingAction?.type === "logout"}
+            loadingLabel={APP_MESSAGES.SIGNING_OUT}
             onClick={handleLogout}
             disabled={isMutating}
             className="text-xs text-gray-500 hover:text-gray-900 font-medium px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -88,11 +93,9 @@ export function FormDashboard({
           </Button>
         </div>
 
-        {errorMessage && !isCreateModalOpen && (
-          <p role="alert" className="text-xs text-red-600">
-            {errorMessage}
-          </p>
-        )}
+        {errorMessage && !isCreateModalOpen && <Alert>{errorMessage}</Alert>}
+
+        {successMessage && <Alert tone="success">{successMessage}</Alert>}
 
         {/* Search & Filter */}
         <div className="relative max-w-md">

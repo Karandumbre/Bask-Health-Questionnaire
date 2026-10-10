@@ -5,6 +5,8 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 import { useEffect, useRef, useState } from "react";
 
 export function useClipboard() {
+  const busy = useRef(false);
+  const [copying, setCopying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -17,6 +19,9 @@ export function useClipboard() {
     };
   }, []);
   const copy = async (text: string) => {
+    if (busy.current) return;
+    busy.current = true;
+    setCopying(true);
     if (timer.current) clearTimeout(timer.current);
     setCopied(false);
     setCopyError(null);
@@ -33,7 +38,10 @@ export function useClipboard() {
         setCopyError(
           APP_MESSAGES.UNABLE_TO_COPY_PLEASE_SELECT_AND_COPY_THE_TEXT,
         );
+    } finally {
+      busy.current = false;
+      if (mounted.current) setCopying(false);
     }
   };
-  return { copied, copyError, copy };
+  return { copied, copying, copyError, copy };
 }

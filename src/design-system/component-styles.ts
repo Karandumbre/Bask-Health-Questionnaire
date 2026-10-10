@@ -1,5 +1,7 @@
 /** Shared primitive recipes. Dimensions and colors resolve through tokens.css. */
 export const COMPONENT_STYLES = {
+  spinner:
+    "inline-block h-4 w-4 shrink-0 rounded-full border-2 border-current border-t-transparent animate-spin motion-reduce:animate-none",
   button: {
     base: "transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 disabled:opacity-50 disabled:cursor-not-allowed",
     variants: {

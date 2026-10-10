@@ -2,10 +2,13 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
+import { Alert } from "@/components/ui/alert";
+import { apiErrorMessage } from "@/lib/http/api-client";
+import { Spinner } from "@/components/ui/spinner";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useBuilder } from "../context/builder-context";
 import { loadFormDraft } from "../client/forms-api";
 import { compareDrafts, type DraftComparison } from "../domain/draft-diff";
@@ -38,8 +41,15 @@ function ConflictDialog() {
     resolveWithMergedDraft,
   } = useBuilder();
 
-  const { copied, copyError, copy } = useClipboard();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { copied, copying, copyError, copy } = useClipboard();
+  const busy = useRef(false);
+  const [pendingAction, setPendingAction] = useState<
+    "reload" | "overwrite" | "merge" | null
+  >(null);
+  const isProcessing = pendingAction !== null;
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [serverDraft, setServerDraft] = useState<{
     definition: FormDefinition;
     theme: ThemeDefinition;
@@ -65,8 +75,11 @@ function ConflictDialog() {
           });
         }
       })
-      .catch(() => {
-        // Fallback: server definition unavailable
+      .catch((error: unknown) => {
+        if (active)
+          setServerError(
+            apiErrorMessage(error, APP_MESSAGES.CONFLICT_LOAD_FAILED),
+          );
       })
       .finally(() => {
         if (active) {
@@ -78,7 +91,7 @@ function ConflictDialog() {
       active = false;
       controller.abort();
     };
-  }, [formId, conflictDetails]);
+  }, [formId, conflictDetails, loadAttempt]);
 
   const [resolutions, setResolutions] = useState<
     Record<string, "local" | "server">
@@ -120,36 +133,38 @@ function ConflictDialog() {
   const handleCopy = () =>
     void copy(JSON.stringify({ definition, theme }, null, 2));
 
-  const handleReload = async () => {
-    setIsProcessing(true);
+  const runResolution = async (
+    action: "reload" | "overwrite" | "merge",
+    operation: () => Promise<boolean>,
+  ) => {
+    if (busy.current) return;
+    busy.current = true;
+    setPendingAction(action);
+    setActionError(null);
     try {
-      await resolveConflictReload();
+      if (!(await operation()))
+        setActionError(APP_MESSAGES.CONFLICT_ACTION_FAILED);
+    } catch (error) {
+      setActionError(
+        apiErrorMessage(error, APP_MESSAGES.CONFLICT_ACTION_FAILED),
+      );
     } finally {
-      setIsProcessing(false);
+      busy.current = false;
+      setPendingAction(null);
     }
   };
-
-  const handleForceOverwrite = async () => {
-    setIsProcessing(true);
-    try {
-      await resolveConflictForce();
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleApplyMerge = async () => {
+  const handleReload = () => runResolution("reload", resolveConflictReload);
+  const handleForceOverwrite = () =>
+    runResolution("overwrite", resolveConflictForce);
+  const handleApplyMerge = () => {
     if (!mergeResult || !serverDraft) return;
-    setIsProcessing(true);
-    try {
-      await resolveWithMergedDraft(
+    return runResolution("merge", () =>
+      resolveWithMergedDraft(
         mergeResult.mergedDefinition,
         mergeResult.mergedTheme,
         serverDraft.revision,
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+      ),
+    );
   };
 
   return (
@@ -307,10 +322,33 @@ function ConflictDialog() {
         </div>
       )}
 
+      {actionError && <Alert>{actionError}</Alert>}
+      {serverError && (
+        <Alert>
+          {serverError}
+          <Button
+            className="ml-2"
+            disabled={isProcessing}
+            loading={isLoadingServer}
+            loadingLabel={APP_MESSAGES.RETRYING}
+            onClick={() => {
+              setIsLoadingServer(true);
+              setServerError(null);
+              setLoadAttempt((value) => value + 1);
+            }}
+          >
+            {APP_MESSAGES.RETRY}
+          </Button>
+        </Alert>
+      )}
+
       {/* Field Comparison by Stable Question IDs */}
       {isLoadingServer ? (
         <div className="p-4 text-center text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200 animate-pulse">
-          {APP_MESSAGES.LOADING_SERVER_DRAFT_COMPARISON}
+          <span role="status" className="inline-flex items-center gap-2">
+            <Spinner />
+            {APP_MESSAGES.LOADING_SERVER_DRAFT_COMPARISON}
+          </span>
         </div>
       ) : comparison ? (
         <div className="space-y-3">
@@ -402,6 +440,8 @@ function ConflictDialog() {
         </div>
         <Button
           type="button"
+          loading={copying}
+          loadingLabel={APP_MESSAGES.COPYING}
           onClick={handleCopy}
           className="flex items-center gap-1.5 text-xs font-medium bg-white text-blue-700 border border-blue-300 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
         >
@@ -421,6 +461,8 @@ function ConflictDialog() {
         <Button
           type="button"
           disabled={isProcessing}
+          loading={pendingAction === "reload"}
+          loadingLabel={APP_MESSAGES.LOADING}
           onClick={handleReload}
           variant="secondary"
         >
@@ -431,6 +473,8 @@ function ConflictDialog() {
         <Button
           type="button"
           disabled={isProcessing}
+          loading={pendingAction === "overwrite"}
+          loadingLabel={APP_MESSAGES.SAVING}
           onClick={handleForceOverwrite}
           variant="warning"
         >
@@ -442,6 +486,8 @@ function ConflictDialog() {
           <Button
             type="button"
             disabled={isProcessing}
+            loading={pendingAction === "merge"}
+            loadingLabel={APP_MESSAGES.SAVING}
             onClick={handleApplyMerge}
             variant="primary"
           >

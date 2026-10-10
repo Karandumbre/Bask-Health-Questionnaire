@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/errors";
 import { ROUTES } from "@/lib/constants/application";
 import { redirect } from "next/navigation";
 import { requireAdmin, getUserWorkspaces } from "@/lib/auth/admin";
@@ -11,7 +12,8 @@ export default async function AdminFormsPage() {
   let user;
   try {
     user = await requireAdmin();
-  } catch {
+  } catch (error) {
+    if (!(error instanceof AppError) || error.status !== 401) throw error;
     redirect(ROUTES.adminLogin);
   }
 

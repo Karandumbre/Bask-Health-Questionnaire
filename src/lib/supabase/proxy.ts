@@ -43,7 +43,12 @@ export async function updateSession(
   // Re-validate or refresh session using server verification
   // IMPORTANT: Do NOT use auth.getSession() here for authorization decisions.
   // getUser() sends a request to Supabase Auth to refresh token if necessary.
-  await supabase.auth.getUser();
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    // Refresh is best-effort here. Protected pages and API handlers still
+    // verify identity themselves; a refresh outage must not block public pages.
+  }
 
   return supabaseResponse;
 }

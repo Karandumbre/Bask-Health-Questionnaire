@@ -26,6 +26,7 @@ export function FormRow({
     handleStartRename,
     handleDeleteForm,
     isMutating,
+    pendingAction,
   } = model;
   return (
     <tr key={form.id} className="hover:bg-gray-50/70 transition-colors group">
@@ -35,6 +36,8 @@ export function FormRow({
           <div className="flex items-center gap-1.5">
             <Input
               type="text"
+              disabled={isMutating}
+              aria-label={APP_MESSAGES.FORM_TITLE}
               value={renamingName}
               onChange={(e) => setRenamingName(e.target.value)}
               className="border border-blue-500 rounded px-2 py-0.5 text-xs outline-none"
@@ -42,12 +45,18 @@ export function FormRow({
             />
             <Button
               disabled={isMutating}
+              loading={
+                pendingAction?.type === "rename" &&
+                pendingAction.formId === form.id
+              }
+              loadingLabel={APP_MESSAGES.SAVING}
               onClick={() => handleSaveRename(form.id)}
               className="text-blue-600 font-bold hover:underline"
             >
               {APP_MESSAGES.SAVE}
             </Button>
             <Button
+              disabled={isMutating}
               onClick={() => setRenamingFormId(null)}
               className="text-gray-400 hover:underline"
             >
@@ -114,6 +123,7 @@ export function FormRow({
             disabled={isMutating}
             onClick={() => handleStartRename(form)}
             className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
+            aria-label={APP_MESSAGES.RENAME_FORM}
             title={APP_MESSAGES.RENAME_FORM}
           >
             <EditIcon className="w-3.5 h-3.5" />
@@ -123,6 +133,16 @@ export function FormRow({
             disabled={isMutating}
             onClick={() => handleDeleteForm(form.id, form.name)}
             className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
+            loading={
+              pendingAction?.type === "delete" &&
+              pendingAction.formId === form.id
+            }
+            aria-label={
+              pendingAction?.type === "delete" &&
+              pendingAction.formId === form.id
+                ? APP_MESSAGES.DELETING
+                : APP_MESSAGES.ARCHIVE_OR_DELETE_FORM
+            }
             title={APP_MESSAGES.ARCHIVE_OR_DELETE_FORM}
           >
             <DeleteIcon className="w-3.5 h-3.5" />

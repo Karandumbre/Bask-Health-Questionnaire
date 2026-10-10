@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants/application";
 import { APP_MESSAGES } from "@/lib/constants/messages";
+import { Spinner } from "@/components/ui/spinner";
+import { Alert } from "@/components/ui/alert";
+import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -15,6 +18,7 @@ import {
 } from "@/components/ui/icons";
 import {
   fetchSubmissionDetail,
+  fetchFormSubmissions,
   type SubmissionListItem,
   type SubmissionDetail,
 } from "../client/responses-api";
@@ -26,35 +30,77 @@ interface ResponsesViewProps {
   formId: string;
   formName: string;
   initialSubmissions: SubmissionListItem[];
+  initialError?: string | null;
 }
 
 export function ResponsesView({
   formId,
   formName,
   initialSubmissions,
+  initialError = null,
 }: ResponsesViewProps) {
-  const [submissions] = useState<SubmissionListItem[]>(initialSubmissions);
-  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<SubmissionDetail | null>(null);
+  const [submissions, setSubmissions] =
+    useState<SubmissionListItem[]>(initialSubmissions);
+  const [listError, setListError] = useState(initialError);
+  const [loadingList, setLoadingList] = useState(false);
+  const listBusy = useRef(false);
+  const listRequest = useRef<AbortController | null>(null);
+  const detailRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => { detailRequest.current?.abort(); listRequest.current?.abort(); }, []);
+  const handleRefresh = async () => {
+    if (listBusy.current) return;
+    listBusy.current = true;
+    const controller = new AbortController();
+    listRequest.current = controller;
+    setLoadingList(true);
+    setListError(null);
+    try {
+      const next = await fetchFormSubmissions(formId, { signal: controller.signal });
+      if (!controller.signal.aborted) setSubmissions(next);
+    } catch (error) {
+      if (!controller.signal.aborted) setListError(apiErrorMessage(error, APP_MESSAGES.RESPONSES_LOAD_FAILED));
+    } finally {
+      listBusy.current = false;
+      if (!controller.signal.aborted) setLoadingList(false);
+    }
+  };
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<
+    string | null
+  >(null);
+  const [selectedDetail, setSelectedDetail] = useState<SubmissionDetail | null>(
+    null,
+  );
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
   const handleOpenDetail = async (submissionId: string) => {
+    detailRequest.current?.abort();
+    const controller = new AbortController();
+    detailRequest.current = controller;
+    setSelectedDetail(null);
     setSelectedSubmissionId(submissionId);
     setLoadingDetail(true);
     setDetailError(null);
 
     try {
-      const detail = await fetchSubmissionDetail(formId, submissionId);
+      const detail = await fetchSubmissionDetail(
+        formId,
+        submissionId,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
       setSelectedDetail(detail);
-    } catch {
-      setDetailError("Failed to load submission details. Please try again.");
+    } catch (error) {
+      if (!controller.signal.aborted)
+        setDetailError(apiErrorMessage(error, APP_MESSAGES.DETAIL_LOAD_FAILED));
     } finally {
-      setLoadingDetail(false);
+      if (!controller.signal.aborted) setLoadingDetail(false);
     }
   };
 
   const handleCloseDetail = () => {
+    detailRequest.current?.abort();
+    setLoadingDetail(false);
     setSelectedSubmissionId(null);
     setSelectedDetail(null);
     setDetailError(null);
@@ -124,54 +170,87 @@ export function ResponsesView({
               Clinical Intake Submissions
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Authoritative, immutable patient intake records submitted against published form versions.
+              Authoritative, immutable patient intake records submitted against
+              published form versions.
             </p>
           </div>
 
           <div className="flex items-center gap-3 text-xs">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
               <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-              {submissions.length} Completed {submissions.length === 1 ? "Response" : "Responses"}
+              {submissions.length} Completed{" "}
+              {submissions.length === 1 ? "Response" : "Responses"}
             </span>
           </div>
         </div>
 
+        <Button
+          variant="secondary"
+          loading={loadingList}
+          loadingLabel={APP_MESSAGES.LOADING_RESPONSES}
+          onClick={() => void handleRefresh()}
+        >
+          {listError ? APP_MESSAGES.RETRY : APP_MESSAGES.REFRESH}
+        </Button>
+        {listError && <Alert>{listError}</Alert>}
+
         {/* Responses Table / List */}
         {submissions.length === 0 ? (
-          /* Empty State */
-          <div
-            data-testid="empty-responses-state"
-            className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-2xs space-y-3"
-          >
-            <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center">
-              <ViewIcon className="w-6 h-6" />
+          !listError &&
+          !loadingList && (
+            /* Empty State */
+            <div
+              data-testid="empty-responses-state"
+              className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-2xs space-y-3"
+            >
+              <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center">
+                <ViewIcon className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                No Responses Yet
+              </h3>
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Patient submissions will appear here automatically once clinical
+                intake forms are completed.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={ROUTES.editForm(formId)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-2xs"
+                >
+                  <span>Open Editor</span>
+                </Link>
+              </div>
             </div>
-            <h3 className="text-sm font-semibold text-gray-900">No Responses Yet</h3>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Patient submissions will appear here automatically once clinical intake forms are completed.
-            </p>
-            <div className="pt-2">
-              <Link
-                href={ROUTES.editForm(formId)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-2xs"
-              >
-                <span>Open Editor</span>
-              </Link>
-            </div>
-          </div>
+          )
         ) : (
           /* Table of Responses */
           <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs" aria-label="Clinical Form Responses">
+              <table
+                className="w-full text-left text-xs"
+                aria-label="Clinical Form Responses"
+              >
                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase tracking-wider text-micro font-semibold">
                   <tr>
-                    <th scope="col" className="px-5 py-3">Submission Date</th>
-                    <th scope="col" className="px-5 py-3">Form Name</th>
-                    <th scope="col" className="px-5 py-3">Version</th>
-                    <th scope="col" className="px-5 py-3">Status</th>
-                    <th scope="col" className="px-5 py-3">Session Ref</th>
-                    <th scope="col" className="px-5 py-3 text-right">Actions</th>
+                    <th scope="col" className="px-5 py-3">
+                      Submission Date
+                    </th>
+                    <th scope="col" className="px-5 py-3">
+                      Form Name
+                    </th>
+                    <th scope="col" className="px-5 py-3">
+                      Version
+                    </th>
+                    <th scope="col" className="px-5 py-3">
+                      Status
+                    </th>
+                    <th scope="col" className="px-5 py-3">
+                      Session Ref
+                    </th>
+                    <th scope="col" className="px-5 py-3 text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-gray-800">
@@ -203,6 +282,10 @@ export function ResponsesView({
                       </td>
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         <Button
+                          loading={
+                            loadingDetail && selectedSubmissionId === sub.id
+                          }
+                          loadingLabel={APP_MESSAGES.LOADING}
                           variant="secondary"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -231,19 +314,32 @@ export function ResponsesView({
           titleId="submission-detail-title"
           className="max-w-2xl w-full p-0 overflow-hidden rounded-2xl shadow-2xl border border-gray-200 bg-white"
         >
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h2 id="submission-detail-title" className="text-sm font-bold">
+              {APP_MESSAGES.RESPONSE_DETAIL}
+            </h2>
+            <Button
+              aria-label={APP_MESSAGES.CLOSE_DIALOG}
+              onClick={handleCloseDetail}
+            >
+              ✕
+            </Button>
+          </div>
           {loadingDetail && (
             <div className="p-12 text-center space-y-3">
-              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-gray-500 font-medium">Loading snapshot details...</p>
+              <Spinner className="w-8 h-8 text-blue-600" />
+              <p role="status" className="text-xs text-gray-500 font-medium">{APP_MESSAGES.LOADING_RESPONSE_DETAIL}</p>
             </div>
           )}
 
           {detailError && (
             <div className="p-8 text-center space-y-3">
-              <p className="text-xs text-red-600 font-medium">{detailError}</p>
+              <Alert>{detailError}</Alert>
               <Button
                 variant="secondary"
-                onClick={() => handleOpenDetail(selectedSubmissionId)}
+                loading={loadingDetail}
+                loadingLabel={APP_MESSAGES.RETRYING}
+                onClick={() => void handleOpenDetail(selectedSubmissionId)}
                 className="text-xs"
               >
                 Retry
@@ -256,12 +352,6 @@ export function ResponsesView({
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/80 flex items-center justify-between">
                 <div>
-                  <h2
-                    id="submission-detail-title"
-                    className="text-sm font-bold text-gray-900"
-                  >
-                    Intake Response Detail
-                  </h2>
                   <div className="flex items-center gap-2 mt-1 text-caption text-gray-500 font-mono">
                     <span>Session: {selectedDetail.sessionReference}</span>
                     <span>•</span>
@@ -273,13 +363,6 @@ export function ResponsesView({
                   <span className="inline-flex items-center px-2 py-0.5 rounded text-micro font-medium bg-blue-50 text-blue-700 border border-blue-200">
                     Snapshot Version {selectedDetail.versionNumber}
                   </span>
-                  <Button
-                    onClick={handleCloseDetail}
-                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-200/60 transition-colors"
-                    aria-label="Close dialog"
-                  >
-                    ✕
-                  </Button>
                 </div>
               </div>
 
@@ -299,15 +382,17 @@ export function ResponsesView({
 
               {/* Modal Body: Q&A Snapshot Breakdown */}
               <div className="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
-                {selectedDetail.definitionSnapshot.questions.map((question, idx) => (
-                  <ResponseFieldRow
-                    key={question.id}
-                    question={question}
-                    index={idx}
-                    allQuestions={selectedDetail.definitionSnapshot.questions}
-                    answers={selectedDetail.answerSnapshot as PatientAnswers}
-                  />
-                ))}
+                {selectedDetail.definitionSnapshot.questions.map(
+                  (question, idx) => (
+                    <ResponseFieldRow
+                      key={question.id}
+                      question={question}
+                      index={idx}
+                      allQuestions={selectedDetail.definitionSnapshot.questions}
+                      answers={selectedDetail.answerSnapshot as PatientAnswers}
+                    />
+                  ),
+                )}
               </div>
 
               {/* Modal Footer */}
@@ -364,7 +449,8 @@ function ResponseFieldRow({
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="text-caption font-semibold text-gray-400 block mb-0.5">
-            Question {index + 1} • {question.type.replace("_", " ").toUpperCase()}
+            Question {index + 1} •{" "}
+            {question.type.replace("_", " ").toUpperCase()}
           </span>
           <h4 className="text-xs font-semibold text-gray-900 leading-snug">
             {question.label}
@@ -387,7 +473,8 @@ function ResponseFieldRow({
       <div className="mt-3 pt-3 border-t border-gray-100">
         {!wasVisible ? (
           <p className="text-caption italic text-gray-400">
-            Field was not presented to the patient due to conditional visibility logic.
+            Field was not presented to the patient due to conditional visibility
+            logic.
           </p>
         ) : answer === undefined || answer === null || answer === "" ? (
           <p className="text-caption italic text-gray-400">
@@ -446,7 +533,9 @@ function AnswerValueRenderer({
       return (
         <div className="flex flex-wrap gap-1.5">
           {selectedOptions.length === 0 ? (
-            <span className="text-caption italic text-gray-400">None selected</span>
+            <span className="text-caption italic text-gray-400">
+              None selected
+            </span>
           ) : (
             selectedOptions.map((optLabel, i) => (
               <span

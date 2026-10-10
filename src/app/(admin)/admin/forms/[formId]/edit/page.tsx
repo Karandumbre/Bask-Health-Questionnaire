@@ -1,3 +1,4 @@
+import { AppError } from "@/lib/errors";
 import { ROUTES } from "@/lib/constants/application";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
@@ -20,14 +21,17 @@ export default async function FormEditPage({ params }: PageProps) {
   let user;
   try {
     user = await requireAdmin();
-  } catch {
+  } catch (error) {
+    if (!(error instanceof AppError) || error.status !== 401) throw error;
     redirect(`/admin/login?next=/admin/forms/${formId}/edit`);
   }
 
   let data;
   try {
     data = await getFormDraft(formId, user.id);
-  } catch {
+  } catch (error) {
+    if (!(error instanceof AppError) || ![403, 404].includes(error.status))
+      throw error;
     redirect(ROUTES.adminForms);
   }
 
