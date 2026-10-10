@@ -2,6 +2,7 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Input, Textarea } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 
 import { useBuilder } from "../context/builder-context";
 import { QuestionConstraintsEditor } from "./QuestionConstraintsEditor";
@@ -73,14 +74,11 @@ export function QuestionInspector() {
 
       <div className="p-4 space-y-5 flex-1">
         {/* Label input */}
-        <div>
-          <label
-            htmlFor="question-label-input"
-            className="block text-xs font-semibold text-gray-800 mb-1"
-          >
-            {APP_MESSAGES.QUESTION_LABEL}{" "}
-            <span className="text-red-500">*</span>
-          </label>
+        <FormField
+          id="question-label-input"
+          label={APP_MESSAGES.QUESTION_LABEL}
+          required
+        >
           <Input
             id="question-label-input"
             type="text"
@@ -89,16 +87,13 @@ export function QuestionInspector() {
             placeholder={APP_MESSAGES.E_G_DO_YOU_HAVE_ANY_ALLERGIES}
             className="rounded-md p-2"
           />
-        </div>
+        </FormField>
 
         {/* Description / Instructions */}
-        <div>
-          <label
-            htmlFor="question-description-input"
-            className="block text-xs font-semibold text-gray-800 mb-1"
-          >
-            {APP_MESSAGES.HELP_TEXT_INSTRUCTIONS}
-          </label>
+        <FormField
+          id="question-description-input"
+          label={APP_MESSAGES.HELP_TEXT_INSTRUCTIONS}
+        >
           <Textarea
             id="question-description-input"
             value={selectedQuestion.description || ""}
@@ -107,19 +102,16 @@ export function QuestionInspector() {
             rows={2}
             className="rounded-md p-2"
           />
-        </div>
+        </FormField>
 
         {/* Placeholder (if applicable) */}
         {(selectedQuestion.type === "short_text" ||
           selectedQuestion.type === "long_text" ||
           selectedQuestion.type === "number") && (
-          <div>
-            <label
-              htmlFor="question-placeholder-input"
-              className="block text-xs font-semibold text-gray-800 mb-1"
-            >
-              {APP_MESSAGES.FIELD_PLACEHOLDER}
-            </label>
+          <FormField
+            id="question-placeholder-input"
+            label={APP_MESSAGES.FIELD_PLACEHOLDER}
+          >
             <Input
               id="question-placeholder-input"
               type="text"
@@ -128,7 +120,7 @@ export function QuestionInspector() {
               placeholder={APP_MESSAGES.E_G_TYPE_YOUR_ANSWER}
               className="rounded-md p-2"
             />
-          </div>
+          </FormField>
         )}
 
         {/* Required switch */}
@@ -150,7 +142,6 @@ export function QuestionInspector() {
             aria-label={APP_MESSAGES.REQUIRED_RESPONSE_2}
             checked={selectedQuestion.required}
             onChange={(e) => handleRequiredToggle(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
         </div>
 

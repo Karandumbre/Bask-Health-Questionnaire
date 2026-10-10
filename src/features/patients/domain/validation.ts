@@ -10,6 +10,38 @@ export interface AnswerValidationError {
 }
 
 /**
+ * Determines whether a non-empty, answered value is present for a question.
+ * Checkboxes must be true (unchecked boolean false is not answered).
+ */
+export function isQuestionAnswered(
+  question: Question,
+  value: unknown,
+): boolean {
+  if (value === undefined || value === null) return false;
+  if (question.type === "checkbox") return value === true;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (question.type === "number")
+    return typeof value === "number" && !Number.isNaN(value);
+  return true;
+}
+
+/**
+ * Converts a list of validation errors to a questionId -> issue dictionary.
+ */
+export function validationErrorsToMap(
+  errors: readonly { questionId: string; issue: string }[],
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const err of errors) {
+    if (!map[err.questionId]) {
+      map[err.questionId] = err.issue;
+    }
+  }
+  return map;
+}
+
+/**
  * Validates progress saves (in-progress autosave).
  * Missing required answers are permitted while intake is incomplete,
  * but any provided answer must adhere to canonical types and valid choice IDs.

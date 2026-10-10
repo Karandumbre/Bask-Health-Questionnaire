@@ -12,6 +12,7 @@ import { useState, useRef } from "react";
 import { useBuilder } from "../context/builder-context";
 import { getVisibleQuestions } from "@/features/patients/domain/visibility";
 import { usePreviewAnswers } from "../hooks/use-preview-answers";
+import { focusQuestion } from "@/lib/dom/focus-question";
 export function FormCanvas() {
   const { definition, theme, updateTheme, activeMode, previewViewport } =
     useBuilder();
@@ -132,14 +133,12 @@ export function FormCanvas() {
                 onClick={() => {
                   const result = validateSubmission();
                   const first = result.errors[0]?.questionId;
-                  const card = Array.from(
-                    previewRef.current?.querySelectorAll<HTMLElement>(
-                      "[data-question-id]",
-                    ) ?? [],
-                  ).find((element) => element.dataset.questionId === first);
-                  card
-                    ?.querySelector<HTMLElement>("input, textarea, select")
-                    ?.focus();
+                  if (first) {
+                    focusQuestion(first, {
+                      container: previewRef.current,
+                      scrollIntoView: false,
+                    });
+                  }
                 }}
                 className="w-full bg-intake-primary-action text-intake-primary-action-fg font-semibold text-xs py-3 rounded-xl shadow-xs hover:bg-intake-primary-action-hover transition-colors"
               >

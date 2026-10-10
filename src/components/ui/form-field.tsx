@@ -1,4 +1,16 @@
 import type { ReactNode } from "react";
+import { twMerge } from "tailwind-merge";
+
+export interface FormFieldProps {
+  id: string;
+  label: ReactNode;
+  description?: ReactNode;
+  error?: ReactNode;
+  required?: boolean;
+  className?: string;
+  labelClassName?: string;
+  children: ReactNode;
+}
 
 export function FormField({
   id,
@@ -6,18 +18,16 @@ export function FormField({
   description,
   error,
   required,
+  className,
+  labelClassName,
   children,
-}: {
-  id: string;
-  label: ReactNode;
-  description?: string;
-  error?: string;
-  required?: boolean;
-  children: ReactNode;
-}) {
+}: FormFieldProps) {
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs font-semibold">
+    <div className={twMerge("space-y-1.5", className)}>
+      <label
+        htmlFor={id}
+        className={twMerge("block text-xs font-semibold", labelClassName)}
+      >
         {label}
         {required && <span className="ml-1 text-red-600">*</span>}
       </label>

@@ -71,7 +71,8 @@ export function isTestAuthPermitted(): boolean {
   }
 
   const dbUrl =
-    readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) || ENVIRONMENT_DEFAULTS.EMPTY;
+    readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) ||
+    ENVIRONMENT_DEFAULTS.EMPTY;
   if (!isDatabaseAllowlistedForTesting(dbUrl)) {
     return false;
   }
@@ -79,7 +80,7 @@ export function isTestAuthPermitted(): boolean {
   return true;
 }
 
-export interface TestUserPayload {
+interface TestUserPayload {
   id: string;
   email: string;
   issuedAt: number;

@@ -32,9 +32,6 @@ export const API_ROUTES = {
 } as const;
 export const QUESTION_DEFAULTS = {
   label: (index: number) => `Question ${index + 1}`,
-  numberLabel: (index: number) => `Numeric Question ${index + 1}`,
-  singleChoiceLabel: (index: number) => `Single-choice Question ${index + 1}`,
-  multiChoiceLabel: (index: number) => `Multi-select Question ${index + 1}`,
   optionLabel: (index: number) => `Option ${index + 1}`,
   copyLabel: (label: string) => `${label} (Copy)`,
 } as const;

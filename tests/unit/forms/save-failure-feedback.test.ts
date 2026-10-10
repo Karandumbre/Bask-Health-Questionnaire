@@ -48,13 +48,11 @@ describe("Recoverable save feedback", () => {
   });
 
   it("blocks retry after a revision conflict until it is explicitly resolved", async () => {
-    const save = vi
-      .fn()
-      .mockRejectedValue(
-        new ApiError("Session changed", 409, "REVISION_CONFLICT", {
-          currentRevision: 6,
-        }),
-      );
+    const save = vi.fn().mockRejectedValue(
+      new ApiError("Session changed", 409, "REVISION_CONFLICT", {
+        currentRevision: 6,
+      }),
+    );
     const controller = new DraftAutosave<string>("original", 3, save);
     controller.update("edit");
     await controller.flush();

@@ -9,9 +9,10 @@ import { ResponseDetailLoading, ResponseListSkeleton } from "./FormLoading";
 import { Alert } from "@/components/ui/alert";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogHeader } from "@/components/ui/dialog";
+import { AdminBackLink } from "./AdminBackLink";
+import { formatDetailedDateTime, formatShortDateTime } from "@/lib/utils/date";
 import {
-  ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
   EditIcon,
@@ -145,36 +146,12 @@ export function ResponsesView({
     setDetailError(null);
   };
 
-  const formatDate = (dateStr: string, includeSeconds = true) => {
-    try {
-      const date = new Date(dateStr);
-      return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        second: includeSeconds ? "2-digit" : undefined,
-        hour12: true,
-      }).format(date);
-    } catch {
-      return dateStr;
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
       {/* Top Header */}
       <header className="h-14 border-b border-gray-200 bg-white px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 select-none">
         <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href={ROUTES.adminForms}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors p-1.5 -ml-1.5 rounded hover:bg-gray-100"
-            title={APP_MESSAGES.BACK_TO_FORMS_DASHBOARD}
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{APP_MESSAGES.FORMS}</span>
-          </Link>
+          <AdminBackLink />
 
           <div className="h-4 w-px bg-gray-200" />
 
@@ -310,7 +287,7 @@ export function ResponsesView({
                       }}
                     >
                       <td className="px-5 py-3.5 font-medium whitespace-nowrap text-gray-900">
-                        {formatDate(sub.submittedAt)}
+                        {formatDetailedDateTime(sub.submittedAt)}
                       </td>
                       <td className="px-5 py-3.5 font-medium truncate max-w-xs text-gray-900">
                         {sub.formName || formName}
@@ -395,16 +372,13 @@ export function ResponsesView({
           titleId="submission-detail-title"
           className="max-w-2xl w-full p-0 overflow-hidden rounded-2xl shadow-2xl border border-gray-200 bg-white"
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h2 id="submission-detail-title" className="text-sm font-bold">
-              {APP_MESSAGES.RESPONSE_DETAIL}
-            </h2>
-            <Button
-              aria-label={APP_MESSAGES.CLOSE_DIALOG}
-              onClick={handleCloseDetail}
-            >
-              ✕
-            </Button>
+          <div className="px-6 py-4 border-b border-gray-200">
+            <DialogHeader
+              titleId="submission-detail-title"
+              title={APP_MESSAGES.RESPONSE_DETAIL}
+              onClose={handleCloseDetail}
+              closeLabel={APP_MESSAGES.CLOSE_DIALOG}
+            />
           </div>
           {loadingDetail && <ResponseDetailLoading />}
 
@@ -431,7 +405,7 @@ export function ResponsesView({
                 </h3>
                 <p className="mt-1 text-caption text-gray-500">
                   {APP_MESSAGES.RESPONSE_SUBMITTED_SUMMARY(
-                    formatDate(selectedDetail.submittedAt, false),
+                    formatShortDateTime(selectedDetail.submittedAt),
                     selectedDetail.versionNumber,
                   )}
                 </p>
@@ -439,17 +413,25 @@ export function ResponsesView({
 
               {/* Modal Body: Q&A Snapshot Breakdown */}
               <div className="px-6 py-2 overflow-y-auto min-h-0 flex-1 text-xs">
-                {selectedDetail.definitionSnapshot.questions.map(
-                  (question, idx) => (
-                    <ResponseFieldRow
-                      key={question.id}
-                      question={question}
-                      index={idx}
-                      allQuestions={selectedDetail.definitionSnapshot.questions}
-                      answers={selectedDetail.answerSnapshot as PatientAnswers}
-                    />
-                  ),
-                )}
+                {(() => {
+                  const qMap = new Map(
+                    selectedDetail.definitionSnapshot.questions.map((q) => [
+                      q.id,
+                      q,
+                    ]),
+                  );
+                  return selectedDetail.definitionSnapshot.questions.map(
+                    (question, idx) => (
+                      <ResponseFieldRow
+                        key={question.id}
+                        question={question}
+                        index={idx}
+                        questionMap={qMap}
+                        answers={selectedDetail.answerSnapshot}
+                      />
+                    ),
+                  );
+                })()}
                 <details className="py-4 border-t border-gray-200 text-caption text-gray-500">
                   <summary
                     tabIndex={0}
@@ -498,18 +480,17 @@ export function ResponsesView({
 function ResponseFieldRow({
   question,
   index,
-  allQuestions,
+  questionMap,
   answers,
 }: {
   question: Question;
   index: number;
-  allQuestions: Question[];
+  questionMap: Map<string, Question>;
   answers: PatientAnswers;
 }) {
   const answer = answers[question.id];
 
   // Evaluate conditional visibility in the context of submitted answers
-  const questionMap = new Map(allQuestions.map((q) => [q.id, q]));
   const wasVisible = evaluateQuestionVisibility(question, answers, questionMap);
 
   return (

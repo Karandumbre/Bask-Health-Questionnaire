@@ -40,9 +40,15 @@ describe("Database Privacy & RLS Migration (0002)", () => {
     const sql = readFileSync(migrationPath, "utf-8");
 
     // Anon revocation
-    expect(sql).toMatch(/REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;/i);
-    expect(sql).toMatch(/REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;/i);
-    expect(sql).toMatch(/REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon;/i);
+    expect(sql).toMatch(
+      /REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;/i,
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;/i,
+    );
+    expect(sql).toMatch(
+      /REVOKE ALL ON ALL ROUTINES IN SCHEMA public FROM anon;/i,
+    );
 
     // Authenticated revocation
     expect(sql).toMatch(

@@ -112,20 +112,4 @@ export async function requireFormWorkspaceAccess(
   return { form, membership };
 }
 
-/**
- * Helper to authenticate user and verify workspace access in a single call.
- */
-export async function requireAdminWorkspaceAccess(
-  workspaceId: string,
-  requiredRole?: AdminRole,
-): Promise<{ user: VerifiedAuthUser; membership: WorkspaceMembershipRecord }> {
-  const user = await requireAdmin();
-  const membership = await requireWorkspaceMembership(
-    user.id,
-    workspaceId,
-    requiredRole,
-  );
-  return { user, membership };
-}
-
 export { getUserWorkspaces } from "@/features/workspaces/server/workspace-service";

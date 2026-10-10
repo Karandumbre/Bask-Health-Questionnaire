@@ -3,7 +3,8 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Alert } from "@/components/ui/alert";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form-field";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { publishForm } from "../client/forms-api";
 import { Button } from "@/components/ui/button";
@@ -102,28 +103,22 @@ function PublishDialog() {
       className="space-y-4"
     >
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 id="publish-title" className="text-base font-bold text-gray-900">
-            {publishResult
-              ? APP_MESSAGES.FORM_PUBLISHED_SUCCESSFULLY
-              : APP_MESSAGES.PUBLISH_IMMUTABLE_VERSION}
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            {publishResult
-              ? APP_MESSAGES.THIS_VERSION_SNAPSHOT_IS_NOW_LOCKED_AND_AVAILABLE_FOR
-              : APP_MESSAGES.CREATES_AN_IMMUTABLE_SNAPSHOT_OF_ALL_QUESTIONS_AND_THEME}
-          </p>
-        </div>
-        <Button
-          disabled={isPublishing}
-          onClick={closePublishModal}
-          aria-label={APP_MESSAGES.CLOSE_PUBLISH_DIALOG}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
-        >
-          ✕
-        </Button>
-      </div>
+      <DialogHeader
+        titleId="publish-title"
+        title={
+          publishResult
+            ? APP_MESSAGES.FORM_PUBLISHED_SUCCESSFULLY
+            : APP_MESSAGES.PUBLISH_IMMUTABLE_VERSION
+        }
+        description={
+          publishResult
+            ? APP_MESSAGES.THIS_VERSION_SNAPSHOT_IS_NOW_LOCKED_AND_AVAILABLE_FOR
+            : APP_MESSAGES.CREATES_AN_IMMUTABLE_SNAPSHOT_OF_ALL_QUESTIONS_AND_THEME
+        }
+        onClose={closePublishModal}
+        closeLabel={APP_MESSAGES.CLOSE_PUBLISH_DIALOG}
+        disabled={isPublishing}
+      />
 
       {errorMessage && publishResult && <Alert>{errorMessage}</Alert>}
       {copyError && (
@@ -154,16 +149,11 @@ function PublishDialog() {
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="published-url"
-              className="block text-xs font-semibold text-gray-700 mb-1"
-            >
-              {APP_MESSAGES.PUBLIC_PATIENT_URL}
-            </label>
-            <p className="mb-2 text-xs text-gray-500">
-              {APP_MESSAGES.SHARE_PATIENT_LINK}
-            </p>
+          <FormField
+            id="published-url"
+            label={APP_MESSAGES.PUBLIC_PATIENT_URL}
+            description={APP_MESSAGES.SHARE_PATIENT_LINK}
+          >
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 type="text"
@@ -191,7 +181,7 @@ function PublishDialog() {
                 <ExternalIcon className="w-4 h-4" />
               </a>
             </div>
-          </div>
+          </FormField>
 
           <div className="pt-2 flex justify-end">
             <Button
@@ -269,7 +259,7 @@ function PublishDialog() {
           {errorMessage && <Alert>{errorMessage}</Alert>}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <DialogActions>
             <Button
               type="button"
               disabled={isPublishing}
@@ -294,7 +284,7 @@ function PublishDialog() {
                 {isPublishing ? "Publishing..." : APP_MESSAGES.CONFIRM_PUBLISH}
               </span>
             </Button>
-          </div>
+          </DialogActions>
         </div>
       )}
     </Dialog>

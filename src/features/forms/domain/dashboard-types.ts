@@ -3,6 +3,7 @@ export interface FormListItem {
   name: string;
   workspaceId: string;
   latestPublishedVersionNumber: number | null;
+  publicSlug?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
   draftRevision: number | null;

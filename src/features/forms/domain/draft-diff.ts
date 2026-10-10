@@ -1,7 +1,7 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { FormDefinition, Question, ThemeDefinition } from "./types";
 
-export type DiffStatus =
+type DiffStatus =
   | "added_locally"
   | "added_on_server"
   | "removed_locally"
@@ -9,13 +9,13 @@ export type DiffStatus =
   | "modified"
   | "unchanged";
 
-export interface PropertyChange {
+interface PropertyChange {
   property: string;
   localValue: string | boolean | number | null;
   serverValue: string | boolean | number | null;
 }
 
-export interface QuestionDiff {
+interface QuestionDiff {
   questionId: string;
   label: string;
   status: DiffStatus;

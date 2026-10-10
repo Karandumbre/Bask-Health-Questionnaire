@@ -4,9 +4,9 @@ import {
   FormDefinitionSchema,
   ThemeDefinitionSchema,
 } from "@/features/forms/domain/types";
-import type { PatientAnswers } from "../domain/types";
+import { PatientAnswersSchema, type PatientAnswers } from "../domain/types";
 
-export const patientFormResponseSchema = z.object({
+const patientFormResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     publicSlug: z.string(),
@@ -17,24 +17,28 @@ export const patientFormResponseSchema = z.object({
   }),
 });
 
-export const activeSessionResponseSchema = z.object({
+const BasePatientSessionSchema = z.object({
+  sessionId: z.string(),
+  sessionReference: z.string(),
+  publicSlug: z.string(),
+  versionNumber: z.number(),
+  definition: FormDefinitionSchema,
+  theme: ThemeDefinitionSchema,
+  currentAnswers: PatientAnswersSchema,
+  sessionRevision: z.number(),
+});
+export type BasePatientSession = z.infer<typeof BasePatientSessionSchema>;
+
+const activeSessionResponseSchema = z.object({
   success: z.literal(true),
   data: z.discriminatedUnion("active", [
     z.object({
       active: z.literal(false),
       sessionEnded: z.boolean().optional(),
     }),
-    z.object({
+    BasePatientSessionSchema.extend({
       active: z.literal(true),
-      sessionId: z.string(),
-      sessionReference: z.string(),
       status: z.enum(["in_progress", "completed", "expired"]),
-      sessionRevision: z.number(),
-      currentAnswers: z.record(z.string(), z.unknown()),
-      publicSlug: z.string(),
-      versionNumber: z.number(),
-      definition: FormDefinitionSchema,
-      theme: ThemeDefinitionSchema,
       submission: z
         .object({
           submissionId: z.string(),
@@ -50,45 +54,32 @@ export type ActivePatientSession = Extract<
   { active: true }
 >;
 
-export const startSessionResponseSchema = z.object({
+const startSessionResponseSchema = z.object({
   success: z.literal(true),
-  data: z.object({
-    sessionId: z.string(),
-    sessionReference: z.string(),
+  data: BasePatientSessionSchema.extend({
     recoveryCode: z.string(),
-    publicSlug: z.string(),
-    versionNumber: z.number(),
-    definition: FormDefinitionSchema,
-    theme: ThemeDefinitionSchema,
-    currentAnswers: z.record(z.string(), z.unknown()),
-    sessionRevision: z.number(),
   }),
 });
 
-export const saveProgressResponseSchema = z.object({
+const saveProgressResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     sessionRevision: z.number(),
-    sanitizedAnswers: z.record(z.string(), z.unknown()),
+    sanitizedAnswers: PatientAnswersSchema,
   }),
 });
 
-export const resumeSessionResponseSchema = z.object({
+const resumeSessionResponseSchema = z.object({
   success: z.literal(true),
-  data: z.object({
-    sessionId: z.string(),
-    sessionReference: z.string(),
+  data: BasePatientSessionSchema.extend({
     newRecoveryCode: z.string(),
-    publicSlug: z.string(),
-    versionNumber: z.number(),
-    definition: FormDefinitionSchema,
-    theme: ThemeDefinitionSchema,
-    currentAnswers: z.record(z.string(), z.unknown()),
-    sessionRevision: z.number(),
   }),
 });
+export type ResumeSessionData = z.infer<
+  typeof resumeSessionResponseSchema
+>["data"];
 
-export const submitResponseSchema = z.object({
+const submitResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     submissionId: z.string(),

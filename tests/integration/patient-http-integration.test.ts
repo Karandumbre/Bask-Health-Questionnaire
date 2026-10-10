@@ -212,7 +212,9 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     const progressBody = await progressRes.json();
     expect(progressBody.success).toBe(true);
     expect(progressBody.data.sessionRevision).toBe(1);
-    expect(progressBody.data.sanitizedAnswers["q-chest-pain"]).toBe("opt-cp-yes");
+    expect(progressBody.data.sanitizedAnswers["q-chest-pain"]).toBe(
+      "opt-cp-yes",
+    );
 
     // Verify database row
     const [sessionRow] = await db
@@ -241,18 +243,21 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     const cookie1 = startRes.headers.get("set-cookie")!;
 
     await saveProgressRoute(
-      createPatientRequest("http://localhost:3000/api/patient/session/progress", {
-        method: "PUT",
-        cookieHeader: cookie1,
-        body: {
-          publicSlug: publicSlugV1,
-          expectedSessionRevision: 0,
-          answers: {
-            "q-chest-pain": "opt-cp-no",
-            "q-systolic-bp": 120,
+      createPatientRequest(
+        "http://localhost:3000/api/patient/session/progress",
+        {
+          method: "PUT",
+          cookieHeader: cookie1,
+          body: {
+            publicSlug: publicSlugV1,
+            expectedSessionRevision: 0,
+            answers: {
+              "q-chest-pain": "opt-cp-no",
+              "q-systolic-bp": 120,
+            },
           },
         },
-      }),
+      ),
     );
 
     // Browser 2 (no cookies) redempts recovery code
@@ -357,16 +362,22 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     // Two simultaneous resume requests with identical one-time code
     const [res1, res2] = await Promise.all([
       resumeSessionRoute(
-        createPatientRequest("http://localhost:3000/api/patient/session/resume", {
-          method: "POST",
-          body: { sessionReference, recoveryCode },
-        }),
+        createPatientRequest(
+          "http://localhost:3000/api/patient/session/resume",
+          {
+            method: "POST",
+            body: { sessionReference, recoveryCode },
+          },
+        ),
       ),
       resumeSessionRoute(
-        createPatientRequest("http://localhost:3000/api/patient/session/resume", {
-          method: "POST",
-          body: { sessionReference, recoveryCode },
-        }),
+        createPatientRequest(
+          "http://localhost:3000/api/patient/session/resume",
+          {
+            method: "POST",
+            body: { sessionReference, recoveryCode },
+          },
+        ),
       ),
     ]);
 
@@ -374,7 +385,9 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     expect(statuses).toContain(200);
     // The second request must fail because the code was rotated atomically
     expect(statuses.filter((s) => s === 200).length).toBe(1);
-    expect(statuses.some((s) => s === 401 || s === 403 || s === 429)).toBe(true);
+    expect(statuses.some((s) => s === 401 || s === 403 || s === 429)).toBe(
+      true,
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -393,40 +406,48 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
 
     // Step 1: Save progress with parent Yes and child details
     await saveProgressRoute(
-      createPatientRequest("http://localhost:3000/api/patient/session/progress", {
-        method: "PUT",
-        cookieHeader: cookie,
-        body: {
-          publicSlug: publicSlugV1,
-          expectedSessionRevision: 0,
-          answers: {
-            "q-chest-pain": "opt-cp-yes",
-            "q-chest-pain-details": "Substernal pressure after exertion",
+      createPatientRequest(
+        "http://localhost:3000/api/patient/session/progress",
+        {
+          method: "PUT",
+          cookieHeader: cookie,
+          body: {
+            publicSlug: publicSlugV1,
+            expectedSessionRevision: 0,
+            answers: {
+              "q-chest-pain": "opt-cp-yes",
+              "q-chest-pain-details": "Substernal pressure after exertion",
+            },
           },
         },
-      }),
+      ),
     );
 
     // Step 2: Change parent to No
     const updateRes = await saveProgressRoute(
-      createPatientRequest("http://localhost:3000/api/patient/session/progress", {
-        method: "PUT",
-        cookieHeader: cookie,
-        body: {
-          publicSlug: publicSlugV1,
-          expectedSessionRevision: 1,
-          answers: {
-            "q-chest-pain": "opt-cp-no",
-            "q-chest-pain-details": "Substernal pressure after exertion",
+      createPatientRequest(
+        "http://localhost:3000/api/patient/session/progress",
+        {
+          method: "PUT",
+          cookieHeader: cookie,
+          body: {
+            publicSlug: publicSlugV1,
+            expectedSessionRevision: 1,
+            answers: {
+              "q-chest-pain": "opt-cp-no",
+              "q-chest-pain-details": "Substernal pressure after exertion",
+            },
           },
         },
-      }),
+      ),
     );
 
     expect(updateRes.status).toBe(200);
     const updateBody = await updateRes.json();
     expect(updateBody.data.sanitizedAnswers["q-chest-pain"]).toBe("opt-cp-no");
-    expect(updateBody.data.sanitizedAnswers["q-chest-pain-details"]).toBeUndefined();
+    expect(
+      updateBody.data.sanitizedAnswers["q-chest-pain-details"],
+    ).toBeUndefined();
 
     // Verify DB answers
     const [sessionRow] = await db
@@ -474,7 +495,9 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     const maliciousRes = await saveProgressRoute(maliciousReq);
     expect(maliciousRes.status).toBe(200);
     const maliciousBody = await maliciousRes.json();
-    expect(maliciousBody.data.sanitizedAnswers["q-chest-pain-details"]).toBeUndefined();
+    expect(
+      maliciousBody.data.sanitizedAnswers["q-chest-pain-details"],
+    ).toBeUndefined();
 
     // Verify database does not contain the pruned field
     const [sessionRow] = await db
@@ -516,18 +539,24 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     // Fire two parallel submit requests (simulating double click race)
     const [submitRes1, submitRes2] = await Promise.all([
       submitSessionRoute(
-        createPatientRequest("http://localhost:3000/api/patient/session/submit", {
-          method: "POST",
-          cookieHeader: cookie,
-          body: validSubmissionPayload,
-        }),
+        createPatientRequest(
+          "http://localhost:3000/api/patient/session/submit",
+          {
+            method: "POST",
+            cookieHeader: cookie,
+            body: validSubmissionPayload,
+          },
+        ),
       ),
       submitSessionRoute(
-        createPatientRequest("http://localhost:3000/api/patient/session/submit", {
-          method: "POST",
-          cookieHeader: cookie,
-          body: validSubmissionPayload,
-        }),
+        createPatientRequest(
+          "http://localhost:3000/api/patient/session/submit",
+          {
+            method: "POST",
+            cookieHeader: cookie,
+            body: validSubmissionPayload,
+          },
+        ),
       ),
     ]);
 
@@ -705,15 +734,21 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     // Start Session A on Form A and Session B on Form B
     const [resA, resB] = await Promise.all([
       startSessionRoute(
-        createPatientRequest(`http://localhost:3000/api/patient/forms/${publicSlugV1}/session`, {
-          method: "POST",
-        }),
+        createPatientRequest(
+          `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
+          {
+            method: "POST",
+          },
+        ),
         { params: Promise.resolve({ slug: publicSlugV1 }) },
       ),
       startSessionRoute(
-        createPatientRequest(`http://localhost:3000/api/patient/forms/${pubB.publicSlug}/session`, {
-          method: "POST",
-        }),
+        createPatientRequest(
+          `http://localhost:3000/api/patient/forms/${pubB.publicSlug}/session`,
+          {
+            method: "POST",
+          },
+        ),
         { params: Promise.resolve({ slug: pubB.publicSlug }) },
       ),
     ]);

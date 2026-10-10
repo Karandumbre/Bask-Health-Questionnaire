@@ -7,6 +7,7 @@ import { apiErrorMessage } from "@/lib/http/api-client";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 
 import { login } from "@/features/auth/client/auth-api";
 import { useState, useRef, type FormEvent, Suspense } from "react";
@@ -51,13 +52,7 @@ function LoginForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div>
-        <label
-          htmlFor="email"
-          className="block text-xs font-semibold text-gray-700 mb-1"
-        >
-          {APP_MESSAGES.REVIEWER_EMAIL}
-        </label>
+      <FormField id="email" label={APP_MESSAGES.REVIEWER_EMAIL}>
         <Input
           id="email"
           name="email"
@@ -69,15 +64,9 @@ function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="reviewer@baskhealth.com"
         />
-      </div>
+      </FormField>
 
-      <div>
-        <label
-          htmlFor="password"
-          className="block text-xs font-semibold text-gray-700 mb-1"
-        >
-          {APP_MESSAGES.PASSWORD}
-        </label>
+      <FormField id="password" label={APP_MESSAGES.PASSWORD}>
         <Input
           id="password"
           name="password"
@@ -89,7 +78,7 @@ function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••••"
         />
-      </div>
+      </FormField>
 
       {errorMessage && (
         <Alert className="flex items-start gap-2">

@@ -11,11 +11,11 @@ import "server-only";
  * Prevents automated integration or destructive tests from accidentally
  * executing against a shared development, staging, or production database.
  */
-export const APPROVED_TEST_PROJECT_REFS = Object.freeze([
+const APPROVED_TEST_PROJECT_REFS = Object.freeze([
   "vjstbqhzfnwrkksgavfv", // Bask Health designated disposable test project
 ]);
 
-export const APPROVED_TEST_HOSTS = Object.freeze([
+const APPROVED_TEST_HOSTS = Object.freeze([
   "localhost",
   "127.0.0.1",
   "::1",
@@ -24,7 +24,7 @@ export const APPROVED_TEST_HOSTS = Object.freeze([
 /**
  * Extracts the Supabase project reference or hostname from a PostgreSQL connection string.
  */
-export function extractDatabaseIdentity(dbUrl: string): {
+function extractDatabaseIdentity(dbUrl: string): {
   projectRef: string | null;
   host: string;
   isLocal: boolean;

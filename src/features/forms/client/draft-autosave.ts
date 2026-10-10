@@ -135,7 +135,11 @@ export class DraftAutosave<T> {
         // acknowledged revision before reporting that the draft is saved.
       } catch (error) {
         if (request.signal.aborted) return false;
-        if (error instanceof ApiError && error.status === 409) {
+        if (
+          error instanceof ApiError &&
+          error.status === 409 &&
+          error.code !== "SESSION_COMPLETED"
+        ) {
           const currentRevision = error.details?.currentRevision;
           this.notify({
             status: "conflict",

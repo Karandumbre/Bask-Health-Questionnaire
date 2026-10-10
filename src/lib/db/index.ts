@@ -49,7 +49,7 @@ function createPooledClient(): postgres.Sql {
   });
 }
 
-export const client: postgres.Sql =
+const client: postgres.Sql =
   globalThis.__postgresClient ??
   (globalThis.__postgresClient = createPooledClient());
 
@@ -78,5 +78,4 @@ export function getDirectClient(): postgres.Sql {
   });
 }
 
-export { schema };
 export type Database = typeof db;

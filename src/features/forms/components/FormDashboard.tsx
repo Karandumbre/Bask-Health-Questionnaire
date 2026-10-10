@@ -4,7 +4,13 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusIcon, SearchIcon } from "@/components/ui/icons";
+import {
+  PlusIcon,
+  SearchIcon,
+  NoteIcon,
+  CheckIcon,
+  EditIcon,
+} from "@/components/ui/icons";
 import { CreateFormDialog } from "./CreateFormDialog";
 import { FormRow } from "./FormRow";
 import { useFormDashboard } from "../hooks/use-form-dashboard";
@@ -23,9 +29,12 @@ export function FormDashboard({
 }) {
   const model = useFormDashboard(initialForms);
   const {
+    formsList,
     filteredForms,
     searchQuery,
     setSearchQuery,
+    statusFilter,
+    setStatusFilter,
     isCreateModalOpen,
     openCreateDialog,
     isMutating,
@@ -34,6 +43,14 @@ export function FormDashboard({
     errorMessage,
     handleLogout,
   } = model;
+
+  const totalForms = formsList.length;
+  const publishedCount = formsList.filter((f) =>
+    Boolean(f.latestPublishedVersionNumber),
+  ).length;
+  const draftCount = formsList.filter(
+    (f) => !f.latestPublishedVersionNumber,
+  ).length;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -93,21 +110,115 @@ export function FormDashboard({
           </Button>
         </div>
 
+        {/* Metric Summary Cards (Utilizing Dashboard Space) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-caption font-semibold uppercase tracking-wider text-gray-500">
+                Total Intake Forms
+              </span>
+              <div className="text-2xl font-bold text-gray-900 tracking-tight">
+                {totalForms}
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Registered clinical questionnaires
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <NoteIcon className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-caption font-semibold uppercase tracking-wider text-gray-500">
+                  Published & Live
+                </span>
+                <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">
+                  Deployed
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-emerald-700 tracking-tight">
+                {publishedCount}
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Live patient intake versions
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CheckIcon className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-caption font-semibold uppercase tracking-wider text-gray-500">
+                Working Drafts
+              </span>
+              <div className="text-2xl font-bold text-gray-900 tracking-tight">
+                {draftCount}
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Unpublished forms in progress
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <EditIcon className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
         {errorMessage && !isCreateModalOpen && <Alert>{errorMessage}</Alert>}
 
         {successMessage && <Alert tone="success">{successMessage}</Alert>}
 
-        {/* Search & Filter */}
-        <div className="relative max-w-md">
-          <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            type="text"
-            aria-label={APP_MESSAGES.SEARCH_FORMS}
-            placeholder={APP_MESSAGES.SEARCH_FORMS_BY_TITLE}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
+        {/* Toolbar: Segmented Filter Buttons + Search */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200 self-start sm:self-auto">
+            <Button
+              onClick={() => setStatusFilter("all")}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
+                statusFilter === "all"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <span>All Forms ({totalForms})</span>
+            </Button>
+            <Button
+              onClick={() => setStatusFilter("published")}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
+                statusFilter === "published"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <span>Published ({publishedCount})</span>
+            </Button>
+            <Button
+              onClick={() => setStatusFilter("draft")}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
+                statusFilter === "draft"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <span>Drafts ({draftCount})</span>
+            </Button>
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              type="text"
+              aria-label={APP_MESSAGES.SEARCH_FORMS}
+              placeholder={APP_MESSAGES.SEARCH_FORMS_BY_TITLE}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-3 py-2 rounded-xl text-xs w-full bg-white"
+            />
+          </div>
         </div>
 
         {/* Forms Table / Grid */}

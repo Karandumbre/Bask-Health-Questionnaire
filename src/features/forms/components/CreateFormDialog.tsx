@@ -1,7 +1,8 @@
 "use client";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
@@ -32,39 +33,23 @@ export function CreateFormDialog({
           onClose={isCreating ? undefined : () => setIsCreateModalOpen(false)}
           className="max-w-md space-y-4"
         >
-          <div className="flex items-start justify-between">
-            <div>
-              <h3
-                id="create-form-title"
-                className="text-base font-bold text-gray-900"
-              >
-                {APP_MESSAGES.CREATE_CLINICAL_FORM}
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {
-                  APP_MESSAGES.INITIALIZES_A_NEW_DRAFT_CONTAINER_READY_FOR_QUESTION_AUTHORING
-                }
-              </p>
-            </div>
-            <Button
-              disabled={isCreating}
-              onClick={() => setIsCreateModalOpen(false)}
-              aria-label={APP_MESSAGES.CLOSE_CREATE_FORM_DIALOG}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </Button>
-          </div>
+          <DialogHeader
+            titleId="create-form-title"
+            title={APP_MESSAGES.CREATE_CLINICAL_FORM}
+            description={
+              APP_MESSAGES.INITIALIZES_A_NEW_DRAFT_CONTAINER_READY_FOR_QUESTION_AUTHORING
+            }
+            onClose={() => setIsCreateModalOpen(false)}
+            closeLabel={APP_MESSAGES.CLOSE_CREATE_FORM_DIALOG}
+            disabled={isCreating}
+          />
 
           <form onSubmit={handleCreateForm} className="space-y-4">
-            <div>
-              <label
-                htmlFor="new-form-name"
-                className="block text-xs font-semibold text-gray-700 mb-1"
-              >
-                {APP_MESSAGES.FORM_TITLE}{" "}
-                <span className="text-red-500">*</span>
-              </label>
+            <FormField
+              id="new-form-name"
+              label={APP_MESSAGES.FORM_TITLE}
+              required
+            >
               <Input
                 type="text"
                 required
@@ -73,10 +58,9 @@ export function CreateFormDialog({
                 placeholder={APP_MESSAGES.E_G_ADULT_ADHD_INITIAL_SCREENING}
                 value={newFormName}
                 onChange={(e) => setNewFormName(e.target.value)}
-
                 autoFocus
               />
-            </div>
+            </FormField>
 
             {errorMessage && (
               <Alert className="flex items-center gap-1.5">
@@ -85,7 +69,7 @@ export function CreateFormDialog({
               </Alert>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
+            <DialogActions>
               <Button
                 type="button"
                 disabled={isCreating}
@@ -99,13 +83,13 @@ export function CreateFormDialog({
                 type="submit"
                 loading={isCreating}
                 loadingLabel={APP_MESSAGES.CREATING}
-                disabled={isCreating || !newFormName.trim()}
+                disabled={!newFormName.trim() || isCreating}
                 variant="primary"
                 className="py-2"
               >
                 {APP_MESSAGES.CREATE_OPEN}
               </Button>
-            </div>
+            </DialogActions>
           </form>
         </Dialog>
       )}
