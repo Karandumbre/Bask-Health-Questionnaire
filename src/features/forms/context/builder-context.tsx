@@ -86,7 +86,7 @@ export function BuilderProvider({
   initialRevision: number;
   initialDefinition: FormDefinition;
   initialTheme: ThemeDefinition;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   const [formName, setFormName] = useState(initialName);
   const [definition, setDefinition] =

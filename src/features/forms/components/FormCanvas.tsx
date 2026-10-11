@@ -39,18 +39,23 @@ export function FormCanvas() {
       />
       {activeMode === "editor" ? (
         /* Editor Canvas View */
-        <div className="w-full max-w-2xl space-y-4 pb-20">
+        <div
+          style={themeToCssVariables(theme, themeMode)}
+          data-patient-theme
+          data-theme-mode={themeMode}
+          className="w-full max-w-2xl rounded-xl bg-intake-bg text-intake-text-primary p-4 transition-colors duration-200 space-y-4 pb-20"
+        >
           {/* Form Header Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-2xs">
-            <h1 className="text-xl font-bold text-gray-900">
+          <div className="bg-intake-surface rounded-xl border border-intake-border border-t-4 border-t-intake-primary-action p-6 shadow-2xs transition-colors">
+            <h1 className="text-xl font-bold text-intake-text-primary">
               {definition.title}
             </h1>
             {definition.description && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-intake-text-secondary mt-1">
                 {definition.description}
               </p>
             )}
-            <div className="mt-3 flex items-center gap-3 text-caption text-gray-400">
+            <div className="mt-3 flex items-center gap-3 text-caption text-intake-text-secondary">
               <span>
                 {APP_MESSAGES.THEME} {theme.presetName}
               </span>
@@ -72,9 +77,10 @@ export function FormCanvas() {
           ref={previewRef}
           style={themeToCssVariables(theme, themeMode)}
           data-patient-theme
+          data-theme-mode={themeMode}
           className={`w-full rounded-xl bg-intake-bg p-4 transition-all duration-200 pb-20 ${
             previewViewport === "mobile"
-              ? "max-w-sm rounded-device border-8 border-gray-900 shadow-2xl p-4 bg-gray-50 my-2"
+              ? "max-w-sm rounded-device border-8 border-gray-900 shadow-2xl p-4 bg-intake-bg my-2"
               : "max-w-xl"
           }`}
         >

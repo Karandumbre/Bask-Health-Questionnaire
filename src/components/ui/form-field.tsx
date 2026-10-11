@@ -5,9 +5,7 @@ export interface FormFieldProps {
   id: string;
   label: ReactNode;
   description?: ReactNode;
-  error?: ReactNode;
   required?: boolean;
-  className?: string;
   labelClassName?: string;
   children: ReactNode;
 }
@@ -16,14 +14,12 @@ export function FormField({
   id,
   label,
   description,
-  error,
   required,
-  className,
   labelClassName,
   children,
 }: FormFieldProps) {
   return (
-    <div className={twMerge("space-y-1.5", className)}>
+    <div className="space-y-1.5">
       <label
         htmlFor={id}
         className={twMerge("block text-xs font-semibold", labelClassName)}
@@ -37,11 +33,6 @@ export function FormField({
         </p>
       )}
       {children}
-      {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-red-600">
-          {error}
-        </p>
-      )}
     </div>
   );
 }

@@ -284,7 +284,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
                 question={q}
                 index={idx}
                 value={answers[q.id]}
-                onChange={(val) => handleAnswerChange(q.id, val)}
+                onAnswerChange={handleAnswerChange}
                 error={
                   progressFieldErrors[q.id] ??
                   fieldErrors[q.id] ??
@@ -328,9 +328,7 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
       <RecoveryCodeModal
         recoveryCode={recoveryCode ?? ""}
         saving={isSavingProgress}
-        saveError={
-          saveErrorMessage ? APP_MESSAGES.INTAKE_SAVE_FAILED : null
-        }
+        saveError={saveErrorMessage ? APP_MESSAGES.INTAKE_SAVE_FAILED : null}
         isOpen={showRecoveryModal}
         onClose={() => setShowRecoveryModal(false)}
       />

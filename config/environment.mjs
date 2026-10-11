@@ -17,6 +17,9 @@ export {
 export function readEnvironment(key) {
   if (typeof window !== "undefined")
     throw new Error(CONFIGURATION_MESSAGES.PRIVATE_ENVIRONMENT);
+  if (key === ENVIRONMENT_KEYS.DATABASE_DIRECT_URL) {
+    return process.env[ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_DIRECT_URL]];
+  }
   return process.env[ENVIRONMENT_NAMES[key]];
 }
 export function getDatabaseConfig() {
@@ -25,7 +28,7 @@ export function getDatabaseConfig() {
     ENVIRONMENT_DEFAULTS.EMPTY;
   return {
     url,
-    directUrl: readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) || url,
+    directUrl: readEnvironment(ENVIRONMENT_KEYS.DATABASE_DIRECT_URL) || url,
   };
 }
 export function getRuntimeConfig() {

@@ -1,4 +1,4 @@
-import { useId, memo } from "react";
+import { useId, useCallback, memo } from "react";
 import type { Question } from "@/features/forms/domain/types";
 import type { CanonicalAnswer } from "@/features/patients/domain/types";
 import { AlertTriangleIcon } from "@/components/ui/icons";
@@ -11,7 +11,10 @@ interface PatientQuestionFieldProps {
   question: Question;
   index: number;
   value: CanonicalAnswer | undefined;
-  onChange: (value: CanonicalAnswer | undefined) => void;
+  onAnswerChange: (
+    questionId: string,
+    value: CanonicalAnswer | undefined,
+  ) => void;
   error?: string;
   disabled?: boolean;
 }
@@ -20,7 +23,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
   question,
   index,
   value,
-  onChange,
+  onAnswerChange,
   error,
   disabled = false,
 }: PatientQuestionFieldProps) {
@@ -28,6 +31,13 @@ export const PatientQuestionField = memo(function PatientQuestionField({
   const inputId = `patient-field-${question.id}-${generatedId}`;
   const errorId = `patient-error-${question.id}-${generatedId}`;
   const descId = `patient-desc-${question.id}-${generatedId}`;
+
+  const handleFieldChange = useCallback(
+    (nextValue: CanonicalAnswer | undefined) => {
+      onAnswerChange(question.id, nextValue);
+    },
+    [onAnswerChange, question.id],
+  );
 
   const hasError = Boolean(error);
   const describedBy = getFieldDescribedBy(
@@ -86,7 +96,7 @@ export const PatientQuestionField = memo(function PatientQuestionField({
           question={question}
           id={inputId}
           value={value}
-          onChange={onChange}
+          onChange={handleFieldChange}
           error={error}
           disabled={disabled}
           ariaDescribedBy={describedBy}

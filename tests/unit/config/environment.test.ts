@@ -20,12 +20,12 @@ describe("central environment configuration", () => {
       "postgres://test/first",
     );
     vi.stubEnv(
-      ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DIRECT_DATABASE_URL],
+      ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_DIRECT_URL],
       ENVIRONMENT_DEFAULTS.EMPTY,
     );
     expect(getDatabaseConfig().directUrl).toBe("postgres://test/first");
     vi.stubEnv(
-      ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DIRECT_DATABASE_URL],
+      ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.DATABASE_DIRECT_URL],
       "postgres://test/direct",
     );
     expect(getDatabaseConfig().directUrl).toBe("postgres://test/direct");

@@ -15,11 +15,7 @@ const APPROVED_TEST_PROJECT_REFS = Object.freeze([
   "vjstbqhzfnwrkksgavfv", // Bask Health designated disposable test project
 ]);
 
-const APPROVED_TEST_HOSTS = Object.freeze([
-  "localhost",
-  "127.0.0.1",
-  "::1",
-]);
+const APPROVED_TEST_HOSTS = Object.freeze(["localhost", "127.0.0.1", "::1"]);
 
 /**
  * Extracts the Supabase project reference or hostname from a PostgreSQL connection string.

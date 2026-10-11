@@ -20,7 +20,6 @@ export interface ChoiceGroupProps {
   disabled?: boolean;
   ariaDescribedBy?: string;
   ariaInvalid?: boolean;
-  className?: string;
 }
 
 export function ChoiceGroup({
@@ -36,7 +35,6 @@ export function ChoiceGroup({
   disabled = false,
   ariaDescribedBy,
   ariaInvalid,
-  className,
 }: ChoiceGroupProps) {
   const isMulti = type === "multi";
   const selectedList =
@@ -62,7 +60,7 @@ export function ChoiceGroup({
       aria-required={required}
       aria-invalid={ariaInvalid}
       aria-describedby={ariaDescribedBy}
-      className={twMerge("space-y-2", className)}
+      className="space-y-2"
     >
       {legend && (
         <legend

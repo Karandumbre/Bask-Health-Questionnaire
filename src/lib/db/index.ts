@@ -63,7 +63,7 @@ export const db =
  */
 export function getDirectClient(): postgres.Sql {
   const directUrl =
-    readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) ||
+    readEnvironment(ENVIRONMENT_KEYS.DATABASE_DIRECT_URL) ||
     readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) ||
     ENVIRONMENT_DEFAULTS.EMPTY;
   if (!directUrl) {
