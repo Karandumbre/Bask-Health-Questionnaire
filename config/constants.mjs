@@ -2,7 +2,6 @@
 export const ENVIRONMENT_KEYS = Object.freeze({
   PUBLIC_SUPABASE_URL: "publicSupabaseUrl",
   PUBLIC_SUPABASE_KEY: "publicSupabaseKey",
-  PUBLIC_SUPABASE_ANON_KEY: "publicSupabaseAnonKey",
   DATABASE_URL: "databaseUrl",
   DATABASE_DIRECT_URL: "databaseDirectUrl",
   NODE_ENV: "nodeEnv",
