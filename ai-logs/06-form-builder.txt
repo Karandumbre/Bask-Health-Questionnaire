@@ -1,0 +1,91 @@
+Stage 6 — Form Builder Discussion
+Sample reconstructed discussion based on the existing Bask Health implementation.
+
+ME — Initial prompt
+
+Now that the admin dashboard and common components are in place, I want to work on the form builder.
+
+Admins should be able to add, edit, duplicate, reorder, and delete questions. We have six question types: short text, long text, number, single select, multi select, and checkbox. Each type should show only the settings that apply to it.
+
+I'm thinking of a desktop layout with a question list on the left, the form preview in the middle, and question settings on the right. Please suggest a practical component structure and state-management approach using React and TypeScript. We should reuse the common UI components and Polaris icons. Keep the editor responsive, but desktop is the main priority.
+
+AI Response —
+
+A three-panel builder is a good fit. Keep one source of truth for the form definition and selected question, instead of maintaining separate copies of question state in each panel.
+
+Suggested responsibilities:
+
+- Field Navigator: list questions, select a question, add new fields, and move questions up or down.
+- Form Canvas: render questions in order and provide a realistic preview of the configured fields.
+- Question Inspector: show label, helper text, required setting, and type-specific validation/options.
+- Builder Provider: hold the editable definition, selected question ID, dirty state, and update actions.
+
+Use stable question IDs and option IDs rather than array positions. That will help with reordering, duplication, conditional rules, and published form history.
+
+Represent the six question types with a discriminated TypeScript union. The inspector can branch on question.type and only expose relevant settings:
+
+- Short/long text: label, placeholder, minimum and maximum length.
+- Number: optional bounds and integer-only setting.
+- Single/multi select: editable choice labels with distinct option IDs.
+- Checkbox: text and required acceptance behavior.
+
+Create small reusable actions for add, update, duplicate, remove, and reorder. When duplicating a question, generate new IDs for the duplicate and its options. The canvas and inspector should read the same definition so their content stays synchronized.
+
+ME — Follow-up
+
+How should conditional questions work? For example, if the patient selects Yes for a question, I want to show a follow-up field. What happens if the admin reorders the questions or deletes the Yes option?
+
+Also, drafts may be incomplete while someone is editing. I don't want the form builder to reject every change before they finish configuring the question.
+
+AI —
+
+Keep the first version of conditional logic deliberately limited. Each dependent field can have one visibility rule: show the field only when an earlier, required, unconditional single-select question equals a particular option ID.
+
+Store the relationship with parentQuestionId and optionId, not question labels or array indexes. Renaming an option should not break its dependent fields. But deleting the parent or option, changing the parent type, making the parent optional, or moving the child before the parent should make that condition invalid.
+
+Show the invalid condition in the inspector with a clear way to fix it. Do not silently point it to another question or option.
+
+Use two validation levels:
+
+1. Draft validation checks that the stored definition has a safe, recognizable shape, while allowing empty labels or unfinished options.
+2. Publish validation checks all required labels, choice counts, numeric ranges, and condition dependencies. Only a valid draft can be published.
+
+Preview should evaluate visibility using the same pure domain functions that patient intake uses. A preview should not create a real patient session or save responses in the database.
+
+ME — Follow-up
+
+What is the best way to handle changing a question type, adding choices, and reordering without making the UI slow? I also need an accessible alternative to dragging questions around. The assessment may include a form with 100 fields.
+
+AI —
+
+Use explicit state updates by stable ID. Avoid rebuilding independent state trees for the navigator, canvas, and inspector. For reordering, provide Move up and Move down buttons so the feature works without drag-and-drop.
+
+Changing a field type should reset settings that no longer apply and preserve only compatible values. If it was a parent for conditional questions, flag affected conditions for review rather than guessing a replacement.
+
+For a 100-field form, first keep renders localized: memoize field rows where useful, keep callbacks stable, and avoid expensive validation work on every keystroke. Measure actual browser interactions before introducing virtualization or a complex state library.
+
+Autosave can be integrated after the editor's local update actions work reliably. Send the complete draft with an expected revision; keep the latest local edits if a save fails, and do not allow an older save response to mark newer changes as saved.
+
+ME — Final response
+
+Okay. Keep the three-panel layout, with a shared builder state and reusable UI controls. We can support adding, editing, duplicating, deleting, and keyboard reordering first.
+
+Use stable IDs for questions and choices. Allow incomplete drafts to save, but block publishing if the form or its conditional rules are invalid. Preview must reuse the patient visibility logic without storing answers.
+
+We can address autosave conflicts as the next stage, after the core editing interactions work.
+
+AI —
+
+Agreed. The next implementation sequence would be:
+
+1. Define typed question models and local editor actions.
+2. Build the Field Navigator, Form Canvas, and Question Inspector.
+3. Implement field-specific controls and stable-ID duplication/reordering.
+4. Add condition selection and invalid-dependency feedback.
+5. Connect draft persistence and publish readiness checks.
+6. Add revision-aware autosave and conflict recovery.
+7. Test keyboard interactions, long labels, narrow screens, and large form definitions.
+
+Implementation reference
+
+The existing project organizes these concerns under src/features/forms/domain/, src/features/forms/components/, src/features/forms/context/, and src/features/forms/hooks/. Relevant implementation areas include the BuilderProvider, form validation and condition rules, FormCanvas, and the autosave state machine. This is a newly authored example of the design discussion, not a recovered conversation transcript.

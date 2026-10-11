@@ -1,0 +1,83 @@
+Bask Health — Initial Architecture
+
+ME - Initial prompt
+
+I am building a take-home assignment for Bask Health. I want to use Next.js 16, React, TypeScript, Tailwind CSS, and Polaris icons.
+
+There are two parts to the application. Admins should be able to create intake forms, configure different question types and conditional questions, preview drafts, publish forms, and review responses. Patients should get a public, mobile-friendly form link, be able to save progress, resume later, and submit.
+
+I am planning to use Supabase PostgreSQL with Drizzle ORM. Can you suggest a practical architecture, database tables, folder structure, and backend API approach? Please keep it manageable for a take-home project. I don't want to introduce Redis or microservices unless they're needed.
+
+AI Response - 
+
+Use one Next.js App Router application for both the admin studio and public patient intake. Keep page components under src/app, separate domain rules from database code, and handle data changes through server-side Route Handlers.
+
+A straightforward starting structure is:
+
+src/
+  app/
+    admin/
+    intake/[slug]/
+    api/
+  components/ui/
+  features/
+    forms/
+    patients/
+    themes/
+  lib/
+    db/
+    auth/
+    security/
+
+docs/
+tests/
+
+Use Supabase Auth for admin login, but use server-side Drizzle queries for form and submission data. Verify workspace membership on the server for admin operations. Never rely on hidden UI elements as authorization.
+
+Suggested database entities:
+- workspaces and admin_memberships for admin access
+- forms and form_drafts for editable forms
+- published_versions for immutable form and theme snapshots
+- publication_operations to make publishing retries safe
+- patient_sessions for saved progress and recovery
+- submissions for completed answers
+- audit_events for non-sensitive administrative events
+
+JSONB is a reasonable fit for a form's ordered questions and theme settings. Keep ownership, versioning, sessions, and submission uniqueness in relational columns and constraints. Validate incoming data with Zod.
+
+Me — Follow-up
+
+Why use Drizzle instead of supabase.from() for everything? Also, does autosave need Redis? I'm planning to deploy on Vercel, so how do I manage PostgreSQL connections and migrations?
+
+AI -
+
+Supabase's Data API is useful for ordinary CRUD, but Drizzle gives you direct access to PostgreSQL transactions and locking. Those features matter here because two admins may save the same draft, a form publication must create one consistent version, and repeated patient submissions must not create duplicates.
+
+You don't need Redis for this scope. Store a revision counter on each draft. Require an expectedRevision in save requests, and return HTTP 409 when the draft has changed since the client loaded it. Keep local edits available for conflict resolution. Use a unique constraint on submissions.session_id and a transaction for final submission.
+
+For Vercel, separate database connection responsibilities:
+- DATABASE_URL: runtime Drizzle connection, typically through the Supabase transaction pooler.
+- DATABASE_DIRECT_URL: a suitable direct or session-mode connection for migrations.
+
+Do not place either database URL in NEXT_PUBLIC_ variables. Put Supabase's public URL and publishable key in their NEXT_PUBLIC_ variables for Auth client initialization; keep database passwords and patient credential secrets server-side.
+
+Use a migration command that runs separately from next build. Check the target database before migrations, and don't run destructive test fixtures against production.
+
+Me - 
+
+Okay, let's keep a single Next.js project with Drizzle and Supabase Auth. We can start with the database schema and connections, then API handlers, reusable UI components, the admin builder, patient screens, and finally themes and testing. Keep the structure clear but avoid unnecessary abstractions.
+
+AI —
+
+1. Set up the Next.js application, strict TypeScript, Tailwind, and database connection utilities.
+2. Model the tables and constraints; create and verify development migrations.
+3. Add admin authentication, workspace authorization, and API routes.
+4. Build common UI components and admin pages.
+5. Add the form editor, validation, autosave, conflict handling, and publication.
+6. Build mobile patient intake, save/resume, and exactly-once submission.
+7. Add theme presets, light/dark mode, Shuffle, and admin response views.
+8. Run unit, database, and browser tests; deploy through GitHub and Vercel.
+
+Implementation reference
+
+The resulting project uses Next.js 16, server-side Drizzle with Supabase PostgreSQL, Supabase Auth, JSONB draft definitions, immutable published versions, and transactional submission protection. Relevant paths in the existing project include src/lib/db/schema.ts, src/lib/db/index.ts, src/lib/auth/admin.ts, src/features/forms/, and src/features/patients/.

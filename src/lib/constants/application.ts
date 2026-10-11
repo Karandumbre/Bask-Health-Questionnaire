@@ -9,6 +9,7 @@ export const APPLICATION = {
   testAuthLifetimeSeconds: 3_600,
   minimumSecretLength: 32,
 } as const;
+
 export const ROUTES = {
   home: "/",
   adminForms: "/admin/forms",
@@ -16,11 +17,13 @@ export const ROUTES = {
   editForm: (formId: string) => `/admin/forms/${formId}/edit`,
   formResponses: (formId: string) => `/admin/forms/${formId}/responses`,
 } as const;
+
 export const HTTP = {
   jsonContentType: "application/json",
   acceptHeader: "Accept",
   contentTypeHeader: "Content-Type",
 } as const;
+
 export const API_ROUTES = {
   login: "/api/auth/login",
   logout: "/api/auth/logout",

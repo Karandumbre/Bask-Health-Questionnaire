@@ -1,0 +1,83 @@
+Stage 10 — Testing and Bug Fixes
+
+Reconstructed example based on the Bask Health implementation; not an original recovered transcript.
+
+ME — Initial prompt
+
+We have completed most of the Bask Health Intake Studio application. Now I want to test the form builder, APIs and patient flow properly before deploying.
+
+The application uses Next.js 16, TypeScript, Drizzle and Supabase PostgreSQL. We have autosave, conditional fields, publishing, recovery codes and submissions. Please suggest a practical testing strategy using Vitest, a separate PostgreSQL test database and Playwright.
+
+I don't want to write tests just to increase coverage numbers. I want to catch real issues, especially data loss, permission leaks and duplicate submissions. Which flows should we prioritize?
+
+AI Response —
+
+Use three layers of testing:
+
+1. Vitest unit tests for pure functions: form validation, conditional visibility, hidden-answer pruning, themes, revision handling and three-way merge behavior.
+2. PostgreSQL integration tests for the operations that need transactions and database constraints: access control, draft conflicts, immutable published versions, recovery, and submission idempotency.
+3. Playwright browser tests for the full user journey: admin login, form authoring, preview, publication, mobile patient intake, save/resume, submission and response viewing.
+
+Keep integration tests on an isolated, disposable database. Enforce a database allowlist and an explicit test flag so the test suite cannot accidentally modify production. Use synthetic form and patient records only.
+
+Before shipping, run typecheck, lint, unit tests and a production build. Also test the real application in a browser, not only individual domain functions.
+
+ME — Follow-up
+
+I am more concerned about situations where a user loses data. For example, when an admin types quickly, an older autosave response comes back late, or two admins edit the same form at once. Also, a patient may submit twice because the network is slow.
+
+How should we test these cases instead of just checking successful requests?
+
+AI —
+
+Treat those cases as separate failure scenarios.
+
+For admin autosave:
+- Delay or reject one save request and verify that the current edits remain visible.
+- Send two updates using the same expected revision. One should succeed and the other should receive HTTP 409.
+- Check that an older response cannot mark a newer unsaved change as saved.
+- Test three-way merging with both non-overlapping and overlapping edits.
+
+For patient intake:
+- Answer a conditional child field, change the parent so the child is hidden, and confirm the answer is removed from both the UI and database.
+- Resume in a different browser using the correct reference and recovery code; reject a wrong code.
+- Submit twice, including concurrent requests, and verify there is only one submission row and one submission ID.
+- Confirm a completed session cannot change its stored answers.
+
+Use real database integration tests for transactional behavior. A mocked API cannot prove PostgreSQL row-locking or UNIQUE constraints work as expected.
+
+ME — Follow-up
+
+One more thing. Some browser tests use test authentication, and the integration tests can delete test records. I don't want that setup accidentally enabled in Vercel or connected to our production Supabase project.
+
+Can we make the tests fail safely if the environment is wrong? And do we need to test the 100-field form performance as well?
+
+AI —
+
+Yes. Add an explicit test-database isolation guard before database setup or test execution. Require the expected database host or project reference, a test-only opt-in flag, and checks that reject production or Vercel environments. Keep test authentication behind the same fail-closed restrictions. Do not bypass the guard to make a test pass.
+
+For the 100-field form, distinguish a unit benchmark from actual browser performance. A visibility or validation function may execute quickly while React rendering or typing interactions still feel slow.
+
+Use the provided 100-field fixture in a production build and capture a browser performance trace. Record the browser, device, throttling settings and commit, then inspect typing latency, renders and long tasks. Only report measurements that were actually recorded.
+
+ME — Final response
+
+Okay. Keep the tests separated by purpose. Prioritize security boundaries, autosave conflicts, conditional-answer cleanup, recovery and duplicate submission protection. Run database tests only against the approved disposable Supabase project. We will also verify the full admin-to-patient journey in Playwright.
+
+If a test fails, fix the underlying behavior instead of loosening the assertion or disabling the database guard. For performance, keep the browser trace as a separate deliverable rather than claiming the unit benchmark proves the editor is fast.
+
+AI —
+
+Agreed. The verification sequence should be:
+
+1. Run typecheck and lint.
+2. Run Vitest unit tests.
+3. Verify the disposable database target, then run PostgreSQL integration tests.
+4. Run Playwright journeys for admin and patient flows.
+5. Test failure and recovery paths, including concurrent updates and repeated submits.
+6. Capture and document the 100-field browser trace.
+7. Run a production build and smoke-test the deployed application with synthetic data.
+
+Implementation reference
+
+The existing project has tests under tests/unit/, tests/integration/ and tests/e2e/, with supporting fixtures in tests/fixtures/. Relevant code includes src/features/forms/domain/three-way-merge.ts, src/features/forms/client/draft-autosave.ts, src/features/patients/domain/visibility.ts, src/features/patients/server/submission-service.ts and src/lib/db/test-db-isolation.ts. This example describes a plausible discussion around those implemented features; it does not claim these exact prompts were previously exchanged or that every test has passed on the latest commit.

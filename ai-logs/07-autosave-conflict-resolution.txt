@@ -1,0 +1,86 @@
+Stage 7 — Autosave and Conflict Resolution
+Sample reconstructed ME/AI discussion based on the implemented Bask Health design; not a recovered transcript.
+
+ME — Initial prompt
+
+We have the form builder working, but I don't want administrators to keep clicking Save after every change. I want autosave when they edit labels, question settings, options, or the theme.
+
+We may have two admins editing the same form. How should we handle debounce, failed requests, and stale updates? Please suggest a simple React + Next.js + Drizzle approach that won't overwrite somebody else's changes.
+
+AI Response —
+
+Start with a debounced save, around 800 ms after the latest edit. Keep the current local draft in React state and send the entire draft definition and theme to the API rather than making an endpoint for every field change.
+
+Add a revision number to form_drafts in PostgreSQL. Every PATCH request includes expectedRevision. The server should update the draft only if the stored revision matches, increment it atomically, and return the committed revision. If it does not match, return HTTP 409 with the current revision and enough server state to resolve the conflict.
+
+Keep the save states visible: editing, saving, saved, failed, offline, and conflict. Don't clear local edits when a request fails. Retry when the connection returns or when the user chooses Retry.
+
+ME — Follow-up
+
+Suppose I type a question label, request A starts saving, and before it finishes I edit another field. If request A comes back late, can it show Saved even though my second change hasn't been stored yet?
+
+Also, if admin A and admin B are working on the same draft, should I just keep the latest response or overwrite the server draft?
+
+AI Response —
+
+A late response should acknowledge only the snapshot that request A sent. It must not mark edits made after that snapshot as saved.
+
+Use a serialized save queue or a state machine that tracks:
+- The last server-acknowledged draft and revision
+- The current local draft
+- The snapshot currently being saved
+- Whether new edits arrived while that request was in flight
+
+When A succeeds, update the acknowledged revision, but keep the newer local changes dirty and schedule another save using the new revision.
+
+Do not overwrite another admin's changes silently. A revision conflict means the local draft was based on an older version. Fetch the latest server draft and show a conflict-resolution flow instead of using last-write-wins.
+
+ME — Follow-up
+
+I want to avoid losing changes if admin A edits the title while admin B edits a different question. Showing a conflict popup every time may be annoying. Can we merge changes automatically when they don't overlap?
+
+And what happens when both admins change the same option or delete a field that another admin is editing?
+
+AI Response —
+
+Use a three-way merge based on:
+1. Base: the last server version this editor successfully loaded or saved
+2. Local: this editor's unsaved changes
+3. Remote: the latest draft from the database
+
+If only local changed a value, take local. If only remote changed it, take remote. If both changed the same value differently, report a real conflict and let the user decide. Compare questions and options by stable IDs, not array positions or visible labels.
+
+Treat delete-versus-edit and incompatible reordering as conflicts rather than guessing. After a clean merge, retry the save against the latest server revision. If that retry conflicts again, repeat the check without discarding local edits.
+
+ME — Follow-up
+
+What about publishing while an autosave is still running? I don't want to publish an older draft or accidentally create two versions if the publish response gets lost.
+
+AI Response —
+
+Before publishing, make sure the editor is saving the intended snapshot, then send expectedRevision and a unique operationId to the publish endpoint.
+
+On the server, validate the draft and publish inside a PostgreSQL transaction. Lock the form/draft consistently, verify expectedRevision, and create an immutable published version with the matching theme. If the revision is stale, return a conflict so the administrator can review and retry.
+
+Record operationId in a publication_operations table. If the same request is repeated after a timeout, return its existing published version rather than creating another one. Use database uniqueness constraints to protect version numbering as well.
+
+ME — Final response
+
+Okay. Let's keep autosave automatic but make the save status honest. Preserve all local edits on a network error, use revisions to stop silent overwrites, merge non-overlapping changes, and ask the admin to resolve real conflicts.
+
+We should also add tests for slow responses, two editors changing the same draft, retry after a network failure, and publishing against a stale revision. Keep the implementation reusable if the patient progress flow needs similar save behavior later.
+
+AI —
+
+Agreed. Keep the autosave state machine separate from form-specific UI so it can be reused. Test the state transitions independently and verify the real PostgreSQL compare-and-swap behavior in integration tests. Browser tests should confirm that the visible save status reflects only committed changes and that resolving a conflict never silently deletes unsaved work.
+
+Implementation reference
+
+The existing project includes a serialized autosave engine, revision-aware draft updates, three-way merge logic, a conflict modal, and transactional publication. Relevant files include:
+- src/features/forms/client/draft-autosave.ts
+- src/features/forms/hooks/use-draft-autosave.ts
+- src/features/forms/domain/three-way-merge.ts
+- src/features/forms/components/ConflictModal.tsx
+- src/features/forms/server/draft-service.ts
+- src/features/forms/server/publish-service.ts
+- src/features/patients/hooks/use-patient-progress.ts

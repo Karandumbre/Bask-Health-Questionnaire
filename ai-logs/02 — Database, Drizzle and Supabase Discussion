@@ -1,0 +1,106 @@
+Bask Health — Database, Drizzle and Supabase Discussion
+
+ME — Initial prompt
+
+We have agreed to keep Bask Health in a single Next.js 16 application. I want to start with the database before building the screens.
+
+I will use Supabase PostgreSQL and Drizzle ORM. Can you suggest the tables and relationships required for admin workspaces, editable forms, published versions, patient progress, and submissions?
+
+I also want to avoid creating a separate table for every question and answer if JSONB is enough. Please explain which constraints should remain in PostgreSQL and how we should organize the schema and migrations.
+
+AI Response —
+
+Use relational tables for ownership, versions, sessions, and lifecycle information, while keeping ordered questions, conditional rules, themes, and answers in JSONB columns.
+
+Suggested tables:
+
+- workspaces: a logical workspace for an admin or clinical team.
+- admin_memberships: links authenticated users to workspaces, with owner/editor roles.
+- forms: the form's identity and its workspace, regardless of how often it is published.
+- form_drafts: one editable form definition and theme, with a revision counter.
+- published_versions: immutable copies of the form and theme at publication time.
+- publication_operations: records a publish operation ID so retries do not create extra versions.
+- patient_sessions: stores incomplete answers, a version reference, revision, expiry, and hashed recovery credentials.
+- submissions: holds a completed, immutable answer snapshot.
+- audit_events: records non-sensitive admin actions.
+
+Keep foreign keys between these records, use a unique constraint on form_drafts.form_id, and use UNIQUE(form_id, version_number) and UNIQUE(public_slug) on published versions. UNIQUE(submissions.session_id) is important because a session should not produce duplicate submissions.
+
+JSONB will make it straightforward to save and snapshot an ordered form in one operation. However, Zod and server-side domain validation must check the contents, because PostgreSQL foreign keys cannot enforce relationships between question IDs inside JSONB.
+
+ME — Follow-up
+
+Okay. If one admin edits a form while another admin has already saved a change, how should the database handle it? Also, after publishing version 1, what happens if I edit the form again? I don't want old patient links or answers to change.
+
+AI —
+
+Add a revision number to form_drafts. The frontend sends expectedRevision when saving; the backend updates the row only if the stored revision still matches. If it does not match, return HTTP 409 and let the editor handle the conflict instead of silently overwriting the other admin's work.
+
+Publishing should run in one PostgreSQL transaction. Check the expected draft revision, validate the form, create a new published_versions snapshot, and record the operation ID. Keep the published snapshot immutable, ideally with a database trigger that rejects UPDATE or DELETE.
+
+When the form changes later, edit the draft and publish version 2. Patients who started version 1 should still reference version 1. Historical response details must read labels and choices from that original snapshot, not from the latest draft.
+
+ME — Follow-up
+
+How should I connect Drizzle to Supabase when the app runs on Vercel? I have seen both a transaction-pooler connection string and a direct database connection. Do we need both? And should migrations run whenever Next.js builds?
+
+AI —
+
+Use two environment variables with different purposes:
+
+- DATABASE_URL: for the Next.js server's normal Drizzle queries, typically pointing to Supabase's transaction pooler on port 6543.
+- DATABASE_DIRECT_URL: for database migrations, using a direct or session-pooler connection on port 5432.
+
+With postgres.js and transaction pooling, disable prepared statements using prepare: false. Keep the Drizzle database module server-only so credentials cannot be imported into client components. Reuse the database client where the server runtime permits it, and keep connection limits bounded.
+
+Do not run migrations as part of next build. Provide a separate npm run db:migrate command. A migration runner should track applied SQL files, use a lock so two runners cannot apply migrations concurrently, and detect changes to migration files that were already applied.
+
+Store database connection strings only in server environment variables. NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY can be used for the public Supabase Auth configuration, but database passwords and APP_SESSION_PEPPER must stay server-side.
+
+ME — Follow-up
+
+For admin login, can I use Supabase Auth but still use Drizzle for everything else? What happens when a user belongs to a workspace? I'm concerned that the database connection may bypass Supabase RLS.
+
+AI —
+
+Yes. Use Supabase Auth to verify who the administrator is. Then use your own admin_memberships table to check which workspace that user can access, and what role they hold.
+
+Each protected API route or server service must verify workspace access before reading or changing a form. Do not trust a workspace ID sent from the browser without checking membership.
+
+If Drizzle connects using a privileged PostgreSQL role, Row-Level Security may be bypassed. Enabling RLS does not replace these application-side checks. Restrict direct browser-role table grants and make server-side workspace authorization an explicit requirement for every protected operation.
+
+You can keep the login endpoint separate from workspace resolution. An authenticated user can then have their active membership looked up when entering the admin dashboard.
+
+ME — Follow-up
+
+What about patient progress and the final submission? Patients will not have accounts, and I want them to resume from another browser without exposing answers in the URL. I also need a reliable submission even if the request is retried.
+
+AI —
+
+Give each patient session a reference and a separate recovery code. Store only cryptographic digests of the access and recovery secrets. For same-browser access, use a per-form HttpOnly cookie; for another browser, ask the patient to enter the reference and recovery code and rotate credentials after successful recovery.
+
+Store a patient session revision to prevent stale progress requests from overwriting more recent answers. Before saving or submitting, validate answers against the session's pinned published version and remove answers belonging to fields that are no longer visible.
+
+For final submission, lock the patient session row in a transaction, validate the visible required answers, and insert the submission. Enforce UNIQUE(session_id). If the same completed session submits again, return the original submission confirmation instead of inserting another row.
+
+ME — Final response
+
+That works. Let's keep the database schema focused on those tables, use JSONB for form definitions and answers, and keep PostgreSQL responsible for revisions, unique constraints, transactions, and immutable snapshots.
+
+We'll use Supabase Auth for admin identity and verify workspace access in the Next.js backend. Let's finish schema and migration setup first, then connect the API handlers and start building the UI components.
+
+AI —
+
+Agreed. A practical implementation order is:
+
+1. Define the Drizzle tables, relationships, indexes, and constraints.
+2. Configure the runtime PostgreSQL pool and separate migration connection.
+3. Add migrations, the migration ledger, and safeguards for concurrent migration runs.
+4. Integrate Supabase Auth and server-side workspace authorization.
+5. Create form CRUD, draft save, and publication APIs.
+6. Add patient session, recovery, and submission services.
+7. Connect the frontend to those APIs after the data contracts are stable.
+
+Implementation reference
+
+The existing project contains the corresponding implementation in src/lib/db/schema.ts, src/lib/db/index.ts, db/migrations/, scripts/migrate.mjs, src/lib/supabase/, src/lib/auth/admin.ts, src/features/forms/server/, and src/features/patients/server/.

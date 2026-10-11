@@ -1,0 +1,86 @@
+Bask Health — Stage 5: Admin Dashboard and Draft Management
+Reconstructed example discussion based on the existing implementation; not a recovered chat transcript.
+
+ME — Initial prompt
+
+We have the Next.js project, Supabase Auth, Drizzle database schema, API routes, and common UI components in place. Now I want to work on the admin dashboard.
+
+An admin should be able to log in, see their forms, create a new draft, rename or delete an unpublished form, and open the form builder. I want a clean desktop layout with a sidebar, page header, useful empty states, and clear actions. Use the shared components and Polaris icons we already have.
+
+Can you suggest the screen structure and the data flow? Please keep the dashboard simple. I don't want to build a large admin framework just for this assessment.
+
+AI Response — Dashboard structure
+
+Keep the admin area inside the existing Next.js application. Use a protected admin layout and a forms landing page. The main pages can be:
+
+- /admin/login — email/password login through Supabase Auth
+- /admin/forms — forms list and create action
+- /admin/forms/[formId]/edit — form builder
+- /admin/forms/[formId]/responses — submissions for a form
+
+The forms page can have a sidebar for navigation, a heading, a Create form button, and a list or table showing each form's name, draft/published status, last updated time, and available actions.
+
+Reuse your Button, Input, Dialog, Alert, Badge, and table components. Do not create one-off button and modal implementations for the dashboard.
+
+For data loading, verify the admin identity on the server, resolve the user's workspace, and query forms belonging to that workspace. Use client-side API requests only for interactions that require them, such as creating, renaming, or deleting a form. Show loading and error states rather than silently failing.
+
+ME — Follow-up
+
+How should workspace access work? For this take-home, I don't need a complete organization-management interface. I also don't want someone to change the workspace ID in the browser request and access another admin's forms.
+
+AI Response — Auth and workspace access
+
+Use Supabase Auth to establish who is logged in. Then check admin_memberships in PostgreSQL to decide which workspace the user can access and what role they have.
+
+A workspace ID sent from the client is only an identifier, not proof of permission. Every form read or mutation must verify that the authenticated user has an active membership for the form's workspace. Enforce role restrictions in server services, not merely by hiding buttons.
+
+For the limited reviewer experience, a user can have a default workspace without building a full workspace-switcher. If you automatically create a workspace for users without memberships, document that behavior and restrict who can register through Supabase Auth.
+
+The admin layout can redirect unauthenticated users to /admin/login for convenience, but the Route Handlers and services must still reject unauthorized requests.
+
+ME — Follow-up
+
+For the form list, should clicking Create form directly take the admin to the editor? And how should rename and delete work? I don't want to lose published responses if someone deletes a form by mistake.
+
+AI Response — Draft lifecycle
+
+Yes. When the admin selects Create form, create a form record and its initial draft together in one database transaction, then navigate to the form editor using the returned form ID.
+
+For the list:
+- Show the form title, latest update, and publication status.
+- Allow opening the draft editor at any time.
+- Provide Rename through a small dialog or inline action.
+- Show a confirmation before deleting.
+- Keep feedback explicit for success, failure, and permission-denied responses.
+
+Use the draft's revision when renaming or editing so a stale screen cannot silently overwrite newer changes.
+
+Only permanently delete forms that have never been published and have no historical submissions. For a published form, use an archive action instead of deleting its immutable published versions and responses. The dashboard can exclude archived forms from the normal active list.
+
+ME — Follow-up
+
+What if a user refreshes the page, opens a deleted form in another tab, or the create request fails? Also, are separate components for the sidebar, form row, dialogs and empty state really necessary?
+
+AI Response — States and component boundaries
+
+Handle the failure cases explicitly:
+
+- Refresh: load the latest persisted form list from the backend.
+- Deleted or archived form: show a not-found or unavailable state; do not reopen a stale draft.
+- Failed create or rename: show an error and keep the user's current screen usable.
+- Empty workspace: show a short explanation and a Create form action.
+- Unauthorized request: return a 401 or 403 from the server even if the user reached the page directly.
+
+Extract a component when it is reused or keeps the page significantly easier to understand. A shared sidebar, form table, and confirmation dialog make sense. A separate file for every heading or small wrapper is not necessary. Prefer straightforward composition over adding a generic dashboard configuration system.
+
+ME — Final response
+
+Okay, keep the admin dashboard focused on login, form listing, create, rename, delete/archive, and navigation to the builder and responses. Reuse the common components, enforce workspace permissions in the backend, and show good empty, loading, error, and confirmation states. We can work on the actual form builder screens next.
+
+AI Response — Agreed next step
+
+The dashboard establishes the form lifecycle and protected navigation. The next stage is the builder: a question navigator, form preview/canvas, question settings inspector, six question types, validation, conditional visibility, and draft autosave. Keep the builder's editing state separate from server-side persistence and publication rules.
+
+Implementation reference
+
+The current project includes the admin pages and routes under src/app/, workspace access checks in src/lib/auth/admin.ts, workspace resolution in src/features/workspaces/server/workspace-service.ts, and draft CRUD in src/features/forms/server/draft-service.ts. The form editor and responses screens are built under src/features/forms/.
