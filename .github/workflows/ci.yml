@@ -50,12 +50,10 @@ jobs:
           IS_TEST_DATABASE: "true"
           APP_SESSION_PEPPER: ${{ secrets.APP_SESSION_PEPPER }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Verify build artifact
         run: npm run build
         env:
           DATABASE_URL: "postgres://build:build@localhost:5432/build"
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
           APP_SESSION_PEPPER: "placeholder-32-byte-secret-for-ci-build"

@@ -1,158 +1,180 @@
-# Intake Studio (KaranBaskHealth)
+# Bask Health — Intake Studio
 
-**Intake Studio** is a full-stack clinical form builder and patient intake platform built for desktop administrative authoring and responsive mobile patient intake (`Build → Preview & Style → Publish → Complete Intake → Review Response`).
+A full-stack intake builder for a fictional weight-loss care service. Administrators create and style forms, publish immutable versions, and review responses. Patients complete a responsive intake, save progress, resume in another browser, and submit.
 
-> **Scope Note:** Uses synthetic clinical data only. Diagnosis, treatment eligibility, medication recommendations, dosing, and checkout are outside scope.
+Built for the Senior Frontend Engineer take-home assignment. Use synthetic data only. Diagnosis, treatment eligibility, medication recommendations, dosing, and checkout are outside scope.
 
----
+## Submission links
 
-## 1. Architecture, Libraries, Schema, APIs & Authentication Decisions
+| Deliverable                      | Status                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| Live Vercel application          | Pending: add the deployed URL                                          |
+| Published patient intake         | Pending: add a working `/intake/[slug]` URL                            |
+| Private repository               | `KaranBaskHealth`; reviewer invitations and privacy need confirmation  |
+| Reviewer access                  | Create a real Supabase Auth account and share credentials privately    |
+| Demo video, five minutes maximum | Pending: complete flow plus one failure/recovery case                  |
+| Redacted AI logs                 | Pending: collect task-specific prompts and responses from all sessions |
+| Browser performance trace        | Pending: capture and attach the 100-field trace described below        |
 
-### Core Stack & Libraries
+These statuses describe the available local evidence; they do not certify a deployment or external account configuration.
 
-- **Framework:** **Next.js 16 App Router** (`next@^16.4.0`) structured as a modular monolith separating administrative routes (`src/app/(admin)/admin/...`), public patient routes (`src/app/intake/[slug]/...`), and server-only Route Handlers (`src/app/api/...`).
-- **Language & Type Safety:** **TypeScript 5** in strict mode (`strict: true`, `noEmit: true`) with **zero `any` and zero `@ts-ignore`** across application code.
-- **Styling & Icons:** **Tailwind CSS v4** (`@tailwindcss/postcss`) backed by centralized semantic design tokens (`src/design-system/tokens.css`, `src/design-system/tokens.ts`, `src/design-system/component-styles.ts`) and **Shopify Polaris Icons** (`@shopify/polaris-icons`).
-- **Database & ORM:** **Supabase PostgreSQL** accessed exclusively from server-only modules (`import "server-only"`) via **Drizzle ORM** (`drizzle-orm` + `postgres.js`). Browser clients never connect directly to PostgreSQL or PostgREST.
-- **Validation & HTTP:** **Zod v4** for runtime schema validation at every untrusted request/response boundary; **Axios** (`src/lib/http/api-client.ts`) with normalized error envelopes and `AbortSignal` cancellation for browser API calls.
-- **Why No Redis Initially:** Optimistic concurrency (`expectedRevision` CAS), row-level transactional locking (`SELECT ... FOR UPDATE`), publication operation idempotency (`publication_operations`), and recovery rate limiting (`recovery_attempts_count`) are handled directly in ACID PostgreSQL transactions (see [ADR-004](docs/architecture/ADRS.md)).
+## Product capabilities
 
-### Hybrid Database Schema (`src/lib/db/schema.ts`)
+- Create, open, rename, and delete unpublished drafts; add, edit, reorder, duplicate, and delete questions.
+- Six field types: short text, long text, number, single-select, multi-select, and checkbox. Configure required answers, text lengths, numeric bounds, integer constraints, and choice options.
+- One visibility condition per field, referencing an earlier, required, unconditional single-select. Broken dependencies block publication; incomplete drafts remain saveable.
+- Revision-aware autosave, visible save status, explicit failure recovery, and three-way reconciliation for conflicting edits.
+- Working preview; Ocean, Emerald, and Slate presets; light/dark modes; generated Shuffle palettes; saved theme settings.
+- Immutable published form/theme snapshots with a distinct public URL per version. Patient sessions remain pinned to their starting version.
+- Database-backed progress, recovery-code resume, server-side validation, hidden-answer pruning, and idempotent submission.
+- Authorized response lists and details with historical question labels, version, and submission time.
+- Native inputs, keyboard reorder buttons, accessible labels/errors, modal focus handling, and reduced-motion styles.
 
-We use a **hybrid relational + immutable JSONB snapshot schema** (see [ERD.md](docs/architecture/ERD.md)):
+## Stack and structure
 
-1. **`workspaces` & `admin_memberships`:** Multi-tenant RBAC (`owner` and `editor` roles) scoping every form, draft, and response query.
-2. **`forms` & `form_drafts`:** Mutable working draft aggregate (`definition_json`, `theme_json`) with a monotonic `revision` (`BIGINT`) counter for Compare-and-Swap (CAS) concurrency control.
-3. **`published_versions` & `publication_operations`:** Immutable snapshots (`definition_snapshot`, `theme_snapshot`, `version_number`, `public_slug`) protected at the database level by a PostgreSQL trigger (`trg_protect_published_versions`) that rejects `UPDATE` and `DELETE`.
-4. **`patient_sessions`:** Pinned to a specific `published_version_id` at creation. Tracks `status` (`in_progress` | `completed`), `answer_json`, monotonic `revision`, `credential_hash` (HMAC-SHA256 of the cookie capability token), `recovery_hash` (HMAC-SHA256 of the cross-browser recovery code), rate-limit counters (`recovery_attempts_count`, `recovery_last_attempt_at`), and AES-256-GCM encrypted `recovery_replay_payload`.
-5. **`submissions`:** Enforces `UNIQUE(session_id)` for exact-once submission and a PostgreSQL trigger (`trg_protect_submissions`) forbidding `UPDATE` and `DELETE`.
-6. **`audit_events`:** Records administrative lifecycle metadata (`actor_user_id`, `workspace_id`, `event_type`, `entity_id`) without logging patient answers or credentials.
+Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS v4, and Polaris icons. Supabase Auth verifies administrators; Drizzle and PostgreSQL provide persistence. Axios and Zod handle browser API requests and response contracts.
 
-### Authentication & Authorization Model
+| Path                               | Responsibility                                                        |
+| ---------------------------------- | --------------------------------------------------------------------- |
+| `src/app/`                         | Pages, loading/error boundaries, and Route Handlers                   |
+| `src/features/forms/`              | Builder, drafts, publication, concurrency, and responses              |
+| `src/features/patients/`           | Intake, validation, visibility, progress, recovery, and submission    |
+| `src/features/themes/`             | Presets, contrast calculations, Shuffle, and theme variables          |
+| `src/components/ui/`               | Shared controls, dialogs, feedback, and loading primitives            |
+| `src/design-system/`               | Visual tokens and primitive style recipes                             |
+| `src/lib/`                         | Authentication, database schema, security, HTTP, and shared constants |
+| `config/`                          | Environment names, defaults, and lazy configuration access            |
+| `db/migrations/`                   | Versioned schema and database protections                             |
+| `scripts/lib/migration-engine.mjs` | Shared migration engine with locking and checksums                    |
+| `tests/`                           | Unit, database integration, browser journeys, and synthetic fixtures  |
 
-- **Admin Authentication:** Managed via **Supabase Auth** (`@supabase/ssr`) with Next.js 16 edge session refresh (`src/proxy.ts`). Server routes verify JWT claims (`auth.getClaims()` / `auth.getUser()`) and never trust unverified session cookies alone. Every admin service call enforces `requireAdmin()` and `requireWorkspaceMembership()` / `requireFormWorkspaceAccess()`.
-- **Patient Session & Cross-Browser Resume:**
-  - **Same-Browser:** Slug-namespaced `HttpOnly; Secure; SameSite=Strict` capability cookie (`bask_session_${slug}`).
-  - **Cross-Browser / Cross-Device:** Issuing a session generates a public human-readable reference (`BKS-XXXX-XXXX`) and a one-time high-entropy Crockford Base-32 recovery code (`BK-XXXX-XXXX-XXXX-XXXX`, 80 bits of entropy). Only `HMAC-SHA256(code, APP_SESSION_PEPPER)` is stored in PostgreSQL, verified with `crypto.timingSafeEqual`. Redemption is rate-limited to **3 failed attempts per 15-minute window**, locks the session row (`SELECT ... FOR UPDATE`), atomically rotates the recovery code, and issues a fresh capability cookie. **Patient answers and recovery secrets never appear in URLs.**
+## Local setup
 
----
+Use Node.js 22, matching CI, and npm. Provision a dedicated development Supabase project with PostgreSQL and Auth; do not use a production or shared patient database.
 
-## 2. Form Creation, Conditional Integrity & Concurrency
-
-- **Six Question Types & Constraints:** Supports `short_text`, `long_text`, `number`, `single_select`, `multi_select`, and `checkbox` with required flags, helper descriptions, placeholders, min/max text lengths, min/max numeric bounds, integer-only constraints, and $\ge 2$ distinct labeled options for select fields.
-- **Single Visibility Condition:** A question may depend on one earlier, required, unconditional `single_select` question matching a specific `optionId` (`src/features/forms/domain/conditions.ts`).
-- **Stable Identity & Broken-Rule Detection:** Questions and options use stable UUIDs (`src/features/forms/domain/question-operations.ts`). Renaming labels preserves relationships. Deleting, reordering, making a parent optional, or making a parent conditional retains the condition reference, surfaces an explicit warning in the editor, and blocks publication (`validateFormForPublish`) with navigable error links until fixed.
-- **Serialized Revision-Aware Autosave & Three-Way Merge:** `DraftAutosave` (`src/features/forms/client/draft-autosave.ts`) serializes in-flight saves, tracks acknowledged revisions against local edit sequence numbers so late responses never overwrite newer edits or falsely mark dirty state as saved, and handles `HTTP 409 REVISION_CONFLICT` via `ConflictModal.tsx` and a deterministic **Three-Way Merge engine** (`src/features/forms/domain/three-way-merge.ts`).
-
----
-
-## 3. Patient Flow, Hidden-Answer Pruning & Exact-Once Submission
-
-- **Version Pinning:** Publishing creates an immutable snapshot with its own `/intake/[slug]` URL. Active patient sessions remain pinned to their original `published_version_id` even if administrators later edit the draft or publish v2/v3.
-- **Immediate & Server-Authoritative Pruning:** When a parent answer changes (e.g., `Yes → No`), dependent answers are immediately pruned from client state (`pruneHiddenAnswers` in `src/features/patients/domain/visibility.ts`) and stripped on the server during both progress saves (`PUT /api/patient/session/progress`) and final submission (`POST /api/patient/session/submit`). Re-showing the dependent field starts it blank while preserving unrelated answers.
-- **Exact-Once Idempotent Submission:** `submitPatientSession` (`src/features/patients/server/submission-service.ts`) locks the session row (`SELECT ... FOR UPDATE`), validates all visible required fields (rejecting whitespace-only text, out-of-range/non-integer numbers, unchecked required checkboxes, and unknown question/option IDs), inserts into `submissions` (`UNIQUE(session_id)`), and marks the session `completed`. Concurrent retries or lost-response replays return the existing submission ID idempotently (`isIdempotentReplay: true`).
-
----
-
-## 4. Theme Engine, Shuffle Reliability & WCAG AA Contrast Guarantees
-
-### Centralized Tokens & Presets
-
-- Defined in `src/design-system/tokens.css` and `src/features/themes/domain/theme-tokens.ts`, providing 3 named presets (**Ocean**, **Emerald**, **Slate**) with complete **Light** and **Dark** mode token sets.
-- Applied consistently across both the **Builder Canvas** (Editor mode and Patient Preview mode via `themeToCssVariables` and `data-patient-theme`) and the **Patient Intake Experience** (`/intake/[slug]`), persisted with the draft in PostgreSQL, and frozen into `published_versions.theme_snapshot` upon publication.
-
-### How Theme Shuffle Remains Reliable (`src/features/themes/domain/shuffle.ts` & `color.ts`)
-
-1. **Continuous 360° Hue Generation:** Rather than cycling fixed presets, `generateShuffledTheme` samples a fresh base hue $H \in [0, 360)$ using golden-ratio angular separation ($\ge 42^\circ$ from the active hue) and enforces a minimum RGB Euclidean distance ($\Delta C_{\text{RGB}} \ge 25$) and normalized palette fingerprint uniqueness so consecutive clicks always yield a visually distinct palette.
-2. **Self-Adjusting WCAG 2.1 AA Contrast Solver:**
-   - Every generated token pair is verified against the WCAG 2.1 relative luminance contrast formula:
-     $$CR = \frac{\max(L_1, L_2) + 0.05}{\min(L_1, L_2) + 0.05}$$
-   - `ensureContrast` iteratively adjusts HSL lightness in $1\%$ steps until:
-     - Normal text (`textPrimary`, `textSecondary`, `error`, `success`, `primaryActionText`) against `background` and `surface` meets **$\ge 4.5:1$** (targeting $\ge 4.6:1$ safety margin).
-     - Large text and interactive focus/border tokens (`primaryAction`, `focusRing`, `borderFocus`) against `surface` meet **$\ge 3.0:1$**.
-   - Verified deterministically across **1,000 seeded Shuffle iterations** with zero contrast violations in `tests/unit/themes/theme-tokens.test.ts`.
-
----
-
-## 5. Security, Encryption Guarantees & Real Patient Data (HIPAA) Readiness
-
-### Current Transport, Database & Logging Guarantees
-
-1. **HTTPS & Edge Security:** Served over HTTPS (TLS 1.3) on Vercel with `HttpOnly; Secure; SameSite=Strict` cookies, `Referrer-Policy: strict-origin-when-cross-origin`, `Cache-Control: private, no-store` on clinical routes, and strict `Origin` vs. `Host` CSRF verification (`verifyRequestOrigin`) on all mutating endpoints.
-2. **Encrypted Database Connections:** Server-only PostgreSQL connections (`DATABASE_URL` pooled via Supavisor port 6543, `DATABASE_DIRECT_URL` direct on port 5432) use TLS transport encryption.
-3. **Encryption at Rest & Credential Hashing:** Hosted Supabase PostgreSQL encrypts storage volumes, WAL logs, and backups at rest using AWS KMS AES-256 encryption. Session capability tokens and recovery codes are keyed-hashed via `HMAC-SHA256` with `APP_SESSION_PEPPER`, and transient recovery replay payloads are encrypted with `AES-256-GCM`.
-4. **Zero PHI in Logs or Error Reports:** Route error handlers (`src/lib/errors/route-handler.ts`) and `audit_events` strip request bodies, answers, and recovery credentials before logging or returning safe error envelopes.
-
-### What Would Change Before Handling Real Patient Data (PHI / HIPAA Note)
-
-Transitioning from synthetic intake data to real Protected Health Information (PHI) under HIPAA requires four targeted upgrades (see [THREAT_MODEL.md](docs/architecture/THREAT_MODEL.md)):
-
-1. **Encryption Choices:** Add application-layer **envelope encryption (`AES-256-GCM`)** for `patient_sessions.answer_json` and `submissions.answer_snapshot` prior to database persistence, binding `(workspace_id, form_id, published_version_id, session_id)` as Additional Authenticated Data (AAD), and using deterministic HMAC blind indexes only for fields requiring server-side search.
-2. **Key Management:** Replace the single `APP_SESSION_PEPPER` secret with a FIPS 140-3 HSM/KMS (**AWS KMS** or **GCP Cloud KMS**) using a Customer Master Key (KEK) to wrap per-record or per-tenant Data Encryption Keys (DEKs), automated key rotation, key-version tagging for online re-wrapping, and strict IAM separation between app compute and database operators.
-3. **Access Auditing:** Execute formal **Business Associate Agreements (BAAs)** with Vercel and Supabase (Enterprise/HIPAA tiers) and expand `audit_events` to log **every PHI read/view/export** (`submission.viewed`, `submission.listed` with actor ID, submission ID, IP, timestamp, and clinical context) to an immutable, WORM-locked SIEM sink.
-4. **Retention & Disposal:** Enforce automated retention schedules—purging abandoned `in_progress` `patient_sessions` immediately after `expires_at` via a scheduled worker, retaining completed submissions for the statutory medical record window (e.g., 6–7 years), and supporting verified right-to-erasure requests via **cryptographic erasure** (destroying the record's wrapped DEK).
-
----
-
-## 6. 100-Field Responsiveness & Performance Trace
-
-We evaluated the 100-field clinical fixture (`tests/fixtures/100-field-fixture.ts`, 100 questions across 20 sections with 20 conditional dependencies) under Chromium (`390 × 844` mobile viewport with `4× CPU slowdown` and `1440 × 900` desktop viewport; full details in [PERFORMANCE_100_FIELD.md](docs/architecture/PERFORMANCE_100_FIELD.md)):
-
-- **Measured Improvement (`PatientQuestionField` Memoization Stabilization):**
-  - _Bottleneck:_ Wrapping `PatientQuestionField` in `React.memo` alone was bypassed when `PatientIntakeView` passed an inline arrow closure `onChange={(val) => handleAnswerChange(q.id, val)}` on every render, causing all 100 question cards to re-render on every keystroke (`64.2 ms` per keystroke under 4× CPU throttling).
-  - _Fix:_ Passed the `useCallback`-stabilized `onAnswerChange={handleAnswerChange}` prop directly to `PatientQuestionField` and bound `question.id` inside `PatientQuestionField`.
-  - _Result:_ Typing into any field (#1 or #99) re-renders **only that single question card**, reducing keystroke commit latency from **`64.2 ms` to `1.8 ms` (35.6× faster)**—well inside the `16.6 ms` (60 FPS) frame budget—while domain publish validation and conditional pruning across all 100 fields execute in **`< 2 ms`** (`tests/unit/domain/100-field-benchmark.test.ts`).
-
----
-
-## 7. Local Setup, Verification & Deployment Commands
-
-### Environment Variables
-
-Copy `.env.example` to `.env.local` and configure:
-
-- `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-- `DATABASE_URL` (Supabase Transaction Pooler, port `6543`)
-- `DATABASE_DIRECT_URL` (or `DIRECT_DATABASE_URL` fallback, port `5432`, used by `npm run db:migrate`)
-- `APP_SESSION_PEPPER` ($\ge 32$-character random secret for HMAC-SHA256 & AES-256-GCM session crypto)
-
-### Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Run database migrations (requires DATABASE_DIRECT_URL or DATABASE_URL)
-npm run db:migrate
-
-# Start development server
-npm run dev
-
-# Quality & verification gates
-npm run format:check      # Prettier formatting verification
-npm run typecheck         # TypeScript strict check (tsc --noEmit)
-npm run lint              # ESLint 9 check
-npm run test:unit         # Vitest unit & benchmark suite (28 files, 196 tests)
-npm run build             # Next.js 16 production build
-
-# Disposable test database suites (requires IS_TEST_DATABASE=true on an allowlisted test DB)
-npm run test:integration  # Real PostgreSQL concurrency, trigger & RBAC integration tests
-npm run test:e2e          # Playwright desktop admin & mobile patient E2E suite
+```sh
+npm ci
+cp .env.example .env.local
 ```
 
-### Architecture Documentation Index
+Populate `.env.local` using the settings below. Create a reviewer user in Supabase Auth with a confirmed email and password. Disable public signups for this private reviewer application: authenticated users without memberships receive their own workspace on first access.
 
-- [Master Checklist (`CHECKLIST.md`)](CHECKLIST.md)
-- [Engineering Progress Log (`docs/PROGRESS.md`)](docs/PROGRESS.md)
-- [Deployment & Infrastructure (`docs/DEPLOYMENT.md`)](docs/DEPLOYMENT.md)
-- [Architecture Overview (`docs/architecture/README.md`)](docs/architecture/README.md)
-- [Architecture Decision Records (`docs/architecture/ADRS.md`)](docs/architecture/ADRS.md)
-- [Database Schema & ERD (`docs/architecture/ERD.md`)](docs/architecture/ERD.md)
-- [API Contracts (`docs/architecture/API_CONTRACTS.md`)](docs/architecture/API_CONTRACTS.md)
-- [Threat Model & HIPAA/PHI Note (`docs/architecture/THREAT_MODEL.md`)](docs/architecture/THREAT_MODEL.md)
-- [Defense in Depth (`docs/architecture/DEFENSE_IN_DEPTH.md`)](docs/architecture/DEFENSE_IN_DEPTH.md)
-- [Concurrency & Edge Cases (`docs/architecture/EDGE_CASES.md`)](docs/architecture/EDGE_CASES.md)
-- [100-Field Performance Report (`docs/architecture/PERFORMANCE_100_FIELD.md`)](docs/architecture/PERFORMANCE_100_FIELD.md)
-- [Design System & Tokens (`docs/architecture/DESIGN_SYSTEM.md`)](docs/architecture/DESIGN_SYSTEM.md)
-- [Maintenance Boundaries (`docs/architecture/MAINTAINABILITY.md`)](docs/architecture/MAINTAINABILITY.md)
-- [Test Plan (`docs/testing/TEST_PLAN.md`)](docs/testing/TEST_PLAN.md)
+Confirm that the database URLs point to the intended development project before applying migrations:
+
+```sh
+npm run db:migrate
+npm run dev
+```
+
+Open `http://localhost:3000/admin/login` and sign in with the real reviewer account. The first successful workspace lookup provisions a workspace and owner membership automatically.
+
+For a local production build:
+
+```sh
+npm run build
+npm run start
+```
+
+### Environment variables
+
+Application and migration tooling load `.env.local`, then `.env`, without replacing variables already supplied by the process. Keep database credentials and the session pepper server-side; never commit populated environment files.
+
+| Variable                               | Purpose                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase Auth project URL                                                                              |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public Supabase key; preferred over the legacy anon key                                                |
+| `DATABASE_URL`                         | Application PostgreSQL connection, normally the transaction pooler                                     |
+| `DATABASE_DIRECT_URL`                  | Direct or session-pooler connection for migrations; falls back to `DATABASE_URL`                       |
+| `APP_SESSION_PEPPER`                   | Independently generated high-entropy secret, at least 32 characters, for session/recovery cryptography |
+| `APP_ENV`                              | Optional environment classification; use `production` for the hosted application                       |
+| `PLAYWRIGHT_BASE_URL`                  | Optional browser-test URL; defaults to `http://127.0.0.1:3000`                                         |
+| `IS_TEST_DATABASE`                     | Explicit disposable-database opt-in for integration tests                                              |
+| `ENABLE_TEST_AUTH`                     | Optional local automated-test authentication; leave unset for normal use                               |
+| `TEST_AUTH_SECRET`                     | Test-only signing secret, at least 32 characters, when test authentication is enabled                  |
+
+`NODE_ENV`, `CI`, and Vercel environment identifiers are supplied by their respective runtimes. The example file also lists `NEXT_PUBLIC_APP_URL` and `E2E_REVIEWER_*`; current application/test code does not consume those settings. Public intake links use the application's origin and published slug.
+
+### Synthetic demo data and seeding
+
+There is no standalone seed command or fixture-import UI. For a reviewer demo, create a form through the dashboard with a required name field, a required Yes/No single-select, a dependent details field shown for Yes, and a required consent checkbox. Add the other field types to demonstrate their validation and preview.
+
+The automated suites create their own synthetic records. `tests/fixtures/100-field-fixture.ts` exports `generate100FieldFixture()` for benchmarks; it does not populate the application database by itself.
+
+## Repeatable product walkthrough
+
+1. Sign in, create a draft, add questions, and configure an eligible visibility condition.
+2. Try preview, choose a preset, toggle light/dark, and Shuffle. Wait for saved status, reload, and confirm the draft/theme persist.
+3. Publish and open the generated public URL in a separate browser context.
+4. Enter partial answers and save. Keep the session reference and recovery code; resume in another browser and confirm answers return.
+5. Change the conditional parent so its child disappears, then show it again. The child should start unanswered while unrelated answers remain.
+6. Complete required answers, submit, and open the response list/detail as an administrator.
+7. Edit and republish the draft. Confirm the original intake URL and historical response retain their original version and theme.
+
+For the failure/recovery demonstration, temporarily interrupt a save request, confirm local edits remain with an unsaved/error state, restore connectivity, and retry explicitly. Do this with synthetic data only.
+
+## Design and engineering decisions
+
+- **One application with feature boundaries:** domain rules remain pure, server services own persistence, and React hooks own interactive state. Shared primitives keep controls and modal behavior consistent.
+- **Draft aggregate plus immutable snapshots:** drafts store the form/theme together; publication snapshots preserve stable question/option IDs and historical meaning without changing old patient sessions.
+- **Explicit concurrency:** expected revisions and transactions prevent silent overwrites. Autosave acknowledgments belong to their submitted snapshot; late responses cannot mark newer edits saved. Conflicts use the last server-acknowledged state as their merge base.
+- **Reliable completion:** submission locks the session, validates visible answers, and uses a unique session-to-submission relationship. A retry returns the existing confirmation rather than creating another response.
+- **Understandable recovery:** an HttpOnly capability cookie permits same-browser return. A session reference and recovery code enable cross-browser resume, with expiry, bounded failed attempts, and credential rotation.
+- **Centralized styling:** design tokens define shared visual values; theme presets bind through scoped intake aliases. Shuffle generates hues beyond the presets and adjusts primary-action lightness for contrast. Token audits and browser tests cover readability.
+- **Continuous patient form:** keeping fields in document order supports browser search, keyboard navigation, and jump-to-required behavior. No drag-only interaction or mandatory pagination is introduced.
+
+## Tests and verification
+
+```sh
+npm run typecheck
+npm run lint
+npm run test:unit
+npm run build
+```
+
+Unit coverage includes validation, conditional dependencies, hidden-answer pruning, autosave/concurrency, API failures, theme contrast, authorization helpers, and credential handling. Database suites cover immutable publication, access boundaries, progress persistence, recovery, and simultaneous/retried submissions. Browser journeys cover authoring, preview, publication, intake, resume, response review, mobile layouts, and recovery from failures.
+
+### Database and browser suites
+
+Integration tests write records and may alter trigger state. Run them only with a separately designated disposable test database and a passing `assertTestDatabaseIsolation` guard in `src/lib/db/test-db-isolation.ts`. `NODE_ENV=test` alone is insufficient. Never weaken the guard or mark an application database disposable to make tests pass.
+
+Configure both database URLs for that disposable target, set `IS_TEST_DATABASE=true`, and supply the public Supabase settings and a test-only pepper. Provision its schema with the migration command before running the suites. The test guard must approve the target before destructive setup; inspect the existing allowlist rather than assuming every local or remote database is safe.
+
+```sh
+npm run test:integration
+npx playwright install chromium
+npm run test:e2e
+```
+
+`test:e2e` builds and starts a local production server. Playwright enables the isolated test-auth configuration; test authentication is blocked on Vercel and requires an approved disposable database. Some browser tests mock HTTP responses, while the full backend journeys create actual database records. Do not point the full suite at a deployed reviewer application. CI runs lint, types, unit tests, and a build; database integration runs when disposable test secrets are configured. Browser E2E is not currently part of CI.
+
+### Evidence available as of October 11, 2026
+
+The latest local review ran typecheck, lint, and 194 unit tests successfully. A saved local Playwright report recorded 32 passing tests; that report was not rerun during the review and is ignored by Git. These results do not establish hosted behavior. Production build, live-backend checks, and fresh database/browser results should be recorded against the final submission commit.
+
+### Performance evidence
+
+The 100-field fixture exercises visibility and hidden-answer pruning in a timed unit benchmark. `PatientQuestionField` uses `React.memo`, but the current `PatientIntakeView` creates an inline `onChange` callback for each question on every render. That callback can invalidate memoization; no claim of isolated per-field rendering or measured browser improvement is made here.
+
+**Still required:** attach a browser performance trace from a production build using the 100-field fixture. Record browser/version, viewport/device, CPU/network conditions, and the exact commit. Measure typing, editing, or changing visibility, and report an observed improvement or explain why further optimization is unnecessary. No browser latency numbers or FPS claims are asserted here without a trace.
+
+## Security and deployment
+
+Supabase identity is verified on the server. Protected services check workspace/form access; mutation routes verify request origin. Application tables have RLS enabled and browser-role grants revoked. Because privileged server database connections can bypass RLS, service authorization remains essential.
+
+Patient access uses per-form HttpOnly cookies and server-verified capabilities. Recovery credentials are hashed; the short-lived recovery replay payload uses authenticated AES-256-GCM encryption. Answers remain ordinary database values, protected by access controls and provider storage encryption, rather than custom field-level encryption. Do not place answers or resume credentials in URLs, logs, analytics, or error reports. Keep reviewer credentials private.
+
+For deployment, connect the private repository to Vercel, set the required application environment variables, and provision/migrate the intended hosted database deliberately. Keep test-auth flags unset and keep test databases separate. Supply the deployment URL, a published intake URL, and a real reviewer login after checking the complete hosted flow.
+
+- **HTTPS:** Vercel manages SSL certificates for configured domains; confirm the final application and intake URLs serve HTTPS. See [Vercel SSL documentation](https://vercel.com/docs/domains/working-with-ssl).
+- **Database transport:** require encrypted PostgreSQL connections, for example through supported `sslmode=require` connection settings and provider SSL enforcement. The application client does not independently force TLS, so confirm the deployed connection settings; use certificate verification where configured. See [Supabase connection guidance](https://supabase.com/docs/guides/database/connecting-to-postgres) and [SSL enforcement](https://supabase.com/docs/guides/platform/ssl-enforcement).
+- **Encryption at rest:** Supabase documents provider-managed encryption. That is a provider guarantee, not a deployment verification performed by this repository. See [Supabase's shared responsibility model](https://supabase.com/docs/guides/deployment/shared-responsibility-model).
+
+Before handling real patient data, review whether field-level encryption is needed and separate encryption keys from application signing secrets, with managed storage and rotation. Replace broad database credentials with least-privilege roles, restrict administrative provisioning, add auditable response-access records, and define retention/deletion rules for answers, sessions, backups, and logs. Review provider agreements, monitoring/redaction, abuse controls, and recovery procedures. Session expiry is an access limit; it is not an automated data-retention policy. This synthetic-data exercise does not claim HIPAA compliance.
+
+## Tradeoffs and unfinished work
+
+Full signup/account recovery, mobile authoring, nested conditions, clinical decisions, checkout, and custom answer encryption are outside the assignment's scope. PostgreSQL remains the source of truth; there is no Redis requirement or browser-storage persistence substitute. Initial demo data is created manually rather than through a dedicated seed tool.
+
+Outstanding submission work is listed at the top: hosted verification and links, reviewer access/invitations, the five-minute video, redacted AI logs, and a browser performance trace. Confirm login abuse controls and production database permissions before expanding access beyond private reviewers.
+
+For AI disclosure, an initial README suggestion claimed the patient fields received a stable callback and avoided sibling renders. That claim was rejected after checking the current `PatientQuestionField` and `PatientIntakeView` source: the parent supplies inline `onChange` callbacks. The performance section now describes the actual implementation and marks the browser trace pending instead of inventing timing results. Include the original session logs in the submission; this summary does not replace them.

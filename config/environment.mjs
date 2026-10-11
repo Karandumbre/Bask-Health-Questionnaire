@@ -52,8 +52,6 @@ export function getRuntimeConfig() {
 /** Next.js requires literal public references for build-time browser replacement. */
 export function getPublicSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return url && key ? { url, key } : null;
 }
