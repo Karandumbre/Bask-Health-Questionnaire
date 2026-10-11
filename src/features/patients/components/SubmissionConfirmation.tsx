@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { CheckIcon, InfoIcon } from "@/components/ui/icons";
 import { formatStandardDateTime } from "@/lib/utils/date";
 
@@ -37,10 +38,13 @@ export function SubmissionConfirmation({
       </div>
 
       {isIdempotentReplay && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 max-w-sm mx-auto flex items-start gap-2 text-left">
+        <Alert
+          tone="info"
+          className="rounded-xl max-w-sm mx-auto flex items-start gap-2 text-left"
+        >
           <InfoIcon className="h-4 w-4 shrink-0" />
           <span>Your responses were previously submitted and confirmed.</span>
-        </div>
+        </Alert>
       )}
 
       {/* Confirmation Metadata Box */}

@@ -2,9 +2,10 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, Thead, Tbody, Th } from "@/components/ui/table";
+import { Table, Thead, Tbody, Tr, Th } from "@/components/ui/table";
 import {
   PlusIcon,
   SearchIcon,
@@ -132,9 +133,12 @@ export function FormDashboard({
                 <span className="text-caption font-semibold uppercase tracking-wider text-gray-500">
                   {APP_MESSAGES.PUBLISHED_AND_LIVE}
                 </span>
-                <span className="text-micro font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                <Badge
+                  tone="success"
+                  className="bg-emerald-100 text-emerald-800 border-0 px-1.5"
+                >
                   {APP_MESSAGES.DEPLOYED}
-                </span>
+                </Badge>
               </div>
               <div className="text-2xl font-bold text-emerald-700 tracking-tight">
                 {isLoading ? APP_MESSAGES.LOADING : publishedCount}
@@ -246,7 +250,7 @@ export function FormDashboard({
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xs">
             <Table>
               <Thead>
-                <tr>
+                <Tr className="hover:bg-transparent">
                   <Th className="pl-4 sm:pl-5 pr-3 rounded-tl-2xl w-full max-w-0">
                     {APP_MESSAGES.FORM_TITLE}
                   </Th>
@@ -262,7 +266,7 @@ export function FormDashboard({
                   <Th className="pl-3 pr-4 sm:pr-5 text-right rounded-tr-2xl w-px">
                     {APP_MESSAGES.ACTIONS}
                   </Th>
-                </tr>
+                </Tr>
               </Thead>
               <Tbody>
                 {filteredForms.map((form) => (

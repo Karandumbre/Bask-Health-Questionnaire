@@ -2,6 +2,7 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { QuestionActions } from "./QuestionActions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { useState, type ComponentType } from "react";
@@ -195,30 +196,34 @@ export function FieldNavigator() {
 
                       {/* Badges */}
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-micro text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
+                        <Badge
+                          tone="neutral"
+                          className="text-gray-500 border-0 py-0.2"
+                        >
                           {typeConf.label}
-                        </span>
+                        </Badge>
 
                         {q.required && (
-                          <span className="text-micro text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.2 rounded font-medium">
+                          <Badge tone="info" className="py-0.2">
                             {APP_MESSAGES.REQUIRED}
-                          </span>
+                          </Badge>
                         )}
 
                         {q.visibility && (
-                          <span className="text-micro text-purple-700 bg-purple-50 border border-purple-200/60 px-1.5 py-0.2 rounded font-medium">
+                          <Badge tone="purple" className="py-0.2">
                             {APP_MESSAGES.CONDITIONAL}
-                          </span>
+                          </Badge>
                         )}
 
                         {hasError && (
-                          <span
-                            className="text-micro text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded flex items-center gap-0.5"
+                          <Badge
+                            tone="warning"
+                            className="rounded px-1.5 py-0.2 font-normal text-amber-700 gap-0.5"
                             title={APP_MESSAGES.HAS_VALIDATION_ISSUE}
                           >
                             <AlertTriangleIcon className="w-3 h-3 text-amber-600" />
                             {APP_MESSAGES.ISSUE}
-                          </span>
+                          </Badge>
                         )}
                       </div>
                     </div>

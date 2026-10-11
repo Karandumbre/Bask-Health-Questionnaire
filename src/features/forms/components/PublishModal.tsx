@@ -122,17 +122,13 @@ function PublishDialog() {
       />
 
       {errorMessage && publishResult && <Alert>{errorMessage}</Alert>}
-      {copyError && (
-        <p role="alert" className="text-xs text-red-600">
-          {copyError}
-        </p>
-      )}
+      {copyError && <Alert>{copyError}</Alert>}
       {/* Branch 1: Published Success State */}
       {publishResult ? (
         <div className="space-y-4 pt-2">
-          <div
-            role="status"
-            className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3"
+          <Alert
+            tone="success"
+            className="rounded-xl p-4 flex items-start gap-3"
           >
             <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
               <CheckIcon className="w-5 h-5" />
@@ -148,7 +144,7 @@ function PublishDialog() {
                 }
               </p>
             </div>
-          </div>
+          </Alert>
 
           <FormField
             id="published-url"
@@ -185,7 +181,7 @@ function PublishDialog() {
             </div>
           </FormField>
 
-          <div className="pt-2 flex justify-end">
+          <DialogActions>
             <Button
               disabled={isPublishing}
               onClick={closePublishModal}
@@ -193,14 +189,14 @@ function PublishDialog() {
             >
               {APP_MESSAGES.DONE}
             </Button>
-          </div>
+          </DialogActions>
         </div>
       ) : (
         /* Branch 2: Pre-Publish Validation & Confirmation State */
         <div className="space-y-4 pt-1">
           {/* Validation Errors List if any */}
           {publishValidationErrors.length > 0 ? (
-            <div className="rounded-xl bg-red-50 border border-red-200 p-4 space-y-2.5">
+            <Alert tone="error" className="rounded-xl p-4 space-y-2.5">
               <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
                 <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0" />
                 <span>
@@ -228,10 +224,13 @@ function PublishDialog() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Alert>
           ) : (
             /* Ready to Publish Summary */
-            <div className="rounded-xl bg-blue-50/70 border border-blue-200 p-4 space-y-2">
+            <Alert
+              tone="info"
+              className="rounded-xl bg-blue-50/70 p-4 space-y-2"
+            >
               <p className="text-xs font-bold text-blue-900">
                 {APP_MESSAGES.PUBLISH_READINESS_SUMMARY}
               </p>
@@ -255,7 +254,7 @@ function PublishDialog() {
                 </div>
                 <div>{APP_MESSAGES.ALL_CLINICAL_INVARIANTS_VERIFIED}</div>
               </div>
-            </div>
+            </Alert>
           )}
 
           {errorMessage && <Alert>{errorMessage}</Alert>}

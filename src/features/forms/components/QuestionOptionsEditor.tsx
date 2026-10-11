@@ -48,10 +48,10 @@ export function QuestionOptionsEditor({
   return (
     <div className="space-y-3 pt-2 border-t border-gray-200">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-gray-900">
+        <h3 className="text-xs font-semibold text-gray-900">
           {APP_MESSAGES.OPTIONS}
           {selectOptions.length})
-        </label>
+        </h3>
         <Button
           type="button"
           onClick={handleAddOption}

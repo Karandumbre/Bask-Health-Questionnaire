@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
-import { Dialog, DialogActions } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
 import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,15 +65,12 @@ export function ResumeModal({
       titleId="resume-title"
       className="space-y-4 max-w-md"
     >
-      <div className="text-center space-y-1 pt-1">
-        <h2 id="resume-title" className="text-base font-bold text-gray-900">
-          Resume Previous Intake Session
-        </h2>
-        <p className="text-xs text-gray-500">
-          Enter the session reference and recovery code issued during your
-          earlier visit.
-        </p>
-      </div>
+      <DialogHeader
+        align="center"
+        titleId="resume-title"
+        title="Resume Previous Intake Session"
+        description="Enter the session reference and recovery code issued during your earlier visit."
+      />
 
       <form onSubmit={handleSubmit} className="space-y-3.5">
         <FormField

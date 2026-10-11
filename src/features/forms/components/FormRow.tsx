@@ -4,6 +4,7 @@ import { ROUTES } from "@/lib/constants/application";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tr, Td } from "@/components/ui/table";
@@ -135,17 +136,17 @@ export function FormRow({
               {/* Compact Status Badge beside truncated name (< md) */}
               <div className="md:hidden shrink-0">
                 {isPublished ? (
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-micro font-semibold text-emerald-700">
+                  <Badge tone="success" className="px-2">
                     <CheckIcon className="w-3 h-3 shrink-0 text-emerald-600" />
                     <span>
                       {APP_MESSAGES.PUBLISHED_V}
                       {form.latestPublishedVersionNumber}
                     </span>
-                  </span>
+                  </Badge>
                 ) : (
-                  <span className="inline-flex items-center whitespace-nowrap rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-micro font-semibold text-amber-800">
+                  <Badge tone="warning" className="px-2">
                     {APP_MESSAGES.UNPUBLISHED_DRAFT}
-                  </span>
+                  </Badge>
                 )}
               </div>
             </div>
@@ -186,17 +187,17 @@ export function FormRow({
             )}
           </Button>
         ) : (
-          <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+          <Badge tone="warning" className="text-caption gap-1.5">
             {APP_MESSAGES.UNPUBLISHED_DRAFT}
-          </span>
+          </Badge>
         )}
       </Td>
 
       {/* Desktop Draft Revision */}
       <Td className="hidden md:table-cell w-px">
-        <span className="inline-flex items-center rounded-md bg-gray-100 border border-gray-200/80 px-2 py-0.5 font-mono text-caption font-medium text-gray-600 whitespace-nowrap">
+        <Badge tone="mono" className="rounded-md px-2">
           {APP_MESSAGES.REV} {form.draftRevision ?? 0}
-        </span>
+        </Badge>
       </Td>
 
       {/* Desktop Updated At */}

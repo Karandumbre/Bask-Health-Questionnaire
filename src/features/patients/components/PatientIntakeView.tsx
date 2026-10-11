@@ -5,6 +5,7 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 import { themeToCssVariables } from "@/features/themes/domain/theme-tokens";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { AlertTriangleIcon } from "@/components/ui/icons";
 import { focusQuestion } from "@/lib/dom/focus-question";
 import { isQuestionAnswered } from "../domain/validation";
@@ -200,9 +201,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               Patient Intake
             </span>
             {sessionReference && (
-              <span className="text-caption font-mono font-medium text-intake-text-secondary bg-intake-bg border border-intake-border px-2 py-0.5 rounded-md">
+              <Badge
+                tone="mono"
+                className="text-intake-text-secondary bg-intake-bg border-intake-border px-2 rounded-md"
+              >
                 Ref: {sessionReference}
-              </span>
+              </Badge>
             )}
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-intake-text-primary tracking-tight">

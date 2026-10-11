@@ -6,9 +6,10 @@ import {
   validateQuestionCondition,
 } from "../domain/conditions";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { FormField } from "@/components/ui/form-field";
+import { FormField, CheckboxField } from "@/components/ui/form-field";
 
 import { useBuilder } from "../context/builder-context";
 import type { Question } from "@/features/forms/domain/types";
@@ -87,32 +88,27 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
   return (
     <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/50 space-y-3">
       {/* Toggle header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <label
-            htmlFor="cond-toggle"
-            className="text-xs font-semibold text-gray-900 cursor-pointer"
-          >
-            {APP_MESSAGES.CONDITIONAL_VISIBILITY}
-          </label>
-          <p className="text-caption text-gray-400">
-            {APP_MESSAGES.SHOW_ONLY_WHEN_AN_EARLIER_ANSWER_MATCHES}
-          </p>
-        </div>
-
+      <CheckboxField
+        id="cond-toggle"
+        label={APP_MESSAGES.CONDITIONAL_VISIBILITY}
+        description={APP_MESSAGES.SHOW_ONLY_WHEN_AN_EARLIER_ANSWER_MATCHES}
+      >
         <Input
           id="cond-toggle"
           type="checkbox"
           checked={isConditional}
           onChange={(e) => handleToggle(e.target.checked)}
         />
-      </div>
+      </CheckboxField>
 
       {/* Conditional Configuration Form */}
       {isConditional && (
         <div className="space-y-3 pt-2 border-t border-gray-200/80">
           {eligibleParents.length === 0 && !selectedParent ? (
-            <div className="rounded-md bg-amber-50 p-2.5 border border-amber-200 text-caption text-amber-800 flex items-start gap-2">
+            <Alert
+              tone="warning"
+              className="rounded-md p-2.5 text-caption flex items-start gap-2"
+            >
               <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">
@@ -124,7 +120,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                   }
                 </p>
               </div>
-            </div>
+            </Alert>
           ) : (
             <>
               {/* Parent Field Selector */}
@@ -189,12 +185,18 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
 
               {/* Status Indicator */}
               {isConditionValid ? (
-                <div className="flex items-center gap-1.5 text-caption text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded">
+                <Alert
+                  tone="success"
+                  className="flex items-center gap-1.5 text-caption text-emerald-700 px-2 py-1 rounded"
+                >
                   <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
                   <span>{APP_MESSAGES.CONDITION_IS_VALID_AND_ACTIVE}</span>
-                </div>
+                </Alert>
               ) : (
-                <div className="flex items-start justify-between gap-2 text-caption text-red-700 bg-red-50 border border-red-200 p-2 rounded">
+                <Alert
+                  tone="error"
+                  className="flex items-start justify-between gap-2 text-caption text-red-700 p-2 rounded"
+                >
                   <div className="flex items-start gap-1.5 min-w-0">
                     <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
                     <span>{validationMessage}</span>
@@ -209,7 +211,7 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                   >
                     {APP_MESSAGES.REMOVE_CONDITION}
                   </Button>
-                </div>
+                </Alert>
               )}
             </>
           )}

@@ -7,9 +7,10 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 import { SkeletonRegion } from "@/components/ui/skeleton";
 import { ResponseDetailLoading, ResponseListSkeleton } from "./FormLoading";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { AdminBackLink } from "./AdminBackLink";
 import { formatDetailedDateTime, formatShortDateTime } from "@/lib/utils/date";
@@ -160,9 +161,9 @@ export function ResponsesView({
             <h1 className="text-sm font-semibold text-gray-900 truncate">
               {formName}
             </h1>
-            <span className="text-caption font-mono text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
+            <Badge tone="mono" className="text-gray-500">
               Responses ({totalCount})
-            </span>
+            </Badge>
           </div>
         </div>
 
@@ -193,11 +194,11 @@ export function ResponsesView({
           </div>
 
           <div className="flex items-center gap-3 text-xs">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
+            <Badge tone="success" className="py-1 text-xs font-medium">
               <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
               {totalCount} Completed{" "}
               {totalCount === 1 ? "Response" : "Responses"}
-            </span>
+            </Badge>
           </div>
           <Button
             variant="secondary"
@@ -252,7 +253,7 @@ export function ResponsesView({
             <div className="overflow-x-auto">
               <Table aria-label="Clinical Form Responses">
                 <Thead className="bg-gray-50 text-micro font-semibold">
-                  <tr>
+                  <Tr className="hover:bg-transparent">
                     <Th scope="col" className="px-5 py-3">
                       Submission Date
                     </Th>
@@ -271,7 +272,7 @@ export function ResponsesView({
                     <Th scope="col" className="px-5 py-3 text-right">
                       Actions
                     </Th>
-                  </tr>
+                  </Tr>
                 </Thead>
                 <Tbody className="text-gray-800">
                   {submissions.map((sub) => (
@@ -291,15 +292,15 @@ export function ResponsesView({
                         {sub.formName || formName}
                       </Td>
                       <Td className="px-5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-micro font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                        <Badge tone="neutral" className="px-2">
                           v{sub.versionNumber}
-                        </span>
+                        </Badge>
                       </Td>
                       <Td className="px-5">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <Badge tone="success" className="px-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           Completed
-                        </span>
+                        </Badge>
                       </Td>
                       <Td className="px-5 font-mono text-gray-500">
                         {sub.sessionReference}
@@ -455,7 +456,7 @@ export function ResponsesView({
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-3.5 border-t border-gray-200 bg-gray-50 flex items-center justify-end">
+              <DialogActions className="px-6 py-3.5 border-t border-gray-200 bg-gray-50 items-center">
                 <Button
                   variant="primary"
                   onClick={handleCloseDetail}
@@ -463,7 +464,7 @@ export function ResponsesView({
                 >
                   Close
                 </Button>
-              </div>
+              </DialogActions>
             </div>
           )}
         </Dialog>

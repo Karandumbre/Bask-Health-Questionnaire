@@ -6,8 +6,9 @@ export interface FormFieldProps {
   label: ReactNode;
   description?: ReactNode;
   required?: boolean;
+  className?: string;
   labelClassName?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export function FormField({
@@ -15,11 +16,12 @@ export function FormField({
   label,
   description,
   required,
+  className,
   labelClassName,
   children,
 }: FormFieldProps) {
   return (
-    <div className="space-y-1.5">
+    <div className={twMerge("space-y-1.5", className)}>
       <label
         htmlFor={id}
         className={twMerge("block text-xs font-semibold", labelClassName)}
@@ -32,6 +34,49 @@ export function FormField({
           {description}
         </p>
       )}
+      {children}
+    </div>
+  );
+}
+
+export interface CheckboxFieldProps {
+  id: string;
+  label: ReactNode;
+  description?: ReactNode;
+  className?: string;
+  labelClassName?: string;
+  children?: ReactNode;
+}
+
+export function CheckboxField({
+  id,
+  label,
+  description,
+  className,
+  labelClassName,
+  children,
+}: CheckboxFieldProps) {
+  return (
+    <div
+      className={twMerge(
+        "flex items-center justify-between gap-3",
+        className,
+      )}
+    >
+      <div>
+        <label
+          htmlFor={id}
+          className={twMerge(
+            "block text-xs font-semibold text-gray-900 cursor-pointer",
+            labelClassName,
+          )}
+        >
+          {label}
+        </label>
+        {description && (
+          <p className="text-caption text-gray-400">{description}</p>
+        )}
+      </div>
       {children}
     </div>
   );

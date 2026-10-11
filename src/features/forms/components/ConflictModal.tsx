@@ -3,9 +3,10 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { Spinner } from "@/components/ui/spinner";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -175,21 +176,18 @@ function ConflictDialog() {
       className="space-y-4 max-w-2xl max-h-conflict-height overflow-y-auto"
     >
       {/* Warning Icon & Title */}
-      <div className="flex items-start gap-3">
-        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
-          <AlertTriangleIcon className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 id="conflict-title" className="text-base font-bold text-gray-900">
-            {APP_MESSAGES.THREE_WAY_DRAFT_CONFLICT_RESOLUTION}
-          </h2>
-          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-            {
-              APP_MESSAGES.ANOTHER_ADMINISTRATOR_SAVED_CHANGES_TO_THIS_DRAFT_NON_OVERLAPPING
-            }
-          </p>
-        </div>
-      </div>
+      <DialogHeader
+        titleId="conflict-title"
+        title={APP_MESSAGES.THREE_WAY_DRAFT_CONFLICT_RESOLUTION}
+        description={
+          APP_MESSAGES.ANOTHER_ADMINISTRATOR_SAVED_CHANGES_TO_THIS_DRAFT_NON_OVERLAPPING
+        }
+        icon={
+          <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 shrink-0">
+            <AlertTriangleIcon className="w-6 h-6" />
+          </div>
+        }
+      />
 
       {/* Revision Comparison Pill */}
       <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex items-center justify-between text-xs font-mono">
@@ -228,7 +226,10 @@ function ConflictDialog() {
         <div className="space-y-2">
           {(mergeResult.summary.appliedLocalChanges.length > 0 ||
             mergeResult.summary.appliedServerChanges.length > 0) && (
-            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-1">
+            <Alert
+              tone="success"
+              className="rounded-xl text-emerald-900 space-y-1"
+            >
               <div className="flex items-center gap-1.5 font-bold">
                 <CheckIcon className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
@@ -246,11 +247,14 @@ function ConflictDialog() {
                   <li key={`server-${idx}`}>{c}</li>
                 ))}
               </ul>
-            </div>
+            </Alert>
           )}
 
           {mergeResult.hasConflicts ? (
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-2">
+            <Alert
+              tone="warning"
+              className="rounded-xl text-amber-900 space-y-2"
+            >
               <div className="font-bold flex items-center gap-1.5">
                 <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>
@@ -312,13 +316,16 @@ function ConflictDialog() {
                   );
                 })}
               </div>
-            </div>
+            </Alert>
           ) : (
-            <div className="p-3 bg-blue-50/80 rounded-xl border border-blue-200 text-xs text-blue-900 font-medium">
+            <Alert
+              tone="info"
+              className="rounded-xl bg-blue-50/80 text-blue-900 font-medium"
+            >
               {
                 APP_MESSAGES.NO_OVERLAPPING_FIELD_COLLISIONS_ALL_CONCURRENT_EDITS_WERE_SAFELY
               }
-            </div>
+            </Alert>
           )}
         </div>
       )}
@@ -359,21 +366,30 @@ function ConflictDialog() {
             </h3>
             <div className="flex items-center gap-1.5 text-caption">
               {comparison.summary.modified > 0 && (
-                <span className="bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded">
+                <Badge
+                  tone="warning"
+                  className="bg-amber-100 text-amber-800 border-0 rounded px-2 text-caption"
+                >
                   {comparison.summary.modified} {APP_MESSAGES.MODIFIED}
-                </span>
+                </Badge>
               )}
               {comparison.summary.addedLocally > 0 && (
-                <span className="bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded">
+                <Badge
+                  tone="info"
+                  className="bg-blue-100 text-blue-800 border-0 rounded px-2 font-semibold text-caption"
+                >
                   {comparison.summary.addedLocally}{" "}
                   {APP_MESSAGES.LOCAL_ADDITIONS}
-                </span>
+                </Badge>
               )}
               {comparison.summary.addedOnServer > 0 && (
-                <span className="bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded">
+                <Badge
+                  tone="purple"
+                  className="bg-purple-100 text-purple-800 border-0 rounded px-2 font-semibold text-caption"
+                >
                   {comparison.summary.addedOnServer}{" "}
                   {APP_MESSAGES.SERVER_ADDITIONS}
-                </span>
+                </Badge>
               )}
             </div>
           </div>
@@ -390,9 +406,12 @@ function ConflictDialog() {
                     <span className="font-semibold text-gray-900">
                       {diff.label || APP_MESSAGES.UNTITLED_FIELD}
                     </span>
-                    <span className="font-mono text-micro text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                    <Badge
+                      tone="mono"
+                      className="text-micro text-gray-400 border-0"
+                    >
                       {APP_MESSAGES.ID} {diff.questionId}
-                    </span>
+                    </Badge>
                   </div>
                   {diff.changes.map((c, idx) => (
                     <div
@@ -423,11 +442,7 @@ function ConflictDialog() {
         </div>
       ) : null}
 
-      {copyError && (
-        <p role="alert" className="text-xs text-red-600">
-          {copyError}
-        </p>
-      )}
+      {copyError && <Alert>{copyError}</Alert>}
 
       {/* Copy Backup Option */}
       <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 flex items-center justify-between">
@@ -458,7 +473,7 @@ function ConflictDialog() {
       </div>
 
       {/* Resolution Actions */}
-      <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-end">
+      <DialogActions className="flex-col sm:flex-row">
         <Button
           type="button"
           disabled={isProcessing}
@@ -500,7 +515,7 @@ function ConflictDialog() {
             </span>
           </Button>
         )}
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

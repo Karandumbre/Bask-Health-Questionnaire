@@ -98,7 +98,7 @@ export function FormCanvas() {
           }`}
         >
           {/* Simulator Banner */}
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+          <Alert tone="info" className="mb-4 rounded-xl text-center">
             <p className="text-xs font-semibold text-blue-900">
               {APP_MESSAGES.INTERACTIVE_PATIENT_SIMULATOR}
             </p>
@@ -107,7 +107,7 @@ export function FormCanvas() {
                 APP_MESSAGES.TESTING_LIVE_CONDITIONS_VISIBILITY_RESPONSES_HERE_ARE_NOT_SAVED
               }
             </p>
-          </div>
+          </Alert>
 
           <div className="space-y-4">
             {/* Clinical Header */}

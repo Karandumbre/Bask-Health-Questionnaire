@@ -2,7 +2,7 @@
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Input } from "@/components/ui/input";
-import { FormField } from "@/components/ui/form-field";
+import { FormField, CheckboxField } from "@/components/ui/form-field";
 import type {
   Question,
   NumberQuestion,
@@ -68,9 +68,13 @@ export function QuestionConstraintsEditor({
         })}
       </div>
       {question.type === "number" && (
-        <label className="flex items-center justify-between text-xs">
-          {APP_MESSAGES.WHOLE_NUMBERS_ONLY}
+        <CheckboxField
+          id={`integerOnly-${question.id}`}
+          label={APP_MESSAGES.WHOLE_NUMBERS_ONLY}
+          labelClassName="font-normal text-gray-800"
+        >
           <Input
+            id={`integerOnly-${question.id}`}
             type="checkbox"
             checked={question.validation?.integerOnly ?? false}
             onChange={(event) =>
@@ -82,7 +86,7 @@ export function QuestionConstraintsEditor({
               })
             }
           />
-        </label>
+        </CheckboxField>
       )}
     </section>
   );

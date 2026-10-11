@@ -2,7 +2,7 @@
 
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
 import { Spinner } from "@/components/ui/spinner";
@@ -32,18 +32,18 @@ export function RecoveryCodeModal({
       titleId="recovery-title"
       className="space-y-4 max-w-md"
     >
-      <div className="text-center space-y-1.5 pt-2">
-        <div className="mx-auto w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-2">
-          <KeyIcon className="h-5 w-5" />
-        </div>
-        <h2 id="recovery-title" className="text-base font-bold text-gray-900">
-          Save Your Session Recovery Code
-        </h2>
-        <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
-          Need to finish later or switch devices? Use this recovery code to
-          restore your incomplete progress at any time.
-        </p>
-      </div>
+      <DialogHeader
+        align="center"
+        className="pt-2"
+        titleId="recovery-title"
+        title="Save Your Session Recovery Code"
+        description="Need to finish later or switch devices? Use this recovery code to restore your incomplete progress at any time."
+        icon={
+          <div className="mx-auto w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-2">
+            <KeyIcon className="h-5 w-5" />
+          </div>
+        }
+      />
 
       {/* Recovery Code Display */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-center">
@@ -63,7 +63,7 @@ export function RecoveryCodeModal({
       )}
       {saveError && <Alert>{saveError}</Alert>}
       {copyError && <Alert>{copyError}</Alert>}
-      <div className="flex flex-col gap-2 pt-1">
+      <DialogActions className="flex-col pt-1">
         <Button
           type="button"
           disabled={!recoveryCode}
@@ -93,7 +93,7 @@ export function RecoveryCodeModal({
         >
           I&apos;ve Saved My Code — Continue
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

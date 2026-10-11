@@ -1,8 +1,9 @@
 "use client";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
+import { Badge } from "@/components/ui/badge";
 import { Input, Textarea } from "@/components/ui/input";
-import { FormField } from "@/components/ui/form-field";
+import { FormField, CheckboxField } from "@/components/ui/form-field";
 
 import { useBuilder } from "../context/builder-context";
 import { QuestionConstraintsEditor } from "./QuestionConstraintsEditor";
@@ -57,9 +58,12 @@ export function QuestionInspector() {
       {/* Header */}
       <div className="p-4 border-b border-gray-200 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-micro font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+          <Badge
+            tone="info"
+            className="font-bold uppercase tracking-wider text-blue-600 border-blue-200 px-2"
+          >
             {selectedQuestion.type.replace("_", " ")}
-          </span>
+          </Badge>
           <h3 className="text-xs font-bold text-gray-900">
             {APP_MESSAGES.QUESTION_SETTINGS}
           </h3>
@@ -124,18 +128,12 @@ export function QuestionInspector() {
         )}
 
         {/* Required switch */}
-        <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200 bg-gray-50/50">
-          <div>
-            <label
-              htmlFor="question-required-toggle"
-              className="text-xs font-semibold text-gray-900 cursor-pointer block"
-            >
-              {APP_MESSAGES.REQUIRED_RESPONSE}
-            </label>
-            <p className="text-caption text-gray-400">
-              {APP_MESSAGES.PATIENT_CANNOT_SUBMIT_WITHOUT_COMPLETING}
-            </p>
-          </div>
+        <CheckboxField
+          id="question-required-toggle"
+          label={APP_MESSAGES.REQUIRED_RESPONSE}
+          description={APP_MESSAGES.PATIENT_CANNOT_SUBMIT_WITHOUT_COMPLETING}
+          className="p-3 rounded-lg border border-gray-200 bg-gray-50/50"
+        >
           <Input
             id="question-required-toggle"
             type="checkbox"
@@ -143,7 +141,7 @@ export function QuestionInspector() {
             checked={selectedQuestion.required}
             onChange={(e) => handleRequiredToggle(e.target.checked)}
           />
-        </div>
+        </CheckboxField>
 
         {(selectedQuestion.type === "single_select" ||
           selectedQuestion.type === "multi_select") && (

@@ -90,6 +90,9 @@ export function DialogHeader({
   titleId,
   title,
   description,
+  icon,
+  align = "left",
+  className,
   onClose,
   closeLabel = "Close",
   disabled = false,
@@ -97,19 +100,45 @@ export function DialogHeader({
   titleId: string;
   title: ReactNode;
   description?: ReactNode;
+  icon?: ReactNode;
+  align?: "left" | "center";
+  className?: string;
   onClose?: () => void;
   closeLabel?: string;
   disabled?: boolean;
 }) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div>
+  if (align === "center") {
+    return (
+      <div className={twMerge("text-center space-y-1.5 pt-1", className)}>
+        {icon}
         <h3 id={titleId} className="text-base font-bold text-gray-900">
           {title}
         </h3>
         {description && (
-          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+          <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
+            {description}
+          </p>
         )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={twMerge("flex items-start justify-between gap-3", className)}
+    >
+      <div className="flex items-start gap-3">
+        {icon}
+        <div>
+          <h3 id={titleId} className="text-base font-bold text-gray-900">
+            {title}
+          </h3>
+          {description && (
+            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+              {description}
+            </p>
+          )}
+        </div>
       </div>
       {onClose && (
         <Button

@@ -5,6 +5,7 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Spinner } from "@/components/ui/spinner";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -111,9 +112,9 @@ export function AdminHeader() {
               </Button>
             )}
 
-            <span className="text-caption font-mono text-gray-400 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
+            <Badge tone="mono" className="bg-gray-50 text-gray-400">
               {APP_MESSAGES.REV} {draftRevision}
-            </span>
+            </Badge>
           </div>
         </div>
 

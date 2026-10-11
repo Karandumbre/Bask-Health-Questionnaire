@@ -1,7 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Select } from "@/components/ui/input";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { DialogHeader } from "@/components/ui/dialog";
+import { CheckboxField } from "@/components/ui/form-field";
+import { Input, Select } from "@/components/ui/input";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { QuestionInput } from "@/features/forms/components/QuestionInput";
 import { getFieldDescribedBy } from "@/features/forms/components/QuestionControl";
@@ -457,6 +461,39 @@ describe("Preview controls", () => {
       );
       expect(html).toContain('data-question-id="q_memo"');
       expect(html).toContain('value="Initial"');
+    });
+
+    it("renders shared Badge, CheckboxField, Alert info tone, and centered DialogHeader primitives", () => {
+      const html = renderToStaticMarkup(
+        createElement(
+          "div",
+          null,
+          createElement(Badge, { tone: "mono" }, "rev 4"),
+          createElement(
+            CheckboxField,
+            {
+              id: "toggle-req",
+              label: "Required",
+              description: "Must be answered",
+            },
+            createElement(Input, { id: "toggle-req", type: "checkbox" }),
+          ),
+          createElement(Alert, { tone: "info" }, "Simulator active"),
+          createElement(DialogHeader, {
+            align: "center",
+            titleId: "centered-dialog",
+            title: "Save Recovery Code",
+            description: "Keep this safe",
+          }),
+        ),
+      );
+
+      expect(html).toContain("font-mono");
+      expect(html).toContain('for="toggle-req"');
+      expect(html).toContain('id="toggle-req"');
+      expect(html).toContain('role="status"');
+      expect(html).toContain("border-blue-200 bg-blue-50 text-blue-800");
+      expect(html).toContain('id="centered-dialog"');
     });
   });
 });

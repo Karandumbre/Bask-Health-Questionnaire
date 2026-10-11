@@ -38,4 +38,18 @@ export const COMPONENT_STYLES = {
     th: "py-3.5 px-3 whitespace-nowrap",
     td: "py-3.5 px-3 whitespace-nowrap",
   },
+  badge: {
+    base: "inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-micro font-medium",
+    tones: {
+      neutral: "bg-gray-100 text-gray-700 border border-gray-200",
+      mono: "bg-gray-100 text-gray-600 border border-gray-200 font-mono text-caption",
+      success:
+        "bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold rounded-full px-2.5",
+      warning:
+        "bg-amber-50 text-amber-800 border border-amber-200 font-semibold rounded-full px-2.5",
+      info: "bg-blue-50 text-blue-700 border border-blue-200/60 font-medium",
+      purple:
+        "bg-purple-50 text-purple-700 border border-purple-200/60 font-medium",
+    },
+  },
 } as const;

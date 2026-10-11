@@ -3,6 +3,7 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
+import { CheckboxField } from "@/components/ui/form-field";
 import { THEME_PRESETS, generateShuffledTheme } from "../domain/theme-tokens";
 import type { ThemeDefinition } from "../domain/theme-tokens";
 
@@ -22,32 +23,33 @@ export function ThemeControls({
   return (
     <div className="mb-4 flex w-full max-w-2xl flex-wrap items-center justify-between gap-2.5 bg-white p-3 rounded-xl border border-gray-200 shadow-2xs">
       <div className="flex items-center gap-2">
-        <label
-          htmlFor="theme-preset"
-          className="text-xs font-medium text-gray-700"
-        >
-          {APP_MESSAGES.THEME_2}:
-        </label>
-        <Select
+        <CheckboxField
           id="theme-preset"
-          wrapperClassName="w-auto"
-          className="w-auto text-xs py-1.5"
-          disabled={!editable}
-          value={theme.isCustomShuffle ? "custom" : theme.presetName}
-          onChange={(event) => {
-            const preset = THEME_PRESETS[event.target.value];
-            if (preset) updateTheme(preset);
-          }}
+          label={`${APP_MESSAGES.THEME_2}:`}
+          className="gap-2"
+          labelClassName="font-medium text-gray-700"
         >
-          {Object.keys(THEME_PRESETS).map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-          {theme.isCustomShuffle && (
-            <option value="custom">{APP_MESSAGES.CUSTOM_SHUFFLE}</option>
-          )}
-        </Select>
+          <Select
+            id="theme-preset"
+            wrapperClassName="w-auto"
+            className="w-auto text-xs py-1.5"
+            disabled={!editable}
+            value={theme.isCustomShuffle ? "custom" : theme.presetName}
+            onChange={(event) => {
+              const preset = THEME_PRESETS[event.target.value];
+              if (preset) updateTheme(preset);
+            }}
+          >
+            {Object.keys(THEME_PRESETS).map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+            {theme.isCustomShuffle && (
+              <option value="custom">{APP_MESSAGES.CUSTOM_SHUFFLE}</option>
+            )}
+          </Select>
+        </CheckboxField>
         <Button
           variant="secondary"
           disabled={!editable}
