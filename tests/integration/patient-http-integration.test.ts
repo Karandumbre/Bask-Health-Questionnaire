@@ -20,7 +20,7 @@ import { getSessionCookieName } from "@/features/patients/server/patient-cookies
 import type { FormDefinition } from "@/features/forms/domain/types";
 import { THEME_PRESET_OCEAN } from "@/features/themes/domain/theme-tokens";
 
-describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
+describe("Patient HTTP and database integration", () => {
   const testWorkspaceId = crypto.randomUUID();
   const ownerUserId = crypto.randomUUID();
 
@@ -28,7 +28,7 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
   const testFormDefinition: FormDefinition = {
     schemaVersion: 1,
     title: "Cardiology Intake Assessment",
-    description: "Phase 3B HTTP Verification Form",
+    description: "Synthetic intake for HTTP integration tests",
     questions: [
       {
         id: "q-chest-pain",
@@ -82,7 +82,7 @@ describe("Patient HTTP & Database Integration Guarantees (Phase 3B)", () => {
     // 1. Create isolated test workspace and membership
     await db.insert(workspaces).values({
       id: testWorkspaceId,
-      name: "Phase 3B Clinical Testing",
+      name: "Patient HTTP Integration",
     });
 
     await db.insert(adminMemberships).values({

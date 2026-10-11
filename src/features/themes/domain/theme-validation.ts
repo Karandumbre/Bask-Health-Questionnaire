@@ -72,7 +72,3 @@ export function auditThemeMode(tokens: ThemeModeTokens): WcagAuditResult {
     violations,
   };
 }
-
-// ---------------------------------------------------------------------------
-// 3 Named Clinical Theme Presets
-// ---------------------------------------------------------------------------

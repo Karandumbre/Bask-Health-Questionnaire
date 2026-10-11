@@ -1,4 +1,4 @@
-# Comprehensive Testing & Verification Plan
+# Test Plan
 
 This document establishes the testing strategy for **Intake Studio**, spanning pure domain unit tests, PostgreSQL concurrency integration tests, and Playwright end-to-end (E2E) flows.
 
@@ -34,7 +34,7 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 
 ## 2. Unit Testing Suite (Vitest)
 
-### Executed & Verified:
+### Unit coverage
 
 1. **Form Publish Rules (`tests/unit/domain/form-validation.test.ts`):**
    - Blank form title rejection.
@@ -77,13 +77,13 @@ This document establishes the testing strategy for **Intake Studio**, spanning p
 5. **100-Field Fixture & Latency Benchmark (`tests/unit/domain/100-field-benchmark.test.ts`):**
    - Generates compliant 100-field clinical form.
    - Verifies publish validation passes across all 100 fields.
-   - Measures visibility calculation and pruning latency ($< 5\text{ms}$).
+   - Asserts visibility calculation and pruning each take under 10ms in the unit-test process; a production-browser trace remains pending.
 
 ---
 
 ## 3. Database Concurrency Integration Test Plan (PostgreSQL)
 
-_Note: Execution requires live PostgreSQL connection string (`DATABASE_URL`)._
+Run these tests only against an approved disposable database, with `IS_TEST_DATABASE=true` and a passing test-database safety guard.
 
 ### 3.1. Optimistic Concurrency CAS Test
 
@@ -140,7 +140,7 @@ _Note: Execution requires live PostgreSQL connection string (`DATABASE_URL`)._
 4. **Cross-Browser Session Resumption:**
    - Patient starts intake on Browser Context A, answers 3 questions, copies recovery code.
    - Open Browser Context B (clean cookies/cache).
-   - Navigate to `/intake/resume`, input session reference and recovery code.
+   - Open the same `/intake/[slug]` URL, choose Resume, and enter the session reference and recovery code.
    - Verify previously answered 3 questions are restored.
    - Complete intake in Browser B.
 
@@ -152,12 +152,8 @@ _Note: Execution requires live PostgreSQL connection string (`DATABASE_URL`)._
 
 ---
 
-## 5. 100-Field Fixture Benchmark Plan
+## 5. 100-Field Performance
 
-- **Fixture:** 100 questions organized across 20 clinical categories (see `tests/fixtures/100-field-fixture.ts`).
-- **Telemetry Targets:**
-  - Client keystroke latency (INP equivalent): $< 50\text{ms}$.
-  - Visibility evaluation and hidden-answer pruning: $< 10\text{ms}$.
-  - Autosave payload size: $< 150\text{KB}$ uncompressed.
-  - Server validation time: $< 25\text{ms}$.
-- **Profiling Setup:** Chrome Performance Profiler in Next.js production build (`npm run build && npm run start`) with 4x CPU throttling.
+The fixture in `tests/fixtures/100-field-fixture.ts` contains 100 synthetic questions across 20 sections. The unit benchmark checks publication validity and asserts that visibility evaluation and hidden-answer pruning each take under 10ms in the test process.
+
+Browser interaction measurements remain pending. Follow the [performance measurement procedure](../architecture/PERFORMANCE_100_FIELD.md) to capture typing, editor changes, and conditional visibility using a production build.

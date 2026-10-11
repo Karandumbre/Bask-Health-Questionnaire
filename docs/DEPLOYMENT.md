@@ -1,91 +1,48 @@
-# Deployment & Infrastructure Architecture
+# Deployment
 
-This document outlines the deployment topology, environment isolation, and database migration process for **Intake Studio**.
+## Hosting and environment isolation
 
----
+Deploy the Next.js application on Vercel and use Supabase for PostgreSQL and Auth. Configure production deployments from `main` and preview deployments for pull requests. Repository linkage and hosted-flow checks remain pending.
 
-## 1. Hosting Topology
+Use separate Supabase projects for the hosted application, previews, and disposable database tests. Preview deployments must not connect to the production database. Keep test authentication disabled on Vercel.
 
-```
-                  ┌──────────────────────────────────────────────┐
-                  │          GitHub Private Repository           │
-                  │             (FirstNameBaskHealth)            │
-                  └───────┬──────────────────────────────┬───────┘
-                          │                              │
-                (Push to main)                     (Pull Request)
-                          │                              │
-                          ▼                              ▼
-          ┌───────────────────────────────┐ ┌───────────────────────────────┐
-          │      Vercel Production        │ │        Vercel Preview         │
-          │ https://intake-studio.vercel.app│ │  https://preview-*.vercel.app │
-          └──────────────┬────────────────┘ └──────────────┬────────────────┘
-                         │                                 │
-                         ▼                                 ▼
-          ┌───────────────────────────────┐ ┌───────────────────────────────┐
-          │  Supabase Production Postgres │ │   Ephemeral Dev/Mock Database │
-          │  (Port 6543 Pooled / 5432 Mig)│ │  (Zero Production Data)       │
-          └───────────────────────────────┘ └───────────────────────────────┘
-```
+## Application settings
 
----
+Configure these variables separately for each Vercel environment:
 
-## 2. Environment Isolation & Guardrails
+| Variable                               | Purpose                                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase Auth project URL                                                                 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public Supabase publishable key                                                           |
+| `DATABASE_URL`                         | Application PostgreSQL connection; use the transaction pooler for serverless requests     |
+| `DATABASE_DIRECT_URL`                  | Direct or session-pooler connection for migrations                                        |
+| `APP_SESSION_PEPPER`                   | Independent high-entropy secret, at least 32 characters, for patient session cryptography |
+| `APP_ENV`                              | Environment classification; set to `production` for the hosted application                |
 
-| Setting / Variable    | Vercel Preview (PR Branches)         | Vercel Production (`main`)                         |
-| --------------------- | ------------------------------------ | -------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL` | Ephemeral Vercel Preview URL         | Custom domain / Production Vercel URL              |
-| `DATABASE_URL`        | Development/Staging Supabase project | Dedicated Production Supabase project              |
-| `DATABASE_DIRECT_URL` | Staging direct connection            | Production direct connection                       |
-| `APP_SESSION_PEPPER`  | Development secret                   | Production cryptographically random 32-byte secret |
-| Access                | Team reviewers only                  | Public patient access + private admin login        |
+Public intake links use the application's origin and published slug. Confirm HTTPS, database TLS settings, and provider storage-encryption guarantees as described in the [README](../README.md#security-and-deployment).
 
-### Critical Rule: No Production Data in Previews
+## Database migrations
 
-Preview deployments must NEVER point to the production PostgreSQL database. Connecting preview builds to production risks data corruption from experimental branches and violates patient data isolation.
+Migrations live in `db/migrations/`. `npm run db:migrate` calls the shared migration engine, which uses advisory locking and checksums. Migrations do not run during the Vercel build.
 
----
+1. Define schema changes in `src/lib/db/schema.ts` and generate SQL with `npm run db:generate`.
+2. Inspect the migration and run it against a designated development or disposable database.
+3. Configure GitHub environments named `preview` and `production`, with their own database secrets and approval rules.
+4. Run the [controlled migration workflow](../.github/workflows/db-migrate.yml), select the target environment, and supply its required `APPLY` confirmation.
+5. Coordinate application deployment with the schema change and check the hosted flow afterward.
 
-## 3. Database Migration Workflow (Gated Execution)
+The workflow reads `DATABASE_DIRECT_URL` and `DATABASE_URL` from the selected GitHub environment. Confirm the target and backup/recovery plan before applying a hosted migration.
 
-Database migrations are located in `db/migrations/` as numbered SQL scripts and managed via Drizzle ORM (`drizzle-kit`).
+## CI and disposable tests
 
-### Policy: Migrations Are NEVER Run by Vercel Build Commands
+The [CI workflow](../.github/workflows/ci.yml) runs lint, type checking, unit tests, and a production build. Database integration runs when `TEST_DATABASE_URL` is configured and the existing safety guard approves the disposable target. It also uses `TEST_DATABASE_DIRECT_URL`, `APP_SESSION_PEPPER`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from GitHub secrets. Use test-project settings for this suite.
 
-Running `drizzle-kit migrate` during Vercel's `npm run build` is strictly prohibited:
+The build uses placeholder configuration. Browser E2E tests run separately against an approved disposable database; they must not run against the reviewer deployment.
 
-1. Every preview branch would attempt to execute migrations against the database.
-2. Concurrent builds could create race conditions and schema locks.
+## Hosted checks
 
-### Execution Procedure:
-
-1. **Local Development / PR:**
-   - Author schema changes in `src/lib/db/schema.ts`.
-   - Generate SQL migration: `npm run db:generate`.
-   - Test against local/ephemeral PostgreSQL: `npm run db:migrate`.
-2. **Production Release:**
-   - Merge approved PR into `main`.
-   - Execute production migration via secure CI pipeline or authorized operator using `DATABASE_DIRECT_URL`.
-   - Vercel automatically deploys the updated application code to production.
-
----
-
-## 4. Supabase Free-Tier Operational Limits & Mitigations
-
-1. **Connection Pooling (Supavisor):**
-   - Direct PostgreSQL connections (`port 5432`) are strictly limited on Supabase free-tier (typically $\le 60$ max connections).
-   - In serverless environments like Vercel, every lambda execution can open connections, quickly saturating the database.
-   - **Mitigation:** The application uses Supabase's transaction pooler (`port 6543`) for all queries in serverless Route Handlers. Direct connection (`port 5432`) is reserved exclusively for migrations and DDL statements.
-
-2. **Project Inactivity Pausing:**
-   - Supabase free-tier projects pause after 1 week of inactivity.
-   - Ensure an active health check or ping keeps the database warm prior to assessment evaluation.
-
-3. **Storage & Egress Limits:**
-   - Free tier includes 500MB database storage.
-   - Using JSONB aggregates with lean schemas ensures thousands of intakes easily fit within quota.
-
-## Disposable database verification
-
-PostgreSQL integration tests require a separate disposable database and `IS_TEST_DATABASE=true`. CI reads `TEST_DATABASE_URL` and `TEST_DATABASE_DIRECT_URL` for this suite, rather than the application's database secrets. If those test secrets are absent, CI skips integration tests. The build uses a dummy database URL and does not connect to it during compilation.
-
-Keep `APP_SESSION_PEPPER` at least 32 characters long; patient services fail closed when it is missing or weak. Test authentication must remain disabled on deployed environments. No migrations or live database tests were run as part of the maintainability refactor.
+- Sign in with a real reviewer account and check anonymous and cross-workspace access restrictions.
+- Publish an intake and complete start, save, cross-browser resume, and submission flows.
+- Check the administrator response list and details, including an older published version.
+- Confirm cookie security, test-auth exclusion, origin checks, and database transport settings.
+- Add the deployment and published intake URLs to the README and share reviewer credentials privately.

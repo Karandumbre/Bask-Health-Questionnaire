@@ -20,7 +20,7 @@ describe("100-Field Fixture & Performance Benchmark", () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it("evaluates visibility and prunes 100-field answers in under 5ms", () => {
+  it("evaluates visibility and prunes 100-field answers in under 10ms", () => {
     const fixture = generate100FieldFixture();
     const answers: PatientAnswers = {};
 

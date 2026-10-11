@@ -17,7 +17,7 @@ import {
 } from "../../src/features/themes/domain/presets";
 
 /**
- * Phase 3B — end-to-end journeys against the real Next.js server and the
+ * Intake journeys against the real Next.js server and the
  * designated test database. Nothing is mocked except one deliberately
  * dropped network response in the submission-retry journey.
  */
@@ -34,7 +34,7 @@ function definition(nameLabel: string) {
   return {
     schemaVersion: 1,
     title: "E2E Smoking History Intake",
-    description: "Phase 3B browser verification form.",
+    description: "Synthetic intake for browser tests.",
     questions: [
       {
         id: "q_name",
@@ -115,7 +115,7 @@ async function createPublishedFixture(browser: Browser): Promise<Fixture> {
     page,
     "POST",
     "/api/admin/forms",
-    { name: `E2E Phase3B ${Date.now()}` },
+    { name: `E2E Intake Journey ${Date.now()}` },
   );
   const formId = created.form.id;
 
@@ -180,7 +180,7 @@ async function readRecoveryCredentials(page: Page) {
   return { reference: refText.replace("Ref: ", "").trim(), code };
 }
 
-test.describe("Phase 3B journeys (real backend)", () => {
+test.describe("Intake journeys (real backend)", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeAll(async ({ browser }) => {
@@ -189,7 +189,9 @@ test.describe("Phase 3B journeys (real backend)", () => {
       readEnvironment(ENVIRONMENT_KEYS.APP_ENV) ||
       ENVIRONMENT_DEFAULTS.EMPTY;
     if (env.toLowerCase() === ENVIRONMENT_VALUES.PRODUCTION) {
-      throw new Error("Phase 3B E2E tests must never run against production.");
+      throw new Error(
+        "Intake journey tests must never run against production.",
+      );
     }
     fixture = await createPublishedFixture(browser);
   });

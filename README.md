@@ -16,8 +16,6 @@ Built for the Senior Frontend Engineer take-home assignment. Use synthetic data 
 | Redacted AI logs                 | Pending: collect task-specific prompts and responses from all sessions |
 | Browser performance trace        | Pending: capture and attach the 100-field trace described below        |
 
-These statuses describe the available local evidence; they do not certify a deployment or external account configuration.
-
 ## Product capabilities
 
 - Create, open, rename, and delete unpublished drafts; add, edit, reorder, duplicate, and delete questions.
@@ -95,7 +93,7 @@ Application and migration tooling load `.env.local`, then `.env`, without replac
 | Variable                               | Purpose                                                                                                |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `NEXT_PUBLIC_SUPABASE_URL`             | Supabase Auth project URL                                                                              |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public Supabase key; preferred over the legacy anon key                                                |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Required public Supabase publishable key                                                               |
 | `DATABASE_URL`                         | Application PostgreSQL connection, normally the transaction pooler                                     |
 | `DATABASE_DIRECT_URL`                  | Direct or session-pooler connection for migrations; falls back to `DATABASE_URL`                       |
 | `APP_SESSION_PEPPER`                   | Independently generated high-entropy secret, at least 32 characters, for session/recovery cryptography |
@@ -105,7 +103,7 @@ Application and migration tooling load `.env.local`, then `.env`, without replac
 | `ENABLE_TEST_AUTH`                     | Optional local automated-test authentication; leave unset for normal use                               |
 | `TEST_AUTH_SECRET`                     | Test-only signing secret, at least 32 characters, when test authentication is enabled                  |
 
-`NODE_ENV`, `CI`, and Vercel environment identifiers are supplied by their respective runtimes. The example file also lists `NEXT_PUBLIC_APP_URL` and `E2E_REVIEWER_*`; current application/test code does not consume those settings. Public intake links use the application's origin and published slug.
+`NODE_ENV`, `CI`, and Vercel environment identifiers are supplied by their respective runtimes. Public intake links use the application's origin and published slug.
 
 ### Synthetic demo data and seeding
 
@@ -160,15 +158,11 @@ npm run test:e2e
 
 `test:e2e` builds and starts a local production server. Playwright enables the isolated test-auth configuration; test authentication is blocked on Vercel and requires an approved disposable database. Some browser tests mock HTTP responses, while the full backend journeys create actual database records. Do not point the full suite at a deployed reviewer application. CI runs lint, types, unit tests, and a build; database integration runs when disposable test secrets are configured. Browser E2E is not currently part of CI.
 
-### Evidence available as of October 11, 2026
+### Performance
 
-The latest local review ran typecheck, lint, and 194 unit tests successfully. A saved local Playwright report recorded 32 passing tests; that report was not rerun during the review and is ignored by Git. These results do not establish hosted behavior. Production build, live-backend checks, and fresh database/browser results should be recorded against the final submission commit.
+The 100-field fixture exercises visibility and hidden-answer pruning in a timed unit benchmark. `PatientQuestionField` uses `React.memo`; `PatientIntakeView` passes the stable `onAnswerChange` handler, and the field binds its question ID through `useCallback`. This avoids allocating a new parent callback for each field on every render. The [performance report](docs/architecture/PERFORMANCE_100_FIELD.md) describes the implementation and browser measurement procedure.
 
-### Performance evidence
-
-The 100-field fixture exercises visibility and hidden-answer pruning in a timed unit benchmark. `PatientQuestionField` uses `React.memo`; `PatientIntakeView` passes the stable `onAnswerChange` handler, and the field binds its question ID through `useCallback`. This avoids allocating a new parent callback for each field on every render. The [performance report](docs/architecture/PERFORMANCE_100_FIELD.md) describes earlier measurements, but the underlying browser trace has not been verified during this README review.
-
-**Still required:** attach a browser performance trace from a production build using the 100-field fixture. Record browser/version, viewport/device, CPU/network conditions, and the exact commit. Measure typing, editing, or changing visibility, and report an observed improvement or explain why further optimization is unnecessary. No browser latency numbers or FPS claims are asserted here without a trace.
+**Still required:** attach a browser performance trace from a production build using the 100-field fixture. Record browser/version, viewport/device, CPU/network conditions, and the exact commit. Measure typing, editing, or changing visibility, and report an observed improvement or explain why further optimization is unnecessary.
 
 ## Security and deployment
 
@@ -190,7 +184,7 @@ Full signup/account recovery, mobile authoring, nested conditions, clinical deci
 
 Outstanding submission work is listed at the top: hosted verification and links, reviewer access/invitations, the five-minute video, redacted AI logs, and a browser performance trace. Confirm login abuse controls and production database permissions before expanding access beyond private reviewers.
 
-For AI disclosure, the earlier generated README claimed a 35.6× browser-performance improvement and described a more elaborate Shuffle algorithm. Those claims were not copied as verified results: the current source was checked against the descriptions, and the performance section distinguishes the implemented callback optimization from measurements requiring a trace. Include the original session logs in the submission; this summary does not replace them.
+The assignment requires redacted AI prompts and responses from all task-related sessions, including one suggestion that was changed or rejected and how the result was checked. Share these logs with the submission.
 
 ## Further documentation
 

@@ -32,7 +32,7 @@ However, **Intake Studio adopts a server-side Drizzle ORM architecture** (ADR-00
 
 ### Defense Principles
 
-1. **Zero Client Secrets:** Client bundles contain only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `ANON_KEY`).
+1. **Zero Client Secrets:** Client bundles contain only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 2. **Strict Server Separation:** All database connection strings (`DATABASE_URL`, `DATABASE_DIRECT_URL`) and cryptographic keys (`APP_SESSION_PEPPER`) are imported in server-only modules (`import "server-only"`).
 
 ---
@@ -132,4 +132,4 @@ const { form, membership } = await requireFormWorkspaceAccess(formId, user.id);
 3. **Recovery Code (`BK-XXXX-XXXX-XXXX-XXXX`):** 16-character Crockford Base-32 random token displayed once to the patient. Stored server-side exclusively as `HMAC_SHA256(code, APP_SESSION_PEPPER)`.
 4. **Constant-Time Verification:** Verified using Node.js `crypto.timingSafeEqual` to eliminate timing attacks.
 5. **Atomic Rotation & Replay Protection:** Upon successful redemption, the old recovery code is immediately rotated inside a `SELECT ... FOR UPDATE` transaction, and a new recovery code + new capability cookie are returned (with a 60s `AES-256-GCM` encrypted replay payload for network drop resilience).
-6. **Rate Limiting:** If 3 failed recovery attempts occur within a 15-minute window (`MAX_RECOVERY_ATTEMPTS = 3`), subsequent attempts are rejected with `HTTP 429 RESUME_RATE_LIMITED` without checking the hash.
+6. **Rate Limiting:** If 5 failed recovery attempts occur within a 15-minute window (`RECOVERY_MAX_ATTEMPTS = 5`), subsequent attempts are rejected with `HTTP 429 RESUME_RATE_LIMITED` without checking the hash.

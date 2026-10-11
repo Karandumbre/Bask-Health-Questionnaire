@@ -217,7 +217,7 @@ describe("Theme Architecture — Typed Tokens, Presets & WCAG 2.1 Contrast", () 
     }
   });
 
-  it("verifies consecutive Shuffle actions produce distinct palette fingerprints and perceptual color distance >= 30", async () => {
+  it("checks distinct fingerprints and RGB distance >= 25 for a sampled Shuffle sequence", async () => {
     const { getColorDistance, getThemeFingerprint } =
       await import("@/features/themes/domain/color");
 
@@ -242,7 +242,7 @@ describe("Theme Architecture — Typed Tokens, Presets & WCAG 2.1 Contrast", () 
       );
       expect(darkFpNext).not.toBe(darkFpCurrent);
 
-      // 2. Perceptual color distance Delta E >= 30 ensures distinguishable visual difference
+      // 2. The sampled sequence has RGB distance >= 25; the generator does not enforce this threshold
       const lightDelta = getColorDistance(
         current.light.primaryAction,
         next.light.primaryAction,

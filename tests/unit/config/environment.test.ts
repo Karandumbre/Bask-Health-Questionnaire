@@ -35,7 +35,7 @@ describe("central environment configuration", () => {
     );
     expect(getRuntimeConfig().isProduction).toBe(true);
   });
-  it("supports public key migration without returning private configuration", () => {
+  it("returns only public configuration and requires both URL and publishable key", () => {
     vi.stubEnv(
       ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.PUBLIC_SUPABASE_URL],
       "https://test.example",
@@ -45,22 +45,18 @@ describe("central environment configuration", () => {
       ENVIRONMENT_DEFAULTS.EMPTY,
     );
     vi.stubEnv(
-      ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.PUBLIC_SUPABASE_ANON_KEY],
-      "legacy-public-key",
-    );
-    vi.stubEnv(
       ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.SESSION_PEPPER],
       "private-value",
     );
-    expect(getPublicSupabaseConfig()).toEqual({
-      url: "https://test.example",
-      key: "legacy-public-key",
-    });
+    expect(getPublicSupabaseConfig()).toBeNull();
     vi.stubEnv(
       ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.PUBLIC_SUPABASE_KEY],
       "new-public-key",
     );
-    expect(getPublicSupabaseConfig()?.key).toBe("new-public-key");
+    expect(getPublicSupabaseConfig()).toEqual({
+      url: "https://test.example",
+      key: "new-public-key",
+    });
     vi.stubEnv(
       ENVIRONMENT_NAMES[ENVIRONMENT_KEYS.PUBLIC_SUPABASE_URL],
       ENVIRONMENT_DEFAULTS.EMPTY,

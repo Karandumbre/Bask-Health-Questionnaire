@@ -149,7 +149,3 @@ export function generateShuffledTheme(
     dark,
   };
 }
-
-/**
- * Converts a ThemeDefinition into CSS variables for inline styling or iframe previews.
- */

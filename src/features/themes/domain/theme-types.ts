@@ -43,7 +43,7 @@ const ThemeModeTokensSchema = z.object({
   muted: z.string(),
   disabledText: z.string(),
 
-  // Backwards compatibility aliases for Phase 1 schemas
+  // Aliases used by older stored theme snapshots
   text: z.string().optional(),
   textMuted: z.string().optional(),
   primary: z.string().optional(),

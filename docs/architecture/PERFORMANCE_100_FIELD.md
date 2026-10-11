@@ -1,80 +1,39 @@
-# 100-Field Intake Performance Trace & Optimization Report
+# 100-Field Intake Performance
 
-## 1. Overview & Objectives
+**Status: browser performance trace pending.**
 
-In clinical intake systems, comprehensive evaluations (e.g., medical history, multi-system review, cardiology assessments) frequently span 80–100+ questions with conditional dependencies.
+## Current implementation
 
-We used the 100-field clinical fixture (`tests/fixtures/100-field-fixture.ts`, 100 questions across 20 clinical sections with 20 conditional single-select parent/child pairs) to evaluate responsiveness while typing, editing, and toggling conditional visibility across both the patient intake flow and the administrative builder.
+- `tests/fixtures/100-field-fixture.ts` generates 100 synthetic questions across 20 sections. Each section has a required single-select parent, three conditional children, and an unconditional consent checkbox.
+- `PatientQuestionField` uses `React.memo`. `PatientIntakeView` passes the stable `onAnswerChange` callback; each field binds its question ID with `useCallback`. Unchanged props permit React to skip sibling renders, but visibility, index, validation, or disabled-state changes can still cause additional renders.
+- The patient form remains a continuous document, with a sticky progress indicator and jump-to-required navigation. This supports keyboard navigation, browser search, and focus on off-screen fields without virtualization.
+- Scoped theme CSS variables are applied to the builder and patient view. No rendering or theme-switch timing is claimed without measurement.
 
-### Core Architectural Decisions
+## Domain benchmark
 
-- **Continuous Layout vs. Multi-Step Pagination**: Maintained a single continuous document with a sticky progress bar (`PatientProgressBar`) and a `Next Required (N)` jump-and-focus action rather than splitting 100 questions across an arbitrary multi-step wizard. This preserves full requirement visibility, avoids cross-step conditional state desynchronization, supports native browser search (`Cmd+F` / `Ctrl+F`), and simplifies cross-browser session resumption.
-- **Stable Callback Memoization (`PatientQuestionField`)**: Wrapped `PatientQuestionField` in `React.memo` and stabilized the answer handler reference (`onAnswerChange={handleAnswerChange}` from `usePatientSession`, bound to `question.id` inside `PatientQuestionField`) so typing in a single field only re-renders that specific question card rather than all 100 fields.
-- **Scoped CSS Token Variables (`themeToCssVariables`)**: Bound builder and patient surfaces to scoped CSS variables (`--intake-bg`, `--intake-surface`, `--intake-text-primary`, etc.) on the root container. Switching presets, shuffling palettes, or toggling Light/Dark mode updates only the container's inline style variables without recreating component trees.
+`tests/unit/domain/100-field-benchmark.test.ts` verifies that the fixture contains 100 fields, passes publication validation, and correctly prunes hidden answers. It asserts that visibility and pruning each finish within 10 ms in the test process. It does not measure browser typing, paint, editing latency, or publish-validation duration.
 
----
+```sh
+npm run test:unit -- tests/unit/domain/100-field-benchmark.test.ts
+```
 
-## 2. Test Environment & Device Conditions
+## Required browser trace
 
-Performance measurements were captured across two representative runtime profiles:
+Use synthetic data and a production build. Load the 100-field fixture into a dedicated demo or disposable test environment; the repository does not currently provide a fixture-import UI or standalone seed command.
 
-### Profile A: Mobile Patient Device (Constrained)
+1. Record the exact commit, browser/version, operating system, viewport, device pixel ratio, and CPU/network settings. Suggested comparison profiles are desktop at 1440 × 900 with no CPU throttle and mobile at 390 × 844 with 4× CPU slowdown. These are proposed conditions, not completed measurements.
+2. Capture a Chrome DevTools Performance recording while typing in the first and last text fields, changing a conditional parent, and editing a question in the administrator builder. Measure interactions separately and identify the relevant events in the saved trace.
+3. Repeat the same scripted interaction several times, report observed durations and variability, and export the trace with a clearly named commit/profile identifier. Keep answers and resume credentials out of shared captures.
+4. For a measured optimization, compare a baseline and current implementation under the same conditions. Explain exactly what changed. Alternatively, use the trace to justify why further optimization is unnecessary.
+5. Link the trace from this document and the README. Include the measured interactions, results, and comparison conditions.
 
-- **Browser / Engine**: Chromium 156.0.8078.4 (V8, macOS arm64 host)
-- **Viewport**: `390 × 844 px` (iPhone 14/15 viewport, touch simulation, 3× DPR)
-- **CPU Throttling**: `4× CPU slowdown` (simulating mid-tier mobile SoC)
-- **Network**: Simulated Fast 3G / LTE (`1.6 Mbps` down, `750 kbps` up, `150 ms` RTT)
-- **Build Mode**: Production build (`npm run build && npm run start`)
+## Results to complete
 
-### Profile B: Desktop Administrator & Patient Device (Unconstrained)
+| Measurement                                      | Status                        |
+| ------------------------------------------------ | ----------------------------- |
+| Domain fixture, validation, and pruning behavior | Covered by the unit benchmark |
+| Browser typing, editing, and visibility trace    | Pending                       |
+| Device/browser conditions and commit             | Pending                       |
+| Measured improvement or decision not to optimize | Pending                       |
 
-- **Browser / Engine**: Chromium 156.0.8078.4 (macOS arm64)
-- **Viewport**: `1440 × 900 px`
-- **CPU Throttling**: `1×` (unthrottled)
-- **Network**: Localhost / low-latency connection
-- **Domain Benchmark Suite**: `tests/unit/domain/100-field-benchmark.test.ts` (Vitest)
-
----
-
-## 3. Measured Interactions & Quantitative Trace Results
-
-| Interaction Measured (100-Field Fixture)                     | Unmemoized / Inline Callback Baseline (4× CPU) | Optimized Result (`React.memo` + Stable `onAnswerChange`, 4× CPU) | Improvement      | Assessment                                               |
-| :----------------------------------------------------------- | :--------------------------------------------- | :---------------------------------------------------------------- | :--------------- | :------------------------------------------------------- |
-| **Initial 100-Field Mount & First Contentful Paint**         | 184 ms                                         | 62 ms                                                             | **3.0× faster**  | Smooth initial render without virtualization complexity  |
-| **Typing Latency — Keystroke in Field #1**                   | 64.2 ms (100 fields re-rendered)               | 1.8 ms (1 field rendered)                                         | **35.6× faster** | Within 16.6 ms (60 FPS) frame budget; zero input lag     |
-| **Typing Latency — Keystroke in Field #99**                  | 61.8 ms (100 fields re-rendered)               | 1.9 ms (1 field rendered)                                         | **32.5× faster** | Position-independent O(1) component reconciliation       |
-| **Dynamic Condition Toggle (Show/Hide 20 Dependent Fields)** | 38.5 ms                                        | 4.2 ms                                                            | **9.1× faster**  | Instantaneous visibility update & answer pruning         |
-| **Domain Visibility & Pruning (`pruneHiddenAnswers`)**       | 4.8 ms                                         | < 1.9 ms                                                          | **2.5× faster**  | Verified `< 5 ms` in `100-field-benchmark.test.ts`       |
-| **Publish Readiness Validation (`validateFormForPublish`)**  | 3.4 ms                                         | < 1.5 ms                                                          | **2.2× faster**  | Verified `< 5 ms` in `100-field-benchmark.test.ts`       |
-| **Jump to Next Required Field (Scroll & Focus)**             | 14.1 ms                                        | 6.4 ms                                                            | **2.2× faster**  | Immediate focus transfer via `data-question-id` selector |
-
----
-
-## 4. Root-Cause Investigation & Optimization Explanation
-
-### A. Fixing `React.memo` Invalidation from Inline Arrow Callbacks
-
-1. **Bottleneck Identified**:
-   - Even when `PatientQuestionField` was wrapped in `React.memo`, passing an inline closure `onChange={(val) => handleAnswerChange(q.id, val)}` inside `PatientIntakeView`'s `.map()` loop allocated a brand-new function reference for every visible question on every keystroke.
-   - Because `React.memo`'s default shallow prop comparison checks `prevProps.onChange === nextProps.onChange`, every keystroke invalidated memoization for all 100 question cards, forcing React to reconcile 100 labels, input controls, choice groups, and error wrappers on each character typed (`~64.2 ms` under 4× CPU slowdown).
-2. **Measured Fix Implemented**:
-   - Updated `PatientQuestionField` (`src/features/patients/components/PatientQuestionField.tsx`) to require `onAnswerChange: (questionId: string, value: CanonicalAnswer | undefined) => void` alongside `question`.
-   - Inside `PatientQuestionField`, bound `question.id` with `useCallback`:
-     ```tsx
-     const handleFieldChange = useCallback(
-       (nextValue: CanonicalAnswer | undefined) => {
-         onAnswerChange(question.id, nextValue);
-       },
-       [onAnswerChange, question.id],
-     );
-     ```
-   - Updated `PatientIntakeView` (`src/features/patients/components/PatientIntakeView.tsx`) to pass `onAnswerChange={handleAnswerChange}` directly (which is stabilized via `useCallback` in `usePatientSession`).
-3. **Result**:
-   - On any keystroke in field $k$, all 99 sibling `PatientQuestionField` instances receive identical `question`, `index`, `value`, `onAnswerChange`, `error`, and `disabled` references and bail out of rendering immediately. Keystroke commit duration dropped to `1.8 ms`.
-
-### B. Why DOM Virtualization Was Intentionally Omitted
-
-- With single-field render isolation (`1.8 ms` keystroke commit) and a `< 65 ms` initial mount for 100 fields, introducing windowed DOM virtualization (e.g., `react-window`) was deliberately rejected:
-  1. Virtualization breaks native browser find-in-page (`Cmd+F`), screen-reader landmark/question count announcements, and native smooth scrolling to off-screen invalid fields.
-  2. Dynamic variable-height cards (long clinical instructions, multi-option radio groups, and inline validation errors) cause scroll-jump artifacts when virtualized.
-  3. Stabilized `React.memo` achieves 60 FPS typing responsiveness while preserving full DOM accessibility.
+Virtualization is currently omitted to preserve full-document navigation and accessibility. Whether further optimization is needed remains a measurement question.

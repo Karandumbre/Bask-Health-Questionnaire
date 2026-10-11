@@ -20,7 +20,7 @@ Unit tests cover API errors, request validation, conditions, hidden-answer pruni
 
 Conflict resolution uses the last acknowledged autosave snapshot as the common base for a three-way merge. The controller advances that base only after a successful save or an explicit server reload, so in-flight local edits cannot become the base prematurely. The editor offers per-conflict choices before saving against the latest server revision. The separate comparison utility supports two-way summaries and optional base-aware deletion attribution.
 
-Patient-facing pages/API routes and the responses UI are implemented under their feature directories. Historical development notes were archived outside this repository. Verification should use the current test suites; earlier reported runs are not proof of current behavior.
+Patient-facing pages, API routes, and the responses UI live in their feature directories. Use the unit, integration, and browser suites to check behavior after changes.
 
 ## Async feedback and failure isolation
 

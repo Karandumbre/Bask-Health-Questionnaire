@@ -187,7 +187,3 @@ export const THEME_PRESETS: Record<string, ThemeDefinition> = {
   Emerald: THEME_PRESET_EMERALD,
   Slate: THEME_PRESET_SLATE,
 };
-
-// ---------------------------------------------------------------------------
-// Shuffle Palette Generator (Deterministic HSL with Guaranteed WCAG AA)
-// ---------------------------------------------------------------------------
