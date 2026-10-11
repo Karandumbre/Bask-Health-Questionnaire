@@ -10,6 +10,7 @@ import { Alert } from "@/components/ui/alert";
 import { apiErrorMessage } from "@/lib/http/api-client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader } from "@/components/ui/dialog";
+import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { AdminBackLink } from "./AdminBackLink";
 import { formatDetailedDateTime, formatShortDateTime } from "@/lib/utils/date";
 import {
@@ -249,64 +250,61 @@ export function ResponsesView({
           /* Table of Responses */
           <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table
-                className="w-full text-left text-xs"
-                aria-label="Clinical Form Responses"
-              >
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 uppercase tracking-wider text-micro font-semibold">
+              <Table aria-label="Clinical Form Responses">
+                <Thead className="bg-gray-50 text-micro font-semibold">
                   <tr>
-                    <th scope="col" className="px-5 py-3">
+                    <Th scope="col" className="px-5 py-3">
                       Submission Date
-                    </th>
-                    <th scope="col" className="px-5 py-3">
+                    </Th>
+                    <Th scope="col" className="px-5 py-3">
                       Form Name
-                    </th>
-                    <th scope="col" className="px-5 py-3">
+                    </Th>
+                    <Th scope="col" className="px-5 py-3">
                       Version
-                    </th>
-                    <th scope="col" className="px-5 py-3">
+                    </Th>
+                    <Th scope="col" className="px-5 py-3">
                       Status
-                    </th>
-                    <th scope="col" className="px-5 py-3">
+                    </Th>
+                    <Th scope="col" className="px-5 py-3">
                       Session Ref
-                    </th>
-                    <th scope="col" className="px-5 py-3 text-right">
+                    </Th>
+                    <Th scope="col" className="px-5 py-3 text-right">
                       Actions
-                    </th>
+                    </Th>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-800">
+                </Thead>
+                <Tbody className="text-gray-800">
                   {submissions.map((sub) => (
-                    <tr
+                    <Tr
                       key={sub.id}
-                      className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
+                      className="hover:bg-blue-50/40 cursor-pointer"
                       onClick={(event) => {
                         detailTrigger.current =
                           event.currentTarget.querySelector("button");
                         void handleOpenDetail(sub.id);
                       }}
                     >
-                      <td className="px-5 py-3.5 font-medium whitespace-nowrap text-gray-900">
+                      <Td className="px-5 font-medium text-gray-900">
                         {formatDetailedDateTime(sub.submittedAt)}
-                      </td>
-                      <td className="px-5 py-3.5 font-medium truncate max-w-xs text-gray-900">
+                      </Td>
+                      <Td className="px-5 font-medium truncate max-w-xs text-gray-900">
                         {sub.formName || formName}
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
+                      </Td>
+                      <Td className="px-5">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-micro font-medium bg-gray-100 text-gray-700 border border-gray-200">
                           v{sub.versionNumber}
                         </span>
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
+                      </Td>
+                      <Td className="px-5">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           Completed
                         </span>
-                      </td>
-                      <td className="px-5 py-3.5 font-mono text-gray-500 whitespace-nowrap">
+                      </Td>
+                      <Td className="px-5 font-mono text-gray-500">
                         {sub.sessionReference}
-                      </td>
-                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                      </Td>
+                      <Td className="px-5 text-right">
                         <Button
                           loading={
                             loadingDetail && selectedSubmissionId === sub.id
@@ -323,11 +321,11 @@ export function ResponsesView({
                           <span>View Detail</span>
                           <ArrowRightIcon className="w-3.5 h-3.5" />
                         </Button>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
+                </Tbody>
+              </Table>
             </div>
             {totalCount > PAGE_SIZE && (
               <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 bg-gray-50 text-xs text-gray-600">

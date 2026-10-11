@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
@@ -170,8 +171,9 @@ function PublishDialog() {
               >
                 {copied ? "Copied!" : APP_MESSAGES.COPY_LINK}
               </Button>
-              <a
+              <Link
                 href={publishResult.publicUrl}
+                prefetch={false}
                 target="_blank"
                 rel="noreferrer"
                 className="p-2 text-gray-500 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -179,7 +181,7 @@ function PublishDialog() {
                 aria-label={APP_MESSAGES.OPEN_INTAKE_IN_NEW_TAB}
               >
                 <ExternalIcon className="w-4 h-4" />
-              </a>
+              </Link>
             </div>
           </FormField>
 

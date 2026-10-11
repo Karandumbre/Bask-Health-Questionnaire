@@ -90,8 +90,7 @@ describe("API client", () => {
   it("validates successful data and sends JSON with caller headers and a timeout", async () => {
     const adapter = respond({ success: true, revision: 4 });
     expect(
-      await apiRequest("/api/form", resultSchema, {
-        method: "PATCH",
+      await apiRequest.patch("/api/form", resultSchema, {
         json: { name: "Intake" },
         headers: { "X-Test": "yes" },
       }),
@@ -118,14 +117,14 @@ describe("API client", () => {
         },
         status,
       );
-      await expect(apiRequest("/api/form", resultSchema)).rejects.toMatchObject(
-        {
-          status,
-          code: "REVISION_CONFLICT",
-          details: { currentRevision: 7 },
-          message: "Changed elsewhere",
-        },
-      );
+      await expect(
+        apiRequest.get("/api/form", resultSchema),
+      ).rejects.toMatchObject({
+        status,
+        code: "REVISION_CONFLICT",
+        details: { currentRevision: 7 },
+        message: "Changed elsewhere",
+      });
     },
   );
 
@@ -138,7 +137,7 @@ describe("API client", () => {
       401,
     );
     await expect(
-      apiRequest("/api/auth/login", resultSchema),
+      apiRequest.post("/api/auth/login", resultSchema),
     ).rejects.toMatchObject({
       status: 401,
       code: "UNAUTHORIZED",
@@ -148,7 +147,9 @@ describe("API client", () => {
 
   it("rejects HTTP errors even if the body looks successful", async () => {
     respond({ success: true, revision: 4 }, 500);
-    await expect(apiRequest("/api/form", resultSchema)).rejects.toMatchObject({
+    await expect(
+      apiRequest.get("/api/form", resultSchema),
+    ).rejects.toMatchObject({
       status: 500,
       code: "HTTP_ERROR",
     });
@@ -158,21 +159,21 @@ describe("API client", () => {
     "handles non-JSON responses without leaking the body (status %i)",
     async (status) => {
       respond("<html>private server error</html>", status);
-      await expect(apiRequest("/api/form", resultSchema)).rejects.toMatchObject(
-        {
-          status,
-          code: "INVALID_RESPONSE",
-          message: "The server returned an unreadable response. Please retry.",
-        },
-      );
+      await expect(
+        apiRequest.get("/api/form", resultSchema),
+      ).rejects.toMatchObject({
+        status,
+        code: "INVALID_RESPONSE",
+        message: "The server returned an unreadable response. Please retry.",
+      });
     },
   );
 
   it("rejects malformed success data rather than returning unchecked JSON", async () => {
     respond({ success: true, revision: "four" });
-    await expect(apiRequest("/api/form", resultSchema)).rejects.toBeInstanceOf(
-      ApiError,
-    );
+    await expect(
+      apiRequest.get("/api/form", resultSchema),
+    ).rejects.toBeInstanceOf(ApiError);
   });
 
   it.each([
@@ -183,7 +184,9 @@ describe("API client", () => {
     apiClient.defaults.adapter = async (config) => {
       throw new AxiosError("private transport details", axiosCode, config);
     };
-    await expect(apiRequest("/api/form", resultSchema)).rejects.toMatchObject({
+    await expect(
+      apiRequest.get("/api/form", resultSchema),
+    ).rejects.toMatchObject({
       status: 0,
       code,
     });
@@ -193,9 +196,11 @@ describe("API client", () => {
     const adapter = respond({ success: true, revision: 4 });
     const controller = new AbortController();
     controller.abort();
-    const error = await apiRequest("/api/form", resultSchema, {
-      signal: controller.signal,
-    }).catch((reason: unknown) => reason);
+    const error = await apiRequest
+      .get("/api/form", resultSchema, {
+        signal: controller.signal,
+      })
+      .catch((reason: unknown) => reason);
     expect(axios.isCancel(error)).toBe(true);
     expect(adapter).not.toHaveBeenCalled();
     expect(apiErrorMessage(error, "fallback")).toBe("fallback");
@@ -207,9 +212,11 @@ describe("API client", () => {
       controller.abort();
       throw new axios.CanceledError();
     };
-    const error = await apiRequest("/api/form", resultSchema, {
-      signal: controller.signal,
-    }).catch((reason: unknown) => reason);
+    const error = await apiRequest
+      .get("/api/form", resultSchema, {
+        signal: controller.signal,
+      })
+      .catch((reason: unknown) => reason);
     expect(axios.isCancel(error)).toBe(true);
   });
 });

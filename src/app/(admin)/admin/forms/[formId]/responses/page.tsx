@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { AppError } from "@/lib/errors";
 import { redirect } from "next/navigation";
@@ -43,12 +44,12 @@ export default async function FormResponsesPage({ params }: PageProps) {
               You do not have permission to view clinical responses for this
               form.
             </p>
-            <a
+            <Link
               href={ROUTES.adminForms}
               className="mt-4 inline-block text-xs font-semibold text-blue-600 hover:text-blue-700"
             >
               Back to Forms Dashboard
-            </a>
+            </Link>
           </div>
         </div>
       );

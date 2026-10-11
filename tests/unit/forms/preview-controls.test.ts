@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Select } from "@/components/ui/input";
+import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { QuestionInput } from "@/features/forms/components/QuestionInput";
 import { getFieldDescribedBy } from "@/features/forms/components/QuestionControl";
 import { PatientQuestionField } from "@/features/patients/components/PatientQuestionField";
@@ -325,10 +326,19 @@ describe("Preview controls", () => {
 
       const publishedRowHtml = renderToStaticMarkup(
         createElement(
-          "table",
+          Table,
           null,
           createElement(
-            "tbody",
+            Thead,
+            null,
+            createElement(
+              Tr,
+              null,
+              createElement(Th, { className: "px-5" }, "Title"),
+            ),
+          ),
+          createElement(
+            Tbody,
             null,
             createElement(FormRow, { form: publishedForm, model: mockModel }),
           ),
@@ -356,10 +366,10 @@ describe("Preview controls", () => {
 
       const draftRowHtml = renderToStaticMarkup(
         createElement(
-          "table",
+          Table,
           null,
           createElement(
-            "tbody",
+            Tbody,
             null,
             createElement(FormRow, { form: draftForm, model: mockModel }),
           ),
@@ -370,6 +380,25 @@ describe("Preview controls", () => {
       expect(draftRowHtml).not.toContain("Copy Link");
       expect(draftRowHtml).not.toContain('href="/intake/');
       expect(draftRowHtml).toContain(APP_MESSAGES.UNPUBLISHED_DRAFT);
+
+      const cellHtml = renderToStaticMarkup(
+        createElement(
+          Table,
+          null,
+          createElement(
+            Tbody,
+            null,
+            createElement(
+              Tr,
+              null,
+              createElement(Td, { className: "px-5 text-right" }, "Cell"),
+            ),
+          ),
+        ),
+      );
+      expect(cellHtml).toContain("<table");
+      expect(cellHtml).toContain("<td");
+      expect(cellHtml).toContain("py-3.5 whitespace-nowrap px-5 text-right");
     });
 
     it("FormCanvas applies theme CSS variables and scoped intake tokens in Editor mode", () => {

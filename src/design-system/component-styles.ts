@@ -30,4 +30,12 @@ export const COMPONENT_STYLES = {
     "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50",
   dialog:
     "m-auto w-dialog-width max-w-lg max-h-dialog-height overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-xs",
+  table: {
+    root: "w-full text-left border-collapse text-xs",
+    head: "border-b border-gray-200 bg-gray-50/80 text-caption font-bold uppercase tracking-wider text-gray-500",
+    body: "divide-y divide-gray-100",
+    row: "hover:bg-gray-50/70 transition-colors group align-middle",
+    th: "py-3.5 px-3 whitespace-nowrap",
+    td: "py-3.5 px-3 whitespace-nowrap",
+  },
 } as const;

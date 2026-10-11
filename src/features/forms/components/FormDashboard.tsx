@@ -4,6 +4,7 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Table, Thead, Tbody, Th } from "@/components/ui/table";
 import {
   PlusIcon,
   SearchIcon,
@@ -243,32 +244,32 @@ export function FormDashboard({
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xs">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/80 text-caption font-bold uppercase tracking-wider text-gray-500">
-                  <th className="py-3.5 pl-4 sm:pl-5 pr-4 whitespace-nowrap rounded-tl-2xl w-full">
+            <Table>
+              <Thead>
+                <tr>
+                  <Th className="pl-4 sm:pl-5 pr-3 rounded-tl-2xl w-full max-w-0">
                     {APP_MESSAGES.FORM_TITLE}
-                  </th>
-                  <th className="hidden lg:table-cell py-3.5 px-3.5 whitespace-nowrap">
+                  </Th>
+                  <Th className="hidden md:table-cell w-px">
                     {APP_MESSAGES.STATUS}
-                  </th>
-                  <th className="hidden lg:table-cell py-3.5 px-3.5 whitespace-nowrap">
+                  </Th>
+                  <Th className="hidden md:table-cell w-px">
                     {APP_MESSAGES.WORKING_DRAFT}
-                  </th>
-                  <th className="hidden lg:table-cell py-3.5 px-3.5 whitespace-nowrap">
+                  </Th>
+                  <Th className="hidden md:table-cell w-px">
                     {APP_MESSAGES.LAST_UPDATED}
-                  </th>
-                  <th className="py-3.5 pl-3.5 pr-4 sm:pr-5 text-right whitespace-nowrap rounded-tr-2xl">
+                  </Th>
+                  <Th className="pl-3 pr-4 sm:pr-5 text-right rounded-tr-2xl w-px">
                     {APP_MESSAGES.ACTIONS}
-                  </th>
+                  </Th>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+              </Thead>
+              <Tbody>
                 {filteredForms.map((form) => (
                   <FormRow key={form.id} form={form} model={model} />
                 ))}
-              </tbody>
-            </table>
+              </Tbody>
+            </Table>
           </div>
         )}
       </main>
