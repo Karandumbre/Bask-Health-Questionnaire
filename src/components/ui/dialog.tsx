@@ -17,7 +17,7 @@ export function Dialog({
   open: boolean;
   onClose?: () => void;
   titleId: string;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -159,7 +159,7 @@ export function DialogActions({
   children,
   className,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
 }) {
   return (

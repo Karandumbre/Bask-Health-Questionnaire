@@ -18,7 +18,7 @@ export function SkeletonRegion({
   className,
   label = APP_MESSAGES.LOADING,
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
   label?: string;
 }) {

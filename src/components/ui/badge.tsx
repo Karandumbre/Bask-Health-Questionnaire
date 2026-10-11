@@ -1,6 +1,14 @@
 import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import type { ComponentProps } from "react";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["micro", "caption", "preview-title"] }],
+    },
+  },
+});
 
 const tones = COMPONENT_STYLES.badge.tones;
 
