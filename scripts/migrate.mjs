@@ -5,7 +5,7 @@ import { runMigrationEngine } from "./lib/migration-engine.mjs";
 
 loadLocalEnv();
 const url =
-  readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) ||
+  readEnvironment(ENVIRONMENT_KEYS.DATABASE_DIRECT_URL) ||
   readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL);
 if (!url) throw new Error("DATABASE_DIRECT_URL or DATABASE_URL is required.");
 try {

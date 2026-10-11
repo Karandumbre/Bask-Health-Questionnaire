@@ -16,9 +16,7 @@ export interface QuestionControlProps {
   error?: string;
   disabled?: boolean;
   ariaDescribedBy?: string;
-  inputClassName?: string;
   rows?: number;
-  name?: string;
   legend?: ReactNode;
   legendSrOnly?: boolean;
   checkboxLabel?: ReactNode;
@@ -43,9 +41,7 @@ export function QuestionControl({
   error,
   disabled = false,
   ariaDescribedBy,
-  inputClassName,
   rows,
-  name,
   legend,
   legendSrOnly = true,
   checkboxLabel,
@@ -55,7 +51,6 @@ export function QuestionControl({
     COMPONENT_STYLES.intakeField,
     "text-sm py-2.5 px-3.5 rounded-xl",
     hasError && "border-intake-error-border focus:ring-intake-error-border",
-    inputClassName,
   );
 
   switch (question.type) {
@@ -123,7 +118,7 @@ export function QuestionControl({
       return (
         <ChoiceGroup
           id={id}
-          name={name || `radio-${question.id}`}
+          name={`radio-${question.id}`}
           type="single"
           options={question.options}
           value={typeof value === "string" ? value : undefined}
@@ -141,7 +136,7 @@ export function QuestionControl({
       return (
         <ChoiceGroup
           id={id}
-          name={name || `multi-${question.id}`}
+          name={`multi-${question.id}`}
           type="multi"
           options={question.options}
           value={Array.isArray(value) ? (value as string[]) : []}

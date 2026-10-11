@@ -93,7 +93,6 @@ export function DialogHeader({
   onClose,
   closeLabel = "Close",
   disabled = false,
-  className,
 }: {
   titleId: string;
   title: ReactNode;
@@ -101,12 +100,9 @@ export function DialogHeader({
   onClose?: () => void;
   closeLabel?: string;
   disabled?: boolean;
-  className?: string;
 }) {
   return (
-    <div
-      className={twMerge("flex items-start justify-between gap-3", className)}
-    >
+    <div className="flex items-start justify-between gap-3">
       <div>
         <h3 id={titleId} className="text-base font-bold text-gray-900">
           {title}
