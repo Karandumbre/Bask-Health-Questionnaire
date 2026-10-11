@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import { Alert } from "@/components/ui/alert";
 import { CheckIcon, InfoIcon } from "@/components/ui/icons";
 import { formatStandardDateTime } from "@/lib/utils/date";
@@ -27,14 +28,18 @@ export function SubmissionConfirmation({
       </div>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+        <Text as="h1" variant="title" tone="primary" weight="bold">
           Intake Submitted Successfully
-        </h1>
-        <p className="text-sm text-gray-600 max-w-md mx-auto">
-          Thank you for completing the{" "}
-          <span className="font-semibold text-gray-800">{formTitle}</span>. Your
-          responses have been securely received and recorded.
-        </p>
+        </Text>
+        <div className="max-w-md mx-auto">
+          <Text as="p" variant="body" tone="secondary">
+            Thank you for completing the{" "}
+            <Text variant="inherit" tone="primary" weight="semibold">
+              {formTitle}
+            </Text>
+            . Your responses have been securely received and recorded.
+          </Text>
+        </div>
       </div>
 
       {isIdempotentReplay && (
@@ -43,33 +48,43 @@ export function SubmissionConfirmation({
           className="rounded-xl max-w-sm mx-auto flex items-start gap-2 text-left"
         >
           <InfoIcon className="h-4 w-4 shrink-0" />
-          <span>Your responses were previously submitted and confirmed.</span>
+          <Text variant="inherit">
+            Your responses were previously submitted and confirmed.
+          </Text>
         </Alert>
       )}
 
       {/* Confirmation Metadata Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs max-w-sm mx-auto text-left space-y-3">
         <div>
-          <span className="text-caption font-bold text-gray-400 uppercase tracking-wider block">
-            Submission Reference ID
+          <span className="block">
+            <Text variant="caption" tone="subtle" uppercase weight="bold">
+              Submission Reference ID
+            </Text>
           </span>
-          <span className="font-mono text-xs text-gray-800 break-all select-all font-semibold">
-            {submissionId}
+          <span className="break-all select-all">
+            <Text variant="small" tone="primary" mono weight="semibold">
+              {submissionId}
+            </Text>
           </span>
         </div>
         <div>
-          <span className="text-caption font-bold text-gray-400 uppercase tracking-wider block">
-            Submitted On
+          <span className="block">
+            <Text variant="caption" tone="subtle" uppercase weight="bold">
+              Submitted On
+            </Text>
           </span>
-          <span className="text-xs text-gray-700 font-medium">
+          <Text variant="small" tone="secondary" weight="medium">
             {formattedDate}
-          </span>
+          </Text>
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 pt-4">
-        You may safely close this browser window.
-      </p>
+      <div className="pt-4">
+        <Text as="p" variant="small" tone="subtle">
+          You may safely close this browser window.
+        </Text>
+      </div>
     </div>
   );
 }

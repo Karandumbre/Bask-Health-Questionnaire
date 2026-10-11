@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { COMPONENT_STYLES } from "@/design-system/component-styles";
 
 import { useEffect, useRef, type ReactNode } from "react";
@@ -111,13 +112,21 @@ export function DialogHeader({
     return (
       <div className={twMerge("text-center space-y-1.5 pt-1", className)}>
         {icon}
-        <h3 id={titleId} className="text-base font-bold text-gray-900">
+        <Text
+          id={titleId}
+          as="h3"
+          variant="heading"
+          tone="primary"
+          weight="bold"
+        >
           {title}
-        </h3>
+        </Text>
         {description && (
-          <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
-            {description}
-          </p>
+          <div className="max-w-sm mx-auto">
+            <Text as="p" variant="small" tone="muted">
+              {description}
+            </Text>
+          </div>
         )}
       </div>
     );
@@ -130,13 +139,21 @@ export function DialogHeader({
       <div className="flex items-start gap-3">
         {icon}
         <div>
-          <h3 id={titleId} className="text-base font-bold text-gray-900">
+          <Text
+            id={titleId}
+            as="h3"
+            variant="heading"
+            tone="primary"
+            weight="bold"
+          >
             {title}
-          </h3>
+          </Text>
           {description && (
-            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-              {description}
-            </p>
+            <div className="mt-0.5">
+              <Text as="p" variant="small" tone="muted">
+                {description}
+              </Text>
+            </div>
           )}
         </div>
       </div>
@@ -146,7 +163,9 @@ export function DialogHeader({
           disabled={disabled}
           onClick={onClose}
           aria-label={closeLabel}
-          className="text-gray-400 hover:text-gray-600 text-sm font-medium p-1"
+          variant="ghost"
+          tone="neutral"
+          size="icon-sm"
         >
           <XIcon className="h-4 w-4" />
         </Button>

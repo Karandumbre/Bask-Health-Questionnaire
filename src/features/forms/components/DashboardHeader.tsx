@@ -1,3 +1,4 @@
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Button } from "@/components/ui/button";
 
@@ -21,25 +22,28 @@ export function DashboardHeader({
           {APP_MESSAGES.BH}
         </div>
         <div className="min-w-0">
-          <h1 className="text-sm font-bold text-gray-900 leading-tight truncate">
+          <Text as="h1" variant="body" tone="primary" truncate weight="bold">
             {APP_MESSAGES.BASK_HEALTH_INTAKE_STUDIO}
-          </h1>
-          <p className="text-caption text-gray-500 truncate">
+          </Text>
+          <Text as="p" variant="caption" tone="muted" truncate>
             {workspaceName ?? APP_MESSAGES.LOADING}
-          </p>
+          </Text>
         </div>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-        <span className="text-xs text-gray-600 hidden sm:inline truncate max-w-xs">
-          {userEmail}
+        <span className="hidden sm:inline max-w-xs">
+          <Text variant="small" tone="secondary" truncate>
+            {userEmail}
+          </Text>
         </span>
         <Button
           loading={isLoggingOut}
           loadingLabel={APP_MESSAGES.SIGNING_OUT}
           onClick={handleLogout}
           disabled={isMutating}
-          className="text-xs text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors whitespace-nowrap"
+          variant="secondary"
+          size="sm"
         >
           {APP_MESSAGES.SIGN_OUT}
         </Button>

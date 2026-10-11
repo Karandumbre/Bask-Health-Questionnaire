@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/lib/constants/application";
 
 import { APP_MESSAGES } from "@/lib/constants/messages";
@@ -52,12 +53,17 @@ function LoginForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <FormField id="email" label={APP_MESSAGES.REVIEWER_EMAIL}>
+      <FormField
+        id="email"
+        label={APP_MESSAGES.REVIEWER_EMAIL}
+        labelClassName="text-sm text-gray-700"
+      >
         <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
+          className="min-h-touch-target text-base"
           required
           disabled={isLoading}
           value={email}
@@ -66,12 +72,17 @@ function LoginForm() {
         />
       </FormField>
 
-      <FormField id="password" label={APP_MESSAGES.PASSWORD}>
+      <FormField
+        id="password"
+        label={APP_MESSAGES.PASSWORD}
+        labelClassName="text-sm text-gray-700"
+      >
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
+          className="min-h-touch-target text-base"
           required
           disabled={isLoading}
           value={password}
@@ -83,7 +94,7 @@ function LoginForm() {
       {errorMessage && (
         <Alert className="flex items-start gap-2">
           <AlertTriangleIcon className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-          <span>{errorMessage}</span>
+          <Text variant="inherit">{errorMessage}</Text>
         </Alert>
       )}
 
@@ -93,7 +104,8 @@ function LoginForm() {
           loading={isLoading}
           loadingLabel={APP_MESSAGES.SIGNING_IN}
           variant="primary"
-          className="w-full"
+          size="md"
+          fullWidth
         >
           {isLoading
             ? APP_MESSAGES.SIGNING_IN
@@ -106,21 +118,28 @@ function LoginForm() {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md mx-auto mb-4">
+    <main className="min-h-svh bg-gray-50 flex flex-col justify-start sm:justify-center px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto w-full max-w-md text-center">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm mx-auto mb-4">
           {APP_MESSAGES.BH}
         </div>
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-          {APP_MESSAGES.INTAKE_STUDIO_REVIEWER_PORTAL}
-        </h2>
-        <p className="mt-1 text-xs text-gray-500">
-          {APP_MESSAGES.SECURE_CLINICAL_ADMINISTRATION_AND_FORM_AUTHORING}
-        </p>
+        <Text as="h1" variant="title" tone="primary" weight="bold">
+          {APP_MESSAGES.INTAKE_STUDIO}
+        </Text>
+        <div className="mt-1">
+          <Text as="p" variant="body" tone="secondary" weight="medium">
+            {APP_MESSAGES.REVIEWER_LOGIN_PORTAL}
+          </Text>
+        </div>
+        <div className="mt-2">
+          <Text as="p" variant="body" tone="muted">
+            {APP_MESSAGES.SECURE_CLINICAL_ADMINISTRATION_AND_FORM_AUTHORING}
+          </Text>
+        </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-xl border border-gray-200 sm:rounded-2xl sm:px-10 space-y-6">
+      <div className="mt-6 mx-auto w-full max-w-md">
+        <div className="bg-white p-5 sm:p-8 shadow-sm border border-gray-200 rounded-2xl space-y-6">
           <Suspense
             fallback={
               <div className="text-xs text-gray-400 text-center py-4">
@@ -132,14 +151,14 @@ export default function AdminLoginPage() {
           </Suspense>
 
           <div className="pt-2 border-t border-gray-100 text-center">
-            <p className="text-caption text-gray-400">
+            <Text as="p" variant="small" tone="muted">
               {
                 APP_MESSAGES.AUTHORIZED_CLINICAL_PERSONNEL_REVIEWERS_ONLY_ALL_OPERATIONS_AUDITED
               }
-            </p>
+            </Text>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

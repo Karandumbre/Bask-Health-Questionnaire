@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import { useCallback, useMemo, useState } from "react";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { themeToCssVariables } from "@/features/themes/domain/theme-tokens";
@@ -97,20 +98,20 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-12">
         <div className="max-w-xl mx-auto space-y-4 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <Text as="h1" variant="title" tone="primary" weight="bold">
             {APP_MESSAGES.INTAKE_ALREADY_SUBMITTED}
-          </h1>
+          </Text>
           {confirmationError ? (
             <>
               <Alert>{APP_MESSAGES.INTAKE_CONFIRMATION_UNAVAILABLE}</Alert>
-              <Button variant="secondary" onClick={retryConfirmation}>
+              <Button onClick={retryConfirmation} variant="secondary" size="sm">
                 {APP_MESSAGES.RETRY_CONFIRMATION}
               </Button>
             </>
           ) : (
-            <p role="status" className="text-sm text-gray-600">
+            <Text role="status" as="p" variant="body" tone="secondary">
               {APP_MESSAGES.INTAKE_CONFIRMATION_LOADING}
-            </p>
+            </Text>
           )}
         </div>
       </main>
@@ -126,21 +127,22 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
             <AlertTriangleIcon className="h-6 w-6" />
           </div>
           <div className="space-y-1">
-            <h1 className="text-lg font-bold text-gray-900">
+            <Text as="h1" variant="heading" tone="primary" weight="bold">
               Form Unavailable
-            </h1>
-            <p className="text-xs text-gray-600">
+            </Text>
+            <Text as="p" variant="small" tone="secondary">
               {loadError ??
                 "This intake form is currently not published or does not exist."}
-            </p>
+            </Text>
           </div>
           <Button
             type="button"
-            variant="secondary"
             loading={loading}
             loadingLabel={APP_MESSAGES.RETRYING}
             onClick={retryLoad}
-            className="w-full"
+            variant="secondary"
+            size="sm"
+            fullWidth
           >
             Retry
           </Button>
@@ -197,9 +199,15 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
         {/* Form Title & Description Header */}
         <header className="bg-intake-surface border border-intake-border rounded-2xl p-5 sm:p-6 shadow-2xs space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-intake-text-secondary">
+            <Text
+              variant="caption"
+              tone="intakeSecondary"
+              mono
+              uppercase
+              weight="semibold"
+            >
               Patient Intake
-            </span>
+            </Text>
             {sessionReference && (
               <Badge
                 tone="mono"
@@ -209,37 +217,47 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
               </Badge>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-intake-text-primary tracking-tight">
+          <Text as="h1" variant="section" tone="intake" weight="bold">
             {form.definition.title}
-          </h1>
+          </Text>
           {form.definition.description && (
-            <p className="text-xs sm:text-sm text-intake-text-secondary leading-relaxed whitespace-pre-wrap">
+            <Text as="p" variant="small" tone="intakeSecondary" wrap="preserve">
               {form.definition.description}
-            </p>
+            </Text>
           )}
         </header>
 
         {accessEnded && (
           <section className="space-y-3" aria-labelledby="session-ended-title">
             <Alert>
-              <h2 id="session-ended-title" className="font-semibold">
+              <Text
+                id="session-ended-title"
+                as="h2"
+                variant="section"
+                tone="primary"
+                weight="semibold"
+              >
                 {APP_MESSAGES.INTAKE_SESSION_ENDED_TITLE}
-              </h2>
-              <p>{APP_MESSAGES.INTAKE_SESSION_ENDED_MESSAGE}</p>
+              </Text>
+              <Text as="p" variant="inherit">
+                {APP_MESSAGES.INTAKE_SESSION_ENDED_MESSAGE}
+              </Text>
             </Alert>
             <div className="flex flex-wrap gap-3">
               <Button
-                variant="secondary"
                 disabled={isStartingSession}
                 onClick={() => setShowResumeModal(true)}
+                variant="secondary"
+                size="sm"
               >
                 {APP_MESSAGES.RESUME_INTAKE}
               </Button>
               <Button
-                variant="primary"
                 loading={isStartingSession}
                 loadingLabel={APP_MESSAGES.STARTING_INTAKE}
                 onClick={() => void handleStartNewSession()}
+                variant="primary"
+                size="sm"
               >
                 {APP_MESSAGES.START_NEW_INTAKE}
               </Button>
@@ -262,11 +280,12 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
           !isConflict &&
           (saveStatus === "error" || isSavingProgress) && (
             <Button
-              variant="secondary"
               loading={isSavingProgress}
               loadingLabel={APP_MESSAGES.SAVING}
               disabled={Object.keys(progressFieldErrors).length > 0}
               onClick={() => void handleSaveProgress()}
+              variant="secondary"
+              size="sm"
             >
               {APP_MESSAGES.RETRY_SAVE}
             </Button>
@@ -301,26 +320,33 @@ export function PatientIntakeView({ slug }: PatientIntakeViewProps) {
 
           {/* Form Actions */}
           <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
-            <Button
-              type="submit"
-              loading={isSubmitting}
-              loadingLabel={APP_MESSAGES.SUBMITTING}
-              disabled={
-                isSubmitting ||
-                accessEnded ||
-                isConflict ||
-                visibleQuestions.length === 0
-              }
-              className="w-full sm:w-auto px-8 py-3 text-sm font-semibold rounded-xl shadow-xs bg-intake-primary-action text-intake-primary-action-fg hover:bg-intake-primary-action-hover cursor-pointer"
-            >
-              {APP_MESSAGES.SUBMIT_RESPONSES}
-            </Button>
+            <div className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                loading={isSubmitting}
+                loadingLabel={APP_MESSAGES.SUBMITTING}
+                disabled={
+                  isSubmitting ||
+                  accessEnded ||
+                  isConflict ||
+                  visibleQuestions.length === 0
+                }
+                theme="intake"
+                variant="primary"
+                size="lg"
+                fullWidth
+              >
+                {APP_MESSAGES.SUBMIT_RESPONSES}
+              </Button>
+            </div>
 
             <Button
               disabled={isSubmitting}
               type="button"
               onClick={() => setShowRecoveryModal(true)}
-              className="text-xs font-medium text-intake-text-secondary hover:text-intake-text-primary transition-colors py-2 cursor-pointer"
+              theme="intake"
+              variant="ghost"
+              size="xs"
             >
               Need to finish later? View recovery code
             </Button>

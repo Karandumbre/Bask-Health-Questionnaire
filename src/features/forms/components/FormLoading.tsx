@@ -1,3 +1,4 @@
+import { Text } from "@/components/ui/text";
 import { DashboardHeader } from "./DashboardHeader";
 import { AdminBackLink } from "./AdminBackLink";
 import { Button } from "@/components/ui/button";
@@ -30,20 +31,22 @@ export function FormsLoading() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+            <Text as="h2" variant="section" tone="primary" weight="bold">
               {APP_MESSAGES.CLINICAL_INTAKE_FORMS}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {
-                APP_MESSAGES.AUTHOR_PUBLISH_AND_REVIEW_VERSIONED_PATIENT_QUESTIONNAIRES
-              }
-            </p>
+            </Text>
+            <div className="mt-0.5">
+              <Text as="p" variant="small" tone="muted">
+                {
+                  APP_MESSAGES.AUTHOR_PUBLISH_AND_REVIEW_VERSIONED_PATIENT_QUESTIONNAIRES
+                }
+              </Text>
+            </div>
           </div>
           <div className="flex gap-2">
-            <Button disabled variant="secondary">
+            <Button disabled variant="secondary" size="sm">
               {APP_MESSAGES.REFRESH}
             </Button>
-            <Button disabled variant="primary">
+            <Button disabled variant="primary" size="sm">
               {APP_MESSAGES.CREATE_NEW_FORM}
             </Button>
           </div>
@@ -58,9 +61,9 @@ export function FormsLoading() {
               key={label}
               className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3"
             >
-              <span className="text-caption font-semibold uppercase tracking-wider text-gray-500">
+              <Text variant="caption" tone="muted" uppercase weight="semibold">
                 {label}
-              </span>
+              </Text>
               <Skeleton className="h-8 w-16" />
             </div>
           ))}
@@ -87,22 +90,34 @@ export function EditorLoading() {
             APP_MESSAGES.PATIENT_PREVIEW,
             APP_MESSAGES.RESPONSES,
           ].map((label) => (
-            <Button key={label} disabled className="text-xs px-3 py-1.5">
+            <Button
+              key={label}
+              disabled
+              variant="ghost"
+              tone="neutral"
+              size="sm"
+            >
               {label}
             </Button>
           ))}
         </div>
-        <Button disabled variant="primary">
+        <Button disabled variant="primary" size="sm">
           {APP_MESSAGES.PUBLISH}
         </Button>
       </header>
       <div className="flex">
         <div className="hidden lg:block w-80 shrink-0 border-r border-gray-200 p-4 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xs font-semibold uppercase text-gray-500">
+            <Text
+              as="h2"
+              variant="small"
+              tone="muted"
+              uppercase
+              weight="semibold"
+            >
               {APP_MESSAGES.FORM_QUESTIONS}
-            </h2>
-            <Button disabled variant="primary">
+            </Text>
+            <Button disabled variant="primary" size="sm">
               {APP_MESSAGES.ADD_FIELD}
             </Button>
           </div>
@@ -112,7 +127,9 @@ export function EditorLoading() {
         </div>
         <div className="min-w-0 flex-1 p-4 sm:p-6 space-y-4">
           <div className="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-            <span className="text-xs text-gray-600">{APP_MESSAGES.THEME}</span>
+            <Text variant="small" tone="secondary">
+              {APP_MESSAGES.THEME}
+            </Text>
             <Skeleton className="h-8 w-28" />
           </div>
           <SkeletonRegion className="max-w-2xl mx-auto space-y-4">
@@ -122,9 +139,9 @@ export function EditorLoading() {
           </SkeletonRegion>
         </div>
         <div className="hidden xl:block w-88 shrink-0 border-l border-gray-200 bg-white p-4 space-y-6">
-          <h2 className="text-xs font-semibold text-gray-900">
+          <Text as="h2" variant="small" tone="primary" weight="semibold">
             {APP_MESSAGES.QUESTION_SETTINGS}
-          </h2>
+          </Text>
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-24 w-full" />
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { Alert } from "@/components/ui/alert";
 import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
@@ -47,19 +48,25 @@ export function RecoveryCodeModal({
 
       {/* Recovery Code Display */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-center">
-        <span className="text-caption font-bold text-gray-400 uppercase tracking-widest block mb-1">
-          One-Time Recovery Code
+        <span className="block mb-1">
+          <Text variant="caption" tone="subtle" uppercase weight="bold">
+            One-Time Recovery Code
+          </Text>
         </span>
-        <span className="font-mono text-base sm:text-lg font-bold text-gray-900 tracking-wider select-all">
-          {recoveryCode || APP_MESSAGES.RECOVERY_CODE_UNAVAILABLE}
+        <span className="select-all">
+          <Text variant="heading" tone="primary" mono weight="bold">
+            {recoveryCode || APP_MESSAGES.RECOVERY_CODE_UNAVAILABLE}
+          </Text>
         </span>
       </div>
 
       {saving && (
-        <p role="status" className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2">
           <Spinner />
-          {APP_MESSAGES.SAVING}
-        </p>
+          <Text role="status" as="p" variant="small" tone="inherit">
+            {APP_MESSAGES.SAVING}
+          </Text>
+        </div>
       )}
       {saveError && <Alert>{saveError}</Alert>}
       {copyError && <Alert>{copyError}</Alert>}
@@ -71,17 +78,18 @@ export function RecoveryCodeModal({
           loadingLabel={APP_MESSAGES.COPYING}
           onClick={() => void copy(recoveryCode)}
           variant="secondary"
-          className="w-full flex items-center justify-center gap-1.5 py-2.5"
+          size="md"
+          fullWidth
         >
           {copied ? (
             <>
               <CheckIcon className="w-4 h-4 text-emerald-600" />
-              <span className="text-emerald-700 font-semibold">
+              <Text variant="inherit" tone="success" weight="semibold">
                 Copied to Clipboard
-              </span>
+              </Text>
             </>
           ) : (
-            <span>Copy Recovery Code</span>
+            <Text variant="inherit">Copy Recovery Code</Text>
           )}
         </Button>
 
@@ -89,7 +97,8 @@ export function RecoveryCodeModal({
           type="button"
           onClick={onClose}
           variant="primary"
-          className="w-full py-2.5 font-semibold"
+          size="md"
+          fullWidth
         >
           I&apos;ve Saved My Code — Continue
         </Button>

@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import Link from "next/link";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
@@ -134,15 +135,17 @@ function PublishDialog() {
               <CheckIcon className="w-5 h-5" />
             </div>
             <div className="text-xs text-emerald-900">
-              <p className="font-bold">
+              <Text as="p" variant="inherit" weight="bold">
                 {APP_MESSAGES.VERSION} {publishResult.versionNumber}{" "}
                 {APP_MESSAGES.CREATED}
-              </p>
-              <p className="mt-0.5 text-emerald-700">
-                {
-                  APP_MESSAGES.PATIENT_SESSIONS_ON_THIS_VERSION_WILL_REMAIN_BOUND_TO
-                }
-              </p>
+              </Text>
+              <div className="mt-0.5">
+                <Text as="p" variant="inherit" tone="success">
+                  {
+                    APP_MESSAGES.PATIENT_SESSIONS_ON_THIS_VERSION_WILL_REMAIN_BOUND_TO
+                  }
+                </Text>
+              </div>
             </div>
           </Alert>
 
@@ -163,7 +166,8 @@ function PublishDialog() {
                 loading={copying}
                 loadingLabel={APP_MESSAGES.COPYING}
                 onClick={() => void copy(publishResult.publicUrl)}
-                className="px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                variant="primary"
+                size="sm"
               >
                 {copied ? "Copied!" : APP_MESSAGES.COPY_LINK}
               </Button>
@@ -185,7 +189,9 @@ function PublishDialog() {
             <Button
               disabled={isPublishing}
               onClick={closePublishModal}
-              className="px-4 py-2 text-xs font-semibold bg-gray-900 text-white rounded-xl hover:bg-black"
+              variant="primary"
+              tone="neutral"
+              size="sm"
             >
               {APP_MESSAGES.DONE}
             </Button>
@@ -199,12 +205,12 @@ function PublishDialog() {
             <Alert tone="error" className="rounded-xl p-4 space-y-2.5">
               <div className="flex items-center gap-2 text-red-900 font-bold text-xs">
                 <AlertTriangleIcon className="w-4 h-4 text-red-600 shrink-0" />
-                <span>
+                <Text variant="inherit">
                   {APP_MESSAGES.CANNOT_PUBLISH} {publishValidationErrors.length}{" "}
                   {APP_MESSAGES.ISSUE}
                   {publishValidationErrors.length > 1 ? "s" : ""}{" "}
                   {APP_MESSAGES.FOUND}
-                </span>
+                </Text>
               </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 {publishValidationErrors.map((err, idx) => (
@@ -212,11 +218,13 @@ function PublishDialog() {
                     key={idx}
                     className="text-xs text-red-700 flex items-start justify-between gap-2 p-1.5 rounded bg-white/70 border border-red-200/60"
                   >
-                    <span>• {err.issue}</span>
+                    <Text variant="inherit">• {err.issue}</Text>
                     {err.questionId && (
                       <Button
                         onClick={() => handleFixQuestion(err.questionId)}
-                        className="text-caption font-semibold text-blue-600 hover:underline shrink-0"
+                        variant="link"
+                        tone="primary"
+                        size="xs"
                       >
                         {APP_MESSAGES.FIX_FIELD}
                       </Button>
@@ -231,9 +239,9 @@ function PublishDialog() {
               tone="info"
               className="rounded-xl bg-blue-50/70 p-4 space-y-2"
             >
-              <p className="text-xs font-bold text-blue-900">
+              <Text as="p" variant="small" tone="info" weight="bold">
                 {APP_MESSAGES.PUBLISH_READINESS_SUMMARY}
-              </p>
+              </Text>
               <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
                 <div>
                   • {definition.questions.length}{" "}
@@ -266,7 +274,7 @@ function PublishDialog() {
               disabled={isPublishing}
               onClick={closePublishModal}
               variant="secondary"
-              className="py-2"
+              size="sm"
             >
               {APP_MESSAGES.CANCEL}
             </Button>
@@ -278,12 +286,12 @@ function PublishDialog() {
               loadingLabel={APP_MESSAGES.PUBLISHING}
               onClick={handlePublish}
               variant="primary"
-              className="py-2"
+              size="sm"
             >
               <SendIcon className="w-3.5 h-3.5" />
-              <span>
+              <Text variant="inherit">
                 {isPublishing ? "Publishing..." : APP_MESSAGES.CONFIRM_PUBLISH}
-              </span>
+              </Text>
             </Button>
           </DialogActions>
         </div>

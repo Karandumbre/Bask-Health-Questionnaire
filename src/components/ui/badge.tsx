@@ -1,28 +1,17 @@
 import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import type { ComponentProps } from "react";
-import { extendTailwindMerge } from "tailwind-merge";
-
-const twMerge = extendTailwindMerge({
-  extend: {
-    classGroups: {
-      "font-size": [{ text: ["micro", "caption", "preview-title"] }],
-    },
-  },
-});
-
-const tones = COMPONENT_STYLES.badge.tones;
+import { cn } from "@/lib/utils/classes";
 
 export function Badge({
   tone = "neutral",
   className,
   ...props
 }: ComponentProps<"span"> & {
-  tone?: keyof typeof tones;
+  tone?: keyof typeof COMPONENT_STYLES.badge.tones;
 }) {
+  const badgeStyles = COMPONENT_STYLES.badge;
+  const toneStyle = COMPONENT_STYLES?.badge?.tones?.[tone];
   return (
-    <span
-      className={twMerge(COMPONENT_STYLES.badge.base, tones[tone], className)}
-      {...props}
-    />
+    <span className={cn(badgeStyles.base, toneStyle, className)} {...props} />
   );
 }

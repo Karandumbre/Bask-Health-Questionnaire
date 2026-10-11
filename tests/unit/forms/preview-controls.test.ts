@@ -10,6 +10,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/table";
 import { QuestionInput } from "@/features/forms/components/QuestionInput";
 import { getFieldDescribedBy } from "@/features/forms/components/QuestionControl";
 import { PatientQuestionField } from "@/features/patients/components/PatientQuestionField";
+import { PatientProgressBar } from "@/features/patients/components/PatientProgressBar";
 import { RecoveryCodeModal } from "@/features/patients/components/RecoveryCodeModal";
 import { FormRow } from "@/features/forms/components/FormRow";
 import { FormCanvas } from "@/features/forms/components/FormCanvas";
@@ -65,9 +66,9 @@ describe("Preview controls", () => {
         onAnswerChange: () => {},
       }),
     );
-    expect(
-      html.match(/<span class="ml-1 text-red-600">\*<\/span>/g),
-    ).toHaveLength(1);
+    expect(html.match(/<span class="text-red-600">\*<\/span>/g)).toHaveLength(
+      1,
+    );
     expect(html).not.toContain("Required question *");
   });
 
@@ -338,7 +339,7 @@ describe("Preview controls", () => {
             createElement(
               Tr,
               null,
-              createElement(Th, { className: "px-5" }, "Title"),
+              createElement(Th, { padding: "roomy" }, "Title"),
             ),
           ),
           createElement(
@@ -349,12 +350,14 @@ describe("Preview controls", () => {
         ),
       );
 
-      // Must have "Copy Link" action button and live intake href
+      // Must have "Copy Link" action button, live intake href, separate Status ("Published") and Version ("v1") cells
       expect(publishedRowHtml).toContain("Copy Link");
       expect(publishedRowHtml).toContain(
         'href="/intake/adhd-initial-screening-v1-8492"',
       );
-      expect(publishedRowHtml).toContain("Published v1");
+      expect(publishedRowHtml).toContain(`>${APP_MESSAGES.PUBLISHED}</span>`);
+      expect(publishedRowHtml).not.toContain("Published v1");
+      expect(publishedRowHtml).toContain(">v1<");
 
       const draftForm: FormListItem = {
         id: "form-2",
@@ -380,10 +383,11 @@ describe("Preview controls", () => {
         ),
       );
 
-      // Must not show Copy Link button or deployed intake href
+      // Must not show Copy Link button or deployed intake href, and shows "—" in Version cell
       expect(draftRowHtml).not.toContain("Copy Link");
       expect(draftRowHtml).not.toContain('href="/intake/');
       expect(draftRowHtml).toContain(APP_MESSAGES.UNPUBLISHED_DRAFT);
+      expect(draftRowHtml).toContain(">—<");
 
       const cellHtml = renderToStaticMarkup(
         createElement(
@@ -395,7 +399,7 @@ describe("Preview controls", () => {
             createElement(
               Tr,
               null,
-              createElement(Td, { className: "px-5 text-right" }, "Cell"),
+              createElement(Td, { padding: "roomy", align: "right" }, "Cell"),
             ),
           ),
         ),
@@ -494,6 +498,33 @@ describe("Preview controls", () => {
       expect(html).toContain('role="status"');
       expect(html).toContain("border-blue-200 bg-blue-50 text-blue-800");
       expect(html).toContain('id="centered-dialog"');
+    });
+
+    it("PatientProgressBar uses flex-wrap with whitespace-nowrap controls so mobile top bar does not squeeze", () => {
+      const html = renderToStaticMarkup(
+        createElement(PatientProgressBar, {
+          answeredCount: 3,
+          totalCount: 43,
+          saveStatus: "saved",
+          themeMode: "light",
+          onToggleThemeMode: () => {},
+          onJumpToNextUnanswered: () => {},
+          unansweredRequiredCount: 39,
+          onSaveAndResume: () => {},
+        }),
+      );
+
+      expect(html).toContain(
+        "flex flex-wrap items-center justify-between gap-x-3 gap-y-2",
+      );
+      expect(html).toContain("3 of 43 answered (7%)");
+      expect(html).toContain("Saved");
+      expect(html).toContain("Next Required (39)");
+      expect(html).toContain("Dark");
+      expect(html).toContain("Save &amp; Exit");
+      expect(html).toContain('aria-label="Intake completion progress"');
+      expect(html).toContain('aria-valuenow="7"');
+      expect(html.match(/<button/g)).toHaveLength(3);
     });
   });
 });

@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Input, Textarea } from "@/components/ui/input";
@@ -30,21 +31,31 @@ export const EditorQuestionCard = memo(function EditorQuestionCard({
       {/* Top Header of Question Card */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="text-xs font-mono font-bold shrink-0 text-intake-text-secondary bg-intake-bg border border-intake-border px-2 py-0.5 rounded">
-            #{index + 1}
+          <span className="shrink-0 bg-intake-bg border border-intake-border px-2 py-0.5 rounded">
+            <Text variant="small" tone="intakeSecondary" mono weight="bold">
+              #{index + 1}
+            </Text>
           </span>
-          <span className="text-sm font-semibold text-intake-text-primary">
+          <Text variant="body" tone="intake" weight="semibold">
             {q.label || (
-              <span className="text-intake-text-secondary italic">
+              <Text variant="inherit" tone="intakeSecondary" italic>
                 {APP_MESSAGES.UNTITLED_QUESTION}
-              </span>
+              </Text>
             )}
             {q.required && (
-              <span className="ml-1 text-red-500 font-bold" aria-hidden="true">
-                *
+              <span className="ml-1">
+                <Text
+                  aria-hidden="true"
+
+                  variant="inherit"
+                  tone="danger"
+                  weight="bold"
+                >
+                  *
+                </Text>
               </span>
             )}
-          </span>
+          </Text>
         </div>
 
         {/* Quick Action Buttons on Selected Field */}
@@ -53,9 +64,11 @@ export const EditorQuestionCard = memo(function EditorQuestionCard({
 
       {/* Description / Instructions */}
       {q.description && (
-        <p className="text-xs text-intake-text-secondary mb-3 -mt-1">
-          {q.description}
-        </p>
+        <div className="mb-3 -mt-1">
+          <Text as="p" variant="small" tone="intakeSecondary">
+            {q.description}
+          </Text>
+        </div>
       )}
 
       {/* Mock Input Controls */}
@@ -97,7 +110,7 @@ export const EditorQuestionCard = memo(function EditorQuestionCard({
                 className="flex items-center gap-2.5 p-2.5 rounded-lg border border-intake-border bg-intake-bg text-xs text-intake-text-primary"
               >
                 <div className="w-3.5 h-3.5 rounded-full border border-intake-border bg-intake-surface" />
-                <span>{opt.label}</span>
+                <Text variant="inherit">{opt.label}</Text>
               </div>
             ))}
           </div>
@@ -111,7 +124,7 @@ export const EditorQuestionCard = memo(function EditorQuestionCard({
                 className="flex items-center gap-2.5 p-2.5 rounded-lg border border-intake-border bg-intake-bg text-xs text-intake-text-primary"
               >
                 <div className="w-3.5 h-3.5 rounded border border-intake-border bg-intake-surface" />
-                <span>{opt.label}</span>
+                <Text variant="inherit">{opt.label}</Text>
               </div>
             ))}
           </div>
@@ -120,9 +133,9 @@ export const EditorQuestionCard = memo(function EditorQuestionCard({
         {q.type === "checkbox" && (
           <div className="flex items-start gap-2.5 p-3 rounded-lg border border-intake-border bg-intake-bg">
             <div className="w-4 h-4 rounded border border-intake-border bg-intake-surface mt-0.5" />
-            <span className="text-xs text-intake-text-primary font-medium">
+            <Text variant="small" tone="intake" weight="medium">
               {q.label}
-            </span>
+            </Text>
           </div>
         )}
       </div>
@@ -131,11 +144,11 @@ export const EditorQuestionCard = memo(function EditorQuestionCard({
       {q.visibility && (
         <div className="mt-3 pt-2.5 border-t border-intake-border flex items-center gap-1.5 text-caption text-intake-text-secondary">
           <span className="w-1.5 h-1.5 rounded-full bg-intake-primary-action" />
-          <span>
+          <Text variant="inherit">
             {
               APP_MESSAGES.CONDITIONAL_DISPLAYS_ONLY_WHEN_PARENT_CONDITION_IS_SATISFIED
             }
-          </span>
+          </Text>
         </div>
       )}
     </div>

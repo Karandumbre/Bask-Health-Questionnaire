@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { QuestionActions } from "./QuestionActions";
@@ -80,13 +81,15 @@ export function FieldNavigator() {
       {/* Navigator Header */}
       <div className="p-3 border-b border-gray-200 bg-white flex items-center justify-between relative">
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <Text as="h2" variant="small" tone="muted" uppercase weight="bold">
             {APP_MESSAGES.FORM_QUESTIONS}
-          </h2>
-          <p className="text-caption text-gray-400 mt-0.5">
-            {definition.questions.length}{" "}
-            {definition.questions.length === 1 ? "field" : "fields"}
-          </p>
+          </Text>
+          <div className="mt-0.5">
+            <Text as="p" variant="caption" tone="subtle">
+              {definition.questions.length}{" "}
+              {definition.questions.length === 1 ? "field" : "fields"}
+            </Text>
+          </div>
         </div>
 
         {/* Add Question Button & Dropdown */}
@@ -96,10 +99,11 @@ export function FieldNavigator() {
             aria-expanded={isAddMenuOpen}
             aria-haspopup="menu"
             aria-label={APP_MESSAGES.ADD_NEW_FIELD}
-            className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-md shadow-xs transition-colors"
+            variant="primary"
+            size="sm"
           >
             <PlusIcon className="w-3.5 h-3.5" />
-            <span>{APP_MESSAGES.ADD_FIELD}</span>
+            <Text variant="inherit">{APP_MESSAGES.ADD_FIELD}</Text>
           </Button>
 
           {isAddMenuOpen && (
@@ -121,7 +125,9 @@ export function FieldNavigator() {
                       <Button
                         key={type}
                         onClick={() => handleAddType(type)}
-                        className="w-full text-left px-3 py-2 hover:bg-blue-50/70 flex items-start gap-2.5 transition-colors group"
+                        variant="menu"
+                        tone="neutral"
+                        size="sm"
                       >
                         <div className="p-1 rounded bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors mt-0.5">
                           <Icon className="w-3.5 h-3.5" />
@@ -148,12 +154,16 @@ export function FieldNavigator() {
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {definition.questions.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-gray-200 rounded-lg m-2">
-            <p className="text-xs font-medium text-gray-600">
+            <Text as="p" variant="small" tone="secondary" weight="medium">
               {APP_MESSAGES.NO_QUESTIONS_ADDED_YET}
-            </p>
-            <p className="text-caption text-gray-400 mt-1">
-              {APP_MESSAGES.CLICK_QUOT_ADD_FIELD_QUOT_ABOVE_TO_CREATE_CLINICAL}
-            </p>
+            </Text>
+            <div className="mt-1">
+              <Text as="p" variant="caption" tone="subtle">
+                {
+                  APP_MESSAGES.CLICK_QUOT_ADD_FIELD_QUOT_ABOVE_TO_CREATE_CLINICAL
+                }
+              </Text>
+            </div>
           </div>
         ) : (
           definition.questions.map((q, index) => {
@@ -179,20 +189,33 @@ export function FieldNavigator() {
                 <div className="flex items-start justify-between gap-2">
                   {/* Left: Icon, Index, Label */}
                   <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <span className="text-caption font-mono font-medium text-gray-400 mt-0.5">
-                      {index + 1}.
+                    <span className="mt-0.5">
+                      <Text
+                        variant="caption"
+                        tone="subtle"
+                        mono
+                        weight="medium"
+                      >
+                        {index + 1}.
+                      </Text>
                     </span>
                     <div className="p-1 rounded bg-gray-100 text-gray-600 mt-0.5">
                       <Icon className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-900 truncate">
+                      <Text
+                        as="p"
+                        variant="small"
+                        tone="primary"
+                        truncate
+                        weight="medium"
+                      >
                         {q.label || (
-                          <span className="italic text-gray-400">
+                          <Text variant="inherit" tone="subtle" italic>
                             {APP_MESSAGES.UNTITLED_QUESTION}
-                          </span>
+                          </Text>
                         )}
-                      </p>
+                      </Text>
 
                       {/* Badges */}
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">

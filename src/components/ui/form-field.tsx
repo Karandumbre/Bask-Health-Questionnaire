@@ -1,3 +1,4 @@
+import { Text } from "@/components/ui/text";
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 
@@ -27,12 +28,20 @@ export function FormField({
         className={twMerge("block text-xs font-semibold", labelClassName)}
       >
         {label}
-        {required && <span className="ml-1 text-red-600">*</span>}
+        {required && (
+          <span className="ml-1">
+            <Text variant="inherit" tone="danger">
+              *
+            </Text>
+          </span>
+        )}
       </label>
       {description && (
-        <p id={`${id}-help`} className="text-xs opacity-80">
-          {description}
-        </p>
+        <div className="opacity-80">
+          <Text id={`${id}-help`} as="p" variant="small" tone="inherit">
+            {description}
+          </Text>
+        </div>
       )}
       {children}
     </div>
@@ -58,10 +67,7 @@ export function CheckboxField({
 }: CheckboxFieldProps) {
   return (
     <div
-      className={twMerge(
-        "flex items-center justify-between gap-3",
-        className,
-      )}
+      className={twMerge("flex items-center justify-between gap-3", className)}
     >
       <div>
         <label
@@ -74,7 +80,9 @@ export function CheckboxField({
           {label}
         </label>
         {description && (
-          <p className="text-caption text-gray-400">{description}</p>
+          <Text as="p" variant="caption" tone="subtle">
+            {description}
+          </Text>
         )}
       </div>
       {children}

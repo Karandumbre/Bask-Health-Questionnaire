@@ -51,9 +51,7 @@ export function ThemeControls({
           </Select>
         </CheckboxField>
         <Button
-          variant="secondary"
           disabled={!editable}
-          className="text-xs py-1.5 px-3"
           onClick={() =>
             updateTheme(
               generateShuffledTheme(
@@ -62,15 +60,17 @@ export function ThemeControls({
               ),
             )
           }
+          variant="secondary"
+          size="sm"
         >
           {APP_MESSAGES.SHUFFLE}
         </Button>
       </div>
 
       <Button
-        variant="secondary"
-        className="text-xs py-1.5 px-3"
         onClick={() => onModeChange(mode === "light" ? "dark" : "light")}
+        variant="secondary"
+        size="sm"
       >
         {APP_MESSAGES.USE} {mode === "light" ? "dark" : "light"}{" "}
         {APP_MESSAGES.MODE}

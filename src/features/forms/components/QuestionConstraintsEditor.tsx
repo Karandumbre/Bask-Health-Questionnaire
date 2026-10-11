@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Input } from "@/components/ui/input";
@@ -23,9 +24,9 @@ export function QuestionConstraintsEditor({
     : (["minLength", "maxLength"] as const);
   return (
     <section className="space-y-3 border-t border-gray-200 pt-2">
-      <h3 className="text-xs font-semibold">
+      <Text as="h3" variant="small" tone="primary" weight="semibold">
         {numeric ? APP_MESSAGES.NUMERIC_BOUNDS : APP_MESSAGES.LENGTH_LIMITS}
-      </h3>
+      </Text>
       <div className="grid grid-cols-2 gap-2">
         {fields.map((field, index) => {
           const id = `${field}-${question.id}`;

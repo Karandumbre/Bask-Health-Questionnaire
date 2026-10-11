@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import { FormField } from "@/components/ui/form-field";
 import type { Question } from "../domain/types";
 import type {
@@ -47,9 +48,11 @@ export function QuestionInput({
             legendSrOnly={false}
           />
           {q.description && (
-            <p id={helpId} className="mt-1 text-xs text-intake-text-secondary">
-              {q.description}
-            </p>
+            <div className="mt-1">
+              <Text id={helpId} as="p" variant="small" tone="intakeSecondary">
+                {q.description}
+              </Text>
+            </div>
           )}
         </div>
       ) : q.type === "checkbox" ? (
@@ -63,9 +66,11 @@ export function QuestionInput({
             ariaDescribedBy={describedBy}
           />
           {q.description && (
-            <p id={helpId} className="mt-1 text-xs text-intake-text-secondary">
-              {q.description}
-            </p>
+            <div className="mt-1">
+              <Text id={helpId} as="p" variant="small" tone="intakeSecondary">
+                {q.description}
+              </Text>
+            </div>
           )}
         </div>
       ) : (
@@ -87,13 +92,18 @@ export function QuestionInput({
       )}
 
       {error && (
-        <p
-          id={errorId}
-          role="alert"
-          className="mt-2 text-xs font-semibold text-intake-error"
-        >
-          {error}
-        </p>
+        <div className="mt-2">
+          <Text
+            id={errorId}
+            role="alert"
+            as="p"
+            variant="small"
+            tone="intakeError"
+            weight="semibold"
+          >
+            {error}
+          </Text>
+        </div>
       )}
     </div>
   );

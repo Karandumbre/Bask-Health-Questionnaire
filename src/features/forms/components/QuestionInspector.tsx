@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +22,14 @@ export function QuestionInspector() {
   if (!selectedQuestion) {
     return (
       <aside className="w-88 shrink-0 border-l border-gray-200 bg-white p-6 flex flex-col items-center justify-center text-center text-gray-400 select-none">
-        <p className="text-xs font-medium text-gray-500">
+        <Text as="p" variant="small" tone="muted" weight="medium">
           {APP_MESSAGES.NO_FIELD_SELECTED}
-        </p>
-        <p className="text-caption text-gray-400 mt-1">
-          {APP_MESSAGES.SELECT_A_QUESTION_FROM_THE_NAVIGATOR_OR_CANVAS_TO}
-        </p>
+        </Text>
+        <div className="mt-1">
+          <Text as="p" variant="caption" tone="subtle">
+            {APP_MESSAGES.SELECT_A_QUESTION_FROM_THE_NAVIGATOR_OR_CANVAS_TO}
+          </Text>
+        </div>
       </aside>
     );
   }
@@ -64,16 +67,22 @@ export function QuestionInspector() {
           >
             {selectedQuestion.type.replace("_", " ")}
           </Badge>
-          <h3 className="text-xs font-bold text-gray-900">
+          <Text as="h3" variant="small" tone="primary" weight="bold">
             {APP_MESSAGES.QUESTION_SETTINGS}
-          </h3>
+          </Text>
         </div>
-        <p
-          className="truncate text-micro font-mono text-gray-400 select-text"
-          title={selectedQuestion.id}
-        >
-          {APP_MESSAGES.ID} {selectedQuestion.id}
-        </p>
+        <div className="select-text">
+          <Text
+            title={selectedQuestion.id}
+            as="p"
+            variant="micro"
+            tone="subtle"
+            truncate
+            mono
+          >
+            {APP_MESSAGES.ID} {selectedQuestion.id}
+          </Text>
+        </div>
       </div>
 
       <div className="p-4 space-y-5 flex-1">

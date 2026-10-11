@@ -57,7 +57,9 @@ export function QuestionActions({
           disabled={disabled}
           title={label}
           aria-label={`${label} question ${index + 1}`}
-          className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-20"
+          variant="ghost"
+          tone="neutral"
+          size="icon-sm"
         >
           <Icon className="h-3.5 w-3.5" />
         </Button>

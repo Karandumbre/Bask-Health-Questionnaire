@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Alert } from "@/components/ui/alert";
@@ -54,22 +55,24 @@ export function FormCanvas() {
         >
           {/* Form Header Card */}
           <div className="bg-intake-surface rounded-xl border border-intake-border border-t-4 border-t-intake-primary-action p-6 shadow-2xs transition-colors">
-            <h1 className="text-xl font-bold text-intake-text-primary">
+            <Text as="h1" variant="section" tone="intake" weight="bold">
               {definition.title}
-            </h1>
+            </Text>
             {definition.description && (
-              <p className="text-xs text-intake-text-secondary mt-1">
-                {definition.description}
-              </p>
+              <div className="mt-1">
+                <Text as="p" variant="small" tone="intakeSecondary">
+                  {definition.description}
+                </Text>
+              </div>
             )}
             <div className="mt-3 flex items-center gap-3 text-caption text-intake-text-secondary">
-              <span>
+              <Text variant="inherit">
                 {APP_MESSAGES.THEME} {theme.presetName}
-              </span>
-              <span>•</span>
-              <span>
+              </Text>
+              <Text variant="inherit">•</Text>
+              <Text variant="inherit">
                 {definition.questions.length} {APP_MESSAGES.QUESTIONS_TOTAL}
-              </span>
+              </Text>
             </div>
           </div>
 
@@ -99,26 +102,30 @@ export function FormCanvas() {
         >
           {/* Simulator Banner */}
           <Alert tone="info" className="mb-4 rounded-xl text-center">
-            <p className="text-xs font-semibold text-blue-900">
+            <Text as="p" variant="small" tone="info" weight="semibold">
               {APP_MESSAGES.INTERACTIVE_PATIENT_SIMULATOR}
-            </p>
-            <p className="text-caption text-blue-700 mt-0.5">
-              {
-                APP_MESSAGES.TESTING_LIVE_CONDITIONS_VISIBILITY_RESPONSES_HERE_ARE_NOT_SAVED
-              }
-            </p>
+            </Text>
+            <div className="mt-0.5">
+              <Text as="p" variant="caption" tone="info">
+                {
+                  APP_MESSAGES.TESTING_LIVE_CONDITIONS_VISIBILITY_RESPONSES_HERE_ARE_NOT_SAVED
+                }
+              </Text>
+            </div>
           </Alert>
 
           <div className="space-y-4">
             {/* Clinical Header */}
             <div className="bg-intake-surface rounded-xl border border-intake-border p-5 shadow-xs">
-              <h1 className="text-lg font-bold text-intake-text-primary">
+              <Text as="h1" variant="heading" tone="intake" weight="bold">
                 {definition.title}
-              </h1>
+              </Text>
               {definition.description && (
-                <p className="text-xs text-intake-text-secondary mt-1">
-                  {definition.description}
-                </p>
+                <div className="mt-1">
+                  <Text as="p" variant="small" tone="intakeSecondary">
+                    {definition.description}
+                  </Text>
+                </div>
               )}
             </div>
 
@@ -140,9 +147,9 @@ export function FormCanvas() {
 
             {submissionAttempted &&
               (validation.valid ? (
-                <p role="status" className="text-xs text-intake-text-primary">
+                <Text role="status" as="p" variant="small" tone="intake">
                   {APP_MESSAGES.PREVIEW_VALIDATION_PASSED}
-                </p>
+                </Text>
               ) : (
                 <Alert>{APP_MESSAGES.INTAKE_VALIDATION_FAILED}</Alert>
               ))}
@@ -159,7 +166,10 @@ export function FormCanvas() {
                     });
                   }
                 }}
-                className="w-full bg-intake-primary-action text-intake-primary-action-fg font-semibold text-xs py-3 rounded-xl shadow-xs hover:bg-intake-primary-action-hover transition-colors"
+                theme="intake"
+                variant="primary"
+                size="lg"
+                fullWidth
               >
                 {APP_MESSAGES.SUBMIT_INTAKE_SIMULATION}
               </Button>

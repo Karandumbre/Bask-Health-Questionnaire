@@ -1,3 +1,4 @@
+import { Text } from "@/components/ui/text";
 import Link from "next/link";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import { AppError } from "@/lib/errors";
@@ -37,13 +38,15 @@ export default async function FormResponsesPage({ params }: PageProps) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
           <div className="bg-white border border-gray-200 rounded-xl p-8 max-w-md w-full text-center shadow-xs">
-            <h2 className="text-base font-semibold text-gray-900">
+            <Text as="h2" variant="heading" tone="primary" weight="semibold">
               Access Denied
-            </h2>
-            <p className="text-xs text-gray-500 mt-2">
-              You do not have permission to view clinical responses for this
-              form.
-            </p>
+            </Text>
+            <div className="mt-2">
+              <Text as="p" variant="small" tone="muted">
+                You do not have permission to view clinical responses for this
+                form.
+              </Text>
+            </div>
             <Link
               href={ROUTES.adminForms}
               className="mt-4 inline-block text-xs font-semibold text-blue-600 hover:text-blue-700"

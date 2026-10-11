@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { useEffect, useRef, useState } from "react";
 import { ROUTES } from "@/lib/constants/application";
 import { APP_MESSAGES } from "@/lib/constants/messages";
@@ -89,7 +90,7 @@ export function FormRow({
   return (
     <Tr key={form.id}>
       {/* Title (Desktop) + Responsive Summary (Mobile: Ellipsis Name + Status + Last Edited) */}
-      <Td className="pl-4 sm:pl-5 pr-3 font-medium text-gray-900 w-full max-w-0 whitespace-normal">
+      <Td variant="title">
         {isRenamingThisForm ? (
           <div className="flex items-center gap-2">
             <Input
@@ -109,14 +110,17 @@ export function FormRow({
               }
               loadingLabel={APP_MESSAGES.SAVING}
               onClick={() => handleSaveRename(form.id)}
-              className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded-lg whitespace-nowrap shrink-0"
+              variant="primary"
+              size="xs"
             >
               {APP_MESSAGES.SAVE}
             </Button>
             <Button
               disabled={isMutating}
               onClick={() => setRenamingFormId(null)}
-              className="text-xs font-medium text-gray-500 hover:text-gray-800 px-2 py-1 rounded-lg hover:bg-gray-100 whitespace-nowrap shrink-0"
+              variant="ghost"
+              tone="neutral"
+              size="xs"
             >
               {APP_MESSAGES.CANCEL}
             </Button>
@@ -133,15 +137,12 @@ export function FormRow({
                 {form.name}
               </Link>
 
-              {/* Compact Status Badge beside truncated name (< md) */}
-              <div className="md:hidden shrink-0">
+              {/* Compact Status Badge beside truncated name (< lg) */}
+              <div className="lg:hidden shrink-0">
                 {isPublished ? (
                   <Badge tone="success" className="px-2">
                     <CheckIcon className="w-3 h-3 shrink-0 text-emerald-600" />
-                    <span>
-                      {APP_MESSAGES.PUBLISHED_V}
-                      {form.latestPublishedVersionNumber}
-                    </span>
+                    <Text variant="inherit">{APP_MESSAGES.PUBLISHED}</Text>
                   </Badge>
                 ) : (
                   <Badge tone="warning" className="px-2">
@@ -151,16 +152,40 @@ export function FormRow({
               </div>
             </div>
 
-            {/* Compact Second line: Last edited timestamp + revision (< md) */}
-            <div className="md:hidden mt-1 flex items-center gap-1.5 text-caption text-gray-500 truncate">
+            {/* Compact Second line: Last edited timestamp + version + revision (< lg) */}
+            <div className="lg:hidden mt-1 flex items-center gap-1.5 text-caption text-gray-500 truncate">
               <span className="truncate">
                 {APP_MESSAGES.LAST_EDITED} {formatShortDateTime(form.updatedAt)}
               </span>
-              <span aria-hidden="true" className="text-gray-300">
+              {isPublished && (
+                <>
+                  <Text
+                    aria-hidden="true"
+
+                    variant="inherit"
+                    tone="subtle"
+                  >
+                    ·
+                  </Text>
+                  <span className="shrink-0">
+                    <Text variant="inherit" tone="muted" mono>
+                      v{form.latestPublishedVersionNumber}
+                    </Text>
+                  </span>
+                </>
+              )}
+              <Text
+                aria-hidden="true"
+
+                variant="inherit"
+                tone="subtle"
+              >
                 ·
-              </span>
-              <span className="font-mono text-gray-400 shrink-0">
-                {APP_MESSAGES.REV} {form.draftRevision ?? 0}
+              </Text>
+              <span className="shrink-0">
+                <Text variant="inherit" tone="subtle" mono>
+                  {APP_MESSAGES.REV} {form.draftRevision ?? 0}
+                </Text>
               </span>
             </div>
           </div>
@@ -168,24 +193,12 @@ export function FormRow({
       </Td>
 
       {/* Desktop Status Badge */}
-      <Td className="hidden md:table-cell w-px">
+      <Td variant="meta" desktopOnly>
         {isPublished ? (
-          <Button
-            onClick={handleCopyLink}
-            title={APP_MESSAGES.CLICK_TO_COPY_DEPLOYED_LINK}
-            className="inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer"
-          >
+          <Badge tone="success" className="text-caption gap-1.5">
             <CheckIcon className="w-3 h-3 shrink-0 text-emerald-600" />
-            <span>
-              {APP_MESSAGES.PUBLISHED_V}
-              {form.latestPublishedVersionNumber}
-            </span>
-            {copied && (
-              <span className="text-micro text-emerald-600 font-normal">
-                ({APP_MESSAGES.COPIED})
-              </span>
-            )}
-          </Button>
+            <Text variant="inherit">{APP_MESSAGES.PUBLISHED}</Text>
+          </Badge>
         ) : (
           <Badge tone="warning" className="text-caption gap-1.5">
             {APP_MESSAGES.UNPUBLISHED_DRAFT}
@@ -193,39 +206,56 @@ export function FormRow({
         )}
       </Td>
 
+      {/* Desktop Published Version */}
+      <Td variant="meta" desktopOnly>
+        {isPublished ? (
+          <Badge tone="mono" className="rounded-md px-2">
+            v{form.latestPublishedVersionNumber}
+          </Badge>
+        ) : (
+          <Text variant="caption" tone="subtle">
+            —
+          </Text>
+        )}
+      </Td>
+
       {/* Desktop Draft Revision */}
-      <Td className="hidden md:table-cell w-px">
+      <Td variant="meta" desktopOnly>
         <Badge tone="mono" className="rounded-md px-2">
           {APP_MESSAGES.REV} {form.draftRevision ?? 0}
         </Badge>
       </Td>
 
       {/* Desktop Updated At */}
-      <Td className="hidden md:table-cell text-gray-500 text-caption w-px">
-        {formatShortDateTime(form.updatedAt)}
+      <Td variant="meta" desktopOnly>
+        <Text variant="caption" tone="muted">
+          {formatShortDateTime(form.updatedAt)}
+        </Text>
       </Td>
 
       {/* Actions: Inline on Desktop, Dropdown Menu on Mobile */}
-      <Td className="pl-3 pr-4 sm:pr-5 text-right w-px">
+      <Td variant="actions">
         {/* Desktop Inline Actions */}
-        <div className="hidden md:inline-flex items-center justify-end gap-1.5 whitespace-nowrap">
+        <div className="hidden lg:inline-flex items-center justify-end gap-1.5 whitespace-nowrap">
           {isPublished && (
             <>
               <Button
                 type="button"
                 onClick={handleCopyLink}
-                className="text-caption font-semibold px-2.5 py-1 rounded-lg transition-colors inline-flex items-center gap-1 whitespace-nowrap shrink-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300"
                 title={APP_MESSAGES.COPY_DEPLOYED_LINK}
+                variant="secondary"
+                tone="success"
+                size="xs"
               >
                 {copied ? (
                   <>
                     <CheckIcon className="w-3 h-3 shrink-0 text-emerald-600" />
-                    <span>{APP_MESSAGES.COPIED}</span>
+                    <Text variant="inherit">{APP_MESSAGES.COPIED}</Text>
                   </>
                 ) : (
                   <>
                     <ShareIcon className="w-3 h-3 shrink-0 text-emerald-600" />
-                    <span>{APP_MESSAGES.COPY_LINK}</span>
+                    <Text variant="inherit">{APP_MESSAGES.COPY_LINK}</Text>
                   </>
                 )}
               </Button>
@@ -260,9 +290,11 @@ export function FormRow({
           <Button
             disabled={isMutating}
             onClick={() => handleStartRename(form)}
-            className="p-1.5 shrink-0 inline-flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label={APP_MESSAGES.RENAME_FORM}
             title={APP_MESSAGES.RENAME_FORM}
+            variant="ghost"
+            tone="neutral"
+            size="icon"
           >
             <EditIcon className="w-3.5 h-3.5" />
           </Button>
@@ -270,7 +302,6 @@ export function FormRow({
           <Button
             disabled={isMutating}
             onClick={() => handleDeleteForm(form.id, form.name)}
-            className="p-1.5 shrink-0 inline-flex items-center justify-center text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
             loading={isDeletingThisForm}
             aria-label={
               isDeletingThisForm
@@ -278,6 +309,9 @@ export function FormRow({
                 : APP_MESSAGES.ARCHIVE_OR_DELETE_FORM
             }
             title={APP_MESSAGES.ARCHIVE_OR_DELETE_FORM}
+            variant="ghost"
+            tone="danger"
+            size="icon"
           >
             <DeleteIcon className="w-3.5 h-3.5" />
           </Button>
@@ -285,7 +319,7 @@ export function FormRow({
 
         {/* Mobile Actions Dropdown */}
         <div
-          className="md:hidden relative inline-block text-left"
+          className="lg:hidden relative inline-block text-left"
           ref={menuRef}
         >
           <Button
@@ -294,9 +328,10 @@ export function FormRow({
             aria-haspopup="menu"
             aria-expanded={isActionsOpen}
             onClick={() => setIsActionsOpen((prev) => !prev)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-2xs whitespace-nowrap"
+            variant="secondary"
+            size="sm"
           >
-            <span>{APP_MESSAGES.ACTIONS}</span>
+            <Text variant="inherit">{APP_MESSAGES.ACTIONS}</Text>
             <ChevronDownIcon className="w-3.5 h-3.5 text-gray-500" />
           </Button>
 
@@ -313,7 +348,7 @@ export function FormRow({
                 className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
               >
                 <EditIcon className="w-3.5 h-3.5 shrink-0" />
-                <span>{APP_MESSAGES.OPEN_EDITOR}</span>
+                <Text variant="inherit">{APP_MESSAGES.OPEN_EDITOR}</Text>
               </Link>
 
               <Link
@@ -323,7 +358,7 @@ export function FormRow({
                 className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <ViewIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" />
-                <span>{APP_MESSAGES.RESPONSES}</span>
+                <Text variant="inherit">{APP_MESSAGES.RESPONSES}</Text>
               </Link>
 
               {isPublished && (
@@ -335,17 +370,19 @@ export function FormRow({
                       handleCopyLink();
                       setIsActionsOpen(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors text-left"
+                    variant="menu"
+                    tone="success"
+                    size="sm"
                   >
                     {copied ? (
                       <>
                         <CheckIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                        <span>{APP_MESSAGES.COPIED}</span>
+                        <Text variant="inherit">{APP_MESSAGES.COPIED}</Text>
                       </>
                     ) : (
                       <>
                         <ShareIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                        <span>{APP_MESSAGES.COPY_LINK}</span>
+                        <Text variant="inherit">{APP_MESSAGES.COPY_LINK}</Text>
                       </>
                     )}
                   </Button>
@@ -360,7 +397,7 @@ export function FormRow({
                     className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     <ExternalIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" />
-                    <span>{APP_MESSAGES.OPEN_LIVE_FORM}</span>
+                    <Text variant="inherit">{APP_MESSAGES.OPEN_LIVE_FORM}</Text>
                   </Link>
                 </>
               )}
@@ -375,10 +412,12 @@ export function FormRow({
                   setIsActionsOpen(false);
                   handleStartRename(form);
                 }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left"
+                variant="menu"
+                tone="neutral"
+                size="sm"
               >
                 <EditIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" />
-                <span>{APP_MESSAGES.RENAME_FORM}</span>
+                <Text variant="inherit">{APP_MESSAGES.RENAME_FORM}</Text>
               </Button>
 
               <Button
@@ -390,14 +429,16 @@ export function FormRow({
                   setIsActionsOpen(false);
                   handleDeleteForm(form.id, form.name);
                 }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
+                variant="menu"
+                tone="danger"
+                size="sm"
               >
                 <DeleteIcon className="w-3.5 h-3.5 shrink-0 text-red-500" />
-                <span>
+                <Text variant="inherit">
                   {isDeletingThisForm
                     ? APP_MESSAGES.DELETING
                     : APP_MESSAGES.ARCHIVE_OR_DELETE_FORM}
-                </span>
+                </Text>
               </Button>
             </div>
           )}

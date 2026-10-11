@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/lib/constants/application";
 
 import { APP_MESSAGES } from "@/lib/constants/messages";
@@ -102,8 +103,10 @@ export function AdminHeader() {
                   setTempTitle(formName);
                   setIsEditingTitle(true);
                 }}
-                className="group flex items-center gap-1.5 text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate text-left"
                 title={APP_MESSAGES.CLICK_TO_RENAME}
+                variant="link"
+                tone="primary"
+                size="sm"
               >
                 <span className="truncate max-w-title-edit sm:max-w-title-max">
                   {formName}
@@ -122,32 +125,30 @@ export function AdminHeader() {
         <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
           <Button
             onClick={() => setMode("editor")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
-              activeMode === "editor"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            selected={activeMode === "editor"}
+            variant="segment"
+            tone="neutral"
+            size="sm"
           >
-            <span>{APP_MESSAGES.EDITOR}</span>
+            <Text variant="inherit">{APP_MESSAGES.EDITOR}</Text>
           </Button>
 
           <Button
             onClick={() => setMode("preview")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
-              activeMode === "preview"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            selected={activeMode === "preview"}
+            variant="segment"
+            tone="neutral"
+            size="sm"
           >
             <ViewIcon className="w-3.5 h-3.5" />
-            <span>{APP_MESSAGES.PATIENT_PREVIEW}</span>
+            <Text variant="inherit">{APP_MESSAGES.PATIENT_PREVIEW}</Text>
           </Button>
 
           <Link
             href={ROUTES.formResponses(formId)}
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md text-gray-600 hover:text-gray-900 transition-all hover:bg-white/60"
           >
-            <span>Responses</span>
+            <Text variant="inherit">Responses</Text>
           </Link>
         </div>
 
@@ -158,23 +159,21 @@ export function AdminHeader() {
             <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md border border-gray-200">
               <Button
                 onClick={() => setViewport("desktop")}
-                className={`p-1 rounded ${
-                  previewViewport === "desktop"
-                    ? "bg-white text-gray-900 shadow-xs"
-                    : "text-gray-500 hover:text-gray-800"
-                }`}
                 title={APP_MESSAGES.DESKTOP_VIEWPORT}
+                selected={previewViewport === "desktop"}
+                variant="segment"
+                tone="neutral"
+                size="icon-sm"
               >
                 <DesktopIcon className="w-4 h-4" />
               </Button>
               <Button
                 onClick={() => setViewport("mobile")}
-                className={`p-1 rounded ${
-                  previewViewport === "mobile"
-                    ? "bg-white text-gray-900 shadow-xs"
-                    : "text-gray-500 hover:text-gray-800"
-                }`}
                 title={APP_MESSAGES.MOBILE_VIEWPORT}
+                selected={previewViewport === "mobile"}
+                variant="segment"
+                tone="neutral"
+                size="icon-sm"
               >
                 <MobileIcon className="w-4 h-4" />
               </Button>
@@ -211,20 +210,24 @@ export function AdminHeader() {
             {saveStatus === "conflict" && (
               <Button
                 onClick={saveNow}
-                className="flex items-center gap-1 text-caption text-amber-700 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded font-medium hover:bg-amber-100 transition-colors"
+                variant="secondary"
+                tone="warning"
+                size="xs"
               >
                 <AlertTriangleIcon className="w-3.5 h-3.5 text-amber-600" />
-                <span>{APP_MESSAGES.CONFLICT}</span>
+                <Text variant="inherit">{APP_MESSAGES.CONFLICT}</Text>
               </Button>
             )}
 
             {saveStatus === "failed" && (
               <Button
                 onClick={saveNow}
-                className="flex items-center gap-1 text-caption text-red-700 bg-red-50 border border-red-300 px-2 py-0.5 rounded font-medium hover:bg-red-100 transition-colors"
+                variant="secondary"
+                tone="danger"
+                size="xs"
               >
                 <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600" />
-                <span>{APP_MESSAGES.RETRY_SAVE}</span>
+                <Text variant="inherit">{APP_MESSAGES.RETRY_SAVE}</Text>
               </Button>
             )}
           </div>
@@ -232,17 +235,17 @@ export function AdminHeader() {
           {/* Publish Action Button */}
           <Button
             onClick={openPublishModal}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all ${
-              publishValidationErrors.length === 0
-                ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-98"
-                : "bg-gray-900 text-white hover:bg-black"
-            }`}
+            tone={publishValidationErrors.length === 0 ? "primary" : "neutral"}
+            variant="primary"
+            size="sm"
           >
             <SendIcon className="w-3.5 h-3.5" />
-            <span>{APP_MESSAGES.PUBLISH}</span>
+            <Text variant="inherit">{APP_MESSAGES.PUBLISH}</Text>
             {publishValidationErrors.length > 0 && (
-              <span className="bg-amber-400 text-gray-900 text-micro font-bold px-1.5 py-0.2 rounded-full ml-1">
-                {publishValidationErrors.length}
+              <span className="bg-amber-400 px-1.5 py-0.2 rounded-full ml-1">
+                <Text variant="micro" tone="primary" weight="bold">
+                  {publishValidationErrors.length}
+                </Text>
               </span>
             )}
           </Button>
@@ -251,15 +254,19 @@ export function AdminHeader() {
       {saveError && (
         <Alert className="mx-4 my-2">
           {saveError}
-          <Button
-            onClick={() => void saveNow()}
-            loading={saveStatus === "saving"}
-            loadingLabel={APP_MESSAGES.SAVING}
-            disabled={saveStatus === "conflict"}
-            className="ml-2 underline"
-          >
-            {APP_MESSAGES.RETRY_SAVE}
-          </Button>
+          <span className="ml-2 inline-flex">
+            <Button
+              onClick={() => void saveNow()}
+              loading={saveStatus === "saving"}
+              loadingLabel={APP_MESSAGES.SAVING}
+              disabled={saveStatus === "conflict"}
+              variant="link"
+              tone="primary"
+              size="sm"
+            >
+              {APP_MESSAGES.RETRY_SAVE}
+            </Button>
+          </span>
         </Alert>
       )}
     </>

@@ -1,41 +1,94 @@
 import { COMPONENT_STYLES } from "@/design-system/component-styles";
 import type { ComponentProps } from "react";
-import { extendTailwindMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils/classes";
 
-const twMerge = extendTailwindMerge({
-  extend: {
-    classGroups: {
-      "font-size": [{ text: ["micro", "caption", "preview-title"] }],
-    },
-  },
-});
+const styles = COMPONENT_STYLES.table;
+type NativeProps<Tag extends "table" | "thead" | "tbody" | "tr" | "th" | "td"> =
+  Omit<ComponentProps<Tag>, "className" | "style">;
+type CellProps = {
+  variant?: keyof typeof styles.cells;
+  desktopOnly?: boolean;
+  padding?: "normal" | "roomy";
+  align?: keyof typeof styles.align;
+  truncate?: boolean;
+};
 
-const tableStyles = COMPONENT_STYLES.table;
-
-export function Table({ className, ...props }: ComponentProps<"table">) {
-  return <table className={twMerge(tableStyles.root, className)} {...props} />;
+export function Table(props: NativeProps<"table">) {
+  return <table {...props} className={styles.root} />;
 }
-
-export function Thead({ className, ...props }: ComponentProps<"thead">) {
-  return <thead className={twMerge(tableStyles.head, className)} {...props} />;
+export function Thead(props: NativeProps<"thead">) {
+  return <thead {...props} className={styles.head} />;
 }
-
-export function Tbody({ className, ...props }: ComponentProps<"tbody">) {
-  return <tbody className={twMerge(tableStyles.body, className)} {...props} />;
+export function Tbody(props: NativeProps<"tbody">) {
+  return <tbody {...props} className={styles.body} />;
 }
-
-export function Tr({ className, ...props }: ComponentProps<"tr">) {
-  return <tr className={twMerge(tableStyles.row, className)} {...props} />;
+export function Tr({
+  variant = "body",
+  interactive = false,
+  selected = false,
+  ...props
+}: NativeProps<"tr"> & {
+  variant?: "body" | "header";
+  interactive?: boolean;
+  selected?: boolean;
+}) {
+  return (
+    <tr
+      {...props}
+      aria-selected={interactive ? selected : props["aria-selected"]}
+      className={cn(
+        variant === "header" ? styles.headerRow : styles.row,
+        interactive && styles.interactiveRow,
+        selected && styles.selectedRow,
+      )}
+    />
+  );
 }
-
-export function Th({ className, ...props }: ComponentProps<"th">) {
-  return <th className={twMerge(tableStyles.th, className)} {...props} />;
+export function Th({
+  variant = "default",
+  desktopOnly,
+  padding,
+  align,
+  truncate,
+  ...props
+}: NativeProps<"th"> & CellProps) {
+  return (
+    <th
+      scope="col"
+      {...props}
+      className={cn(
+        styles.th,
+        styles.cells[variant],
+        desktopOnly && styles.desktop,
+        padding === "roomy" && styles.roomy,
+        align && styles.align[align],
+        truncate && styles.truncate,
+      )}
+    />
+  );
 }
-
-export function Td({ className, ...props }: ComponentProps<"td">) {
-  return <td className={twMerge(tableStyles.td, className)} {...props} />;
+export function Td({
+  variant = "default",
+  desktopOnly,
+  padding,
+  align,
+  truncate,
+  ...props
+}: NativeProps<"td"> & CellProps) {
+  return (
+    <td
+      {...props}
+      className={cn(
+        styles.td,
+        styles.cells[variant],
+        desktopOnly && styles.desktop,
+        padding === "roomy" && styles.roomy,
+        align && styles.align[align],
+        truncate && styles.truncate,
+      )}
+    />
+  );
 }
-
 export {
   Thead as TableHead,
   Tbody as TableBody,
@@ -43,4 +96,3 @@ export {
   Th as TableHeader,
   Td as TableCell,
 };
-

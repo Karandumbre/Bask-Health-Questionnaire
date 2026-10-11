@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Alert } from "@/components/ui/alert";
@@ -76,14 +77,16 @@ export function FormDashboard({
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+            <Text as="h2" variant="section" tone="primary" weight="bold">
               {APP_MESSAGES.CLINICAL_INTAKE_FORMS}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {
-                APP_MESSAGES.AUTHOR_PUBLISH_AND_REVIEW_VERSIONED_PATIENT_QUESTIONNAIRES
-              }
-            </p>
+            </Text>
+            <div className="mt-0.5">
+              <Text as="p" variant="small" tone="muted">
+                {
+                  APP_MESSAGES.AUTHOR_PUBLISH_AND_REVIEW_VERSIONED_PATIENT_QUESTIONNAIRES
+                }
+              </Text>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -93,6 +96,7 @@ export function FormDashboard({
               loading={isRefreshing}
               loadingLabel={APP_MESSAGES.REFRESHING_FORMS}
               variant="secondary"
+              size="sm"
             >
               {APP_MESSAGES.REFRESH}
             </Button>
@@ -100,10 +104,10 @@ export function FormDashboard({
               onClick={openCreateDialog}
               disabled={isMutating}
               variant="primary"
-              className="gap-2 whitespace-nowrap self-start sm:self-auto"
+              size="sm"
             >
               <PlusIcon className="w-4 h-4 shrink-0" />
-              <span>{APP_MESSAGES.CREATE_NEW_FORM}</span>
+              <Text variant="inherit">{APP_MESSAGES.CREATE_NEW_FORM}</Text>
             </Button>
           </div>
         </div>
@@ -112,15 +116,22 @@ export function FormDashboard({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
-              <span className="text-caption font-semibold uppercase tracking-wider text-gray-500 block">
-                {APP_MESSAGES.TOTAL_INTAKE_FORMS}
+              <span className="block">
+                <Text
+                  variant="caption"
+                  tone="muted"
+                  uppercase
+                  weight="semibold"
+                >
+                  {APP_MESSAGES.TOTAL_INTAKE_FORMS}
+                </Text>
               </span>
-              <div className="text-2xl font-bold text-gray-900 tracking-tight">
+              <Text as="p" variant="title">
                 {isLoading ? APP_MESSAGES.LOADING : totalForms}
-              </div>
-              <p className="text-caption text-gray-500">
+              </Text>
+              <Text as="p" variant="caption" tone="muted">
                 {APP_MESSAGES.REGISTERED_CLINICAL_QUESTIONNAIRES}
-              </p>
+              </Text>
             </div>
             <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <NoteIcon className="w-5 h-5" />
@@ -130,9 +141,14 @@ export function FormDashboard({
           <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-caption font-semibold uppercase tracking-wider text-gray-500">
+                <Text
+                  variant="caption"
+                  tone="muted"
+                  uppercase
+                  weight="semibold"
+                >
                   {APP_MESSAGES.PUBLISHED_AND_LIVE}
-                </span>
+                </Text>
                 <Badge
                   tone="success"
                   className="bg-emerald-100 text-emerald-800 border-0 px-1.5"
@@ -140,12 +156,12 @@ export function FormDashboard({
                   {APP_MESSAGES.DEPLOYED}
                 </Badge>
               </div>
-              <div className="text-2xl font-bold text-emerald-700 tracking-tight">
+              <Text as="p" variant="title" tone="success">
                 {isLoading ? APP_MESSAGES.LOADING : publishedCount}
-              </div>
-              <p className="text-caption text-gray-500">
+              </Text>
+              <Text as="p" variant="caption" tone="muted">
                 {APP_MESSAGES.LIVE_PATIENT_INTAKE_VERSIONS}
-              </p>
+              </Text>
             </div>
             <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <CheckIcon className="w-5 h-5" />
@@ -154,15 +170,22 @@ export function FormDashboard({
 
           <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
-              <span className="text-caption font-semibold uppercase tracking-wider text-gray-500 block">
-                {APP_MESSAGES.WORKING_DRAFTS}
+              <span className="block">
+                <Text
+                  variant="caption"
+                  tone="muted"
+                  uppercase
+                  weight="semibold"
+                >
+                  {APP_MESSAGES.WORKING_DRAFTS}
+                </Text>
               </span>
-              <div className="text-2xl font-bold text-gray-900 tracking-tight">
+              <Text as="p" variant="title">
                 {isLoading ? APP_MESSAGES.LOADING : draftCount}
-              </div>
-              <p className="text-caption text-gray-500">
+              </Text>
+              <Text as="p" variant="caption" tone="muted">
                 {APP_MESSAGES.UNPUBLISHED_FORMS_IN_PROGRESS}
-              </p>
+              </Text>
             </div>
             <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <EditIcon className="w-5 h-5" />
@@ -179,33 +202,36 @@ export function FormDashboard({
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 self-start sm:self-auto">
             <Button
               onClick={() => setStatusFilter("all")}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${
-                statusFilter === "all"
-                  ? "bg-white text-gray-900 shadow-2xs"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              selected={statusFilter === "all"}
+              variant="segment"
+              tone="neutral"
+              size="sm"
             >
-              <span>{APP_MESSAGES.ALL_FORMS_COUNT(totalForms)}</span>
+              <Text variant="inherit">
+                {APP_MESSAGES.ALL_FORMS_COUNT(totalForms)}
+              </Text>
             </Button>
             <Button
               onClick={() => setStatusFilter("published")}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${
-                statusFilter === "published"
-                  ? "bg-white text-gray-900 shadow-2xs"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              selected={statusFilter === "published"}
+              variant="segment"
+              tone="neutral"
+              size="sm"
             >
-              <span>{APP_MESSAGES.PUBLISHED_COUNT(publishedCount)}</span>
+              <Text variant="inherit">
+                {APP_MESSAGES.PUBLISHED_COUNT(publishedCount)}
+              </Text>
             </Button>
             <Button
               onClick={() => setStatusFilter("draft")}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all whitespace-nowrap ${
-                statusFilter === "draft"
-                  ? "bg-white text-gray-900 shadow-2xs"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              selected={statusFilter === "draft"}
+              variant="segment"
+              tone="neutral"
+              size="sm"
             >
-              <span>{APP_MESSAGES.DRAFTS_COUNT(draftCount)}</span>
+              <Text variant="inherit">
+                {APP_MESSAGES.DRAFTS_COUNT(draftCount)}
+              </Text>
             </Button>
           </div>
 
@@ -230,18 +256,22 @@ export function FormDashboard({
             <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
               <PlusIcon className="w-6 h-6" />
             </div>
-            <h3 className="text-sm font-bold text-gray-900">
+            <Text as="h3" variant="body" tone="primary" weight="bold">
               {APP_MESSAGES.NO_CLINICAL_FORMS_FOUND}
-            </h3>
-            <p className="text-xs text-gray-500 max-w-xs mx-auto">
-              {
-                APP_MESSAGES.GET_STARTED_BY_CREATING_YOUR_FIRST_PATIENT_INTAKE_QUESTIONNAIRE
-              }
-            </p>
+            </Text>
+            <div className="max-w-xs mx-auto">
+              <Text as="p" variant="small" tone="muted">
+                {
+                  APP_MESSAGES.GET_STARTED_BY_CREATING_YOUR_FIRST_PATIENT_INTAKE_QUESTIONNAIRE
+                }
+              </Text>
+            </div>
             <Button
               onClick={openCreateDialog}
               disabled={isMutating}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+              variant="link"
+              tone="primary"
+              size="sm"
             >
               {APP_MESSAGES.CREATE_FORM_NOW}
             </Button>
@@ -250,22 +280,21 @@ export function FormDashboard({
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xs">
             <Table>
               <Thead>
-                <Tr className="hover:bg-transparent">
-                  <Th className="pl-4 sm:pl-5 pr-3 rounded-tl-2xl w-full max-w-0">
-                    {APP_MESSAGES.FORM_TITLE}
-                  </Th>
-                  <Th className="hidden md:table-cell w-px">
+                <Tr variant="header">
+                  <Th variant="title">{APP_MESSAGES.FORM_TITLE}</Th>
+                  <Th variant="meta" desktopOnly>
                     {APP_MESSAGES.STATUS}
                   </Th>
-                  <Th className="hidden md:table-cell w-px">
+                  <Th variant="meta" desktopOnly>
+                    {APP_MESSAGES.VERSION}
+                  </Th>
+                  <Th variant="meta" desktopOnly>
                     {APP_MESSAGES.WORKING_DRAFT}
                   </Th>
-                  <Th className="hidden md:table-cell w-px">
+                  <Th variant="meta" desktopOnly>
                     {APP_MESSAGES.LAST_UPDATED}
                   </Th>
-                  <Th className="pl-3 pr-4 sm:pr-5 text-right rounded-tr-2xl w-px">
-                    {APP_MESSAGES.ACTIONS}
-                  </Th>
+                  <Th variant="actions">{APP_MESSAGES.ACTIONS}</Th>
                 </Tr>
               </Thead>
               <Tbody>

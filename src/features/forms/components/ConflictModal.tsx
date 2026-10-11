@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { useClipboard } from "@/lib/hooks/use-clipboard";
@@ -192,32 +193,38 @@ function ConflictDialog() {
       {/* Revision Comparison Pill */}
       <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex items-center justify-between text-xs font-mono">
         <div>
-          <span className="text-gray-400 block text-micro uppercase font-bold">
-            {APP_MESSAGES.BASE_ACKNOWLEDGED}
+          <span className="block">
+            <Text variant="micro" tone="subtle" uppercase weight="bold">
+              {APP_MESSAGES.BASE_ACKNOWLEDGED}
+            </Text>
           </span>
-          <span className="font-bold text-gray-600">
+          <Text variant="inherit" tone="secondary" weight="bold">
             {APP_MESSAGES.REV} {conflictDetails.localRevision} (
             {baseDefinition.questions.length} {APP_MESSAGES.FIELDS}
-          </span>
+          </Text>
         </div>
         <ArrowRightIcon className="h-4 w-4 shrink-0 text-gray-300" />
         <div>
-          <span className="text-gray-400 block text-micro uppercase font-bold">
-            {APP_MESSAGES.YOUR_LOCAL_UNSAVED}
+          <span className="block">
+            <Text variant="micro" tone="subtle" uppercase weight="bold">
+              {APP_MESSAGES.YOUR_LOCAL_UNSAVED}
+            </Text>
           </span>
-          <span className="font-bold text-blue-700">
+          <Text variant="inherit" tone="info" weight="bold">
             {definition.questions.length} {APP_MESSAGES.FIELDS_2}
-          </span>
+          </Text>
         </div>
         <ArrowRightIcon className="h-4 w-4 shrink-0 text-gray-300" />
         <div>
-          <span className="text-gray-400 block text-micro uppercase font-bold">
-            {APP_MESSAGES.LATEST_SERVER}
+          <span className="block">
+            <Text variant="micro" tone="subtle" uppercase weight="bold">
+              {APP_MESSAGES.LATEST_SERVER}
+            </Text>
           </span>
-          <span className="font-bold text-amber-600">
+          <Text variant="inherit" tone="warning" weight="bold">
             {APP_MESSAGES.REV} {conflictDetails.serverRevision}{" "}
             {serverDef ? `(${serverDef.questions.length} fields)` : ""}
-          </span>
+          </Text>
         </div>
       </div>
 
@@ -232,12 +239,12 @@ function ConflictDialog() {
             >
               <div className="flex items-center gap-1.5 font-bold">
                 <CheckIcon className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>
+                <Text variant="inherit">
                   {APP_MESSAGES.AUTO_MERGED_NON_OVERLAPPING_CHANGES}
                   {mergeResult.summary.appliedLocalChanges.length +
                     mergeResult.summary.appliedServerChanges.length}
                   ):
-                </span>
+                </Text>
               </div>
               <ul className="list-disc list-inside text-caption text-emerald-800 space-y-0.5 pl-1">
                 {mergeResult.summary.appliedLocalChanges.map((c, idx) => (
@@ -257,12 +264,12 @@ function ConflictDialog() {
             >
               <div className="font-bold flex items-center gap-1.5">
                 <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
+                <Text variant="inherit">
                   {mergeResult.conflicts.length}{" "}
                   {APP_MESSAGES.OVERLAPPING_CONFLICT}
                   {mergeResult.conflicts.length > 1 ? "s" : ""}{" "}
                   {APP_MESSAGES.REQUIRE_RESOLUTION}
-                </span>
+                </Text>
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {mergeResult.conflicts.map((conf) => {
@@ -272,12 +279,17 @@ function ConflictDialog() {
                       key={conf.id}
                       className="p-2.5 rounded-lg bg-white border border-amber-200 text-xs space-y-1.5 shadow-2xs"
                     >
-                      <p className="font-semibold text-gray-900">
+                      <Text
+                        as="p"
+                        variant="inherit"
+                        tone="primary"
+                        weight="semibold"
+                      >
                         {conf.questionLabel || conf.property || "Conflict"}
-                      </p>
-                      <p className="text-caption text-gray-600">
+                      </Text>
+                      <Text as="p" variant="caption" tone="secondary">
                         {conf.description}
-                      </p>
+                      </Text>
                       <div className="flex gap-2 pt-1">
                         <Button
                           type="button"
@@ -287,11 +299,11 @@ function ConflictDialog() {
                               [conf.id]: "local",
                             }))
                           }
-                          className={`text-caption px-2.5 py-1 rounded border font-medium ${
-                            currentPick === "local"
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                          }`}
+                          variant={
+                            currentPick === "local" ? "primary" : "secondary"
+                          }
+                          tone="primary"
+                          size="xs"
                         >
                           {APP_MESSAGES.KEEP_LOCAL}
                         </Button>
@@ -303,11 +315,11 @@ function ConflictDialog() {
                               [conf.id]: "server",
                             }))
                           }
-                          className={`text-caption px-2.5 py-1 rounded border font-medium ${
-                            currentPick === "server"
-                              ? "bg-amber-600 text-white border-amber-600"
-                              : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
-                          }`}
+                          variant={
+                            currentPick === "server" ? "primary" : "secondary"
+                          }
+                          tone="warning"
+                          size="xs"
                         >
                           {APP_MESSAGES.USE_SERVER}
                         </Button>
@@ -334,19 +346,23 @@ function ConflictDialog() {
       {serverError && (
         <Alert>
           {serverError}
-          <Button
-            className="ml-2"
-            disabled={isProcessing}
-            loading={isLoadingServer}
-            loadingLabel={APP_MESSAGES.RETRYING}
-            onClick={() => {
-              setIsLoadingServer(true);
-              setServerError(null);
-              setLoadAttempt((value) => value + 1);
-            }}
-          >
-            {APP_MESSAGES.RETRY}
-          </Button>
+          <span className="ml-2 inline-flex">
+            <Button
+              disabled={isProcessing}
+              loading={isLoadingServer}
+              loadingLabel={APP_MESSAGES.RETRYING}
+              onClick={() => {
+                setIsLoadingServer(true);
+                setServerError(null);
+                setLoadAttempt((value) => value + 1);
+              }}
+              variant="ghost"
+              tone="neutral"
+              size="sm"
+            >
+              {APP_MESSAGES.RETRY}
+            </Button>
+          </span>
         </Alert>
       )}
 
@@ -361,9 +377,15 @@ function ConflictDialog() {
       ) : comparison ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+            <Text
+              as="h3"
+              variant="small"
+              tone="primary"
+              uppercase
+              weight="bold"
+            >
               {APP_MESSAGES.FIELD_DIFFERENCES_BREAKDOWN}
-            </h3>
+            </Text>
             <div className="flex items-center gap-1.5 text-caption">
               {comparison.summary.modified > 0 && (
                 <Badge
@@ -403,9 +425,9 @@ function ConflictDialog() {
                   className="p-2 rounded-lg border bg-white border-gray-200 text-xs space-y-1 shadow-2xs"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-gray-900">
+                    <Text variant="inherit" tone="primary" weight="semibold">
                       {diff.label || APP_MESSAGES.UNTITLED_FIELD}
-                    </span>
+                    </Text>
                     <Badge
                       tone="mono"
                       className="text-micro text-gray-400 border-0"
@@ -419,20 +441,34 @@ function ConflictDialog() {
                       className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded text-caption"
                     >
                       <div>
-                        <span className="text-micro text-gray-400 uppercase font-medium">
+                        <Text
+                          variant="micro"
+                          tone="subtle"
+                          uppercase
+                          weight="medium"
+                        >
                           {APP_MESSAGES.LOCAL}
-                        </span>
-                        <span className="font-semibold text-blue-700">
+                        </Text>
+                        <Text variant="inherit" tone="info" weight="semibold">
                           {String(c.localValue)}
-                        </span>
+                        </Text>
                       </div>
                       <div>
-                        <span className="text-micro text-gray-400 uppercase font-medium">
+                        <Text
+                          variant="micro"
+                          tone="subtle"
+                          uppercase
+                          weight="medium"
+                        >
                           {APP_MESSAGES.SERVER}
-                        </span>
-                        <span className="font-semibold text-amber-700">
+                        </Text>
+                        <Text
+                          variant="inherit"
+                          tone="warning"
+                          weight="semibold"
+                        >
                           {String(c.serverValue)}
-                        </span>
+                        </Text>
                       </div>
                     </div>
                   ))}
@@ -447,27 +483,33 @@ function ConflictDialog() {
       {/* Copy Backup Option */}
       <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 flex items-center justify-between">
         <div className="text-xs text-blue-900">
-          <p className="font-semibold">{APP_MESSAGES.PREVENT_DATA_LOSS}</p>
-          <p className="text-caption text-blue-700 mt-0.5">
-            {
-              APP_MESSAGES.COPY_YOUR_LOCAL_DRAFT_JSON_TO_CLIPBOARD_BEFORE_CHOOSING
-            }
-          </p>
+          <Text as="p" variant="inherit" weight="semibold">
+            {APP_MESSAGES.PREVENT_DATA_LOSS}
+          </Text>
+          <div className="mt-0.5">
+            <Text as="p" variant="caption" tone="info">
+              {
+                APP_MESSAGES.COPY_YOUR_LOCAL_DRAFT_JSON_TO_CLIPBOARD_BEFORE_CHOOSING
+              }
+            </Text>
+          </div>
         </div>
         <Button
           type="button"
           loading={copying}
           loadingLabel={APP_MESSAGES.COPYING}
           onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs font-medium bg-white text-blue-700 border border-blue-300 px-3 py-1.5 rounded-lg shadow-2xs hover:bg-blue-50 transition-colors"
+          variant="secondary"
+          tone="primary"
+          size="sm"
         >
           {copied ? (
             <>
               <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{APP_MESSAGES.COPIED}</span>
+              <Text variant="inherit">{APP_MESSAGES.COPIED}</Text>
             </>
           ) : (
-            <span>{APP_MESSAGES.COPY_JSON}</span>
+            <Text variant="inherit">{APP_MESSAGES.COPY_JSON}</Text>
           )}
         </Button>
       </div>
@@ -481,9 +523,12 @@ function ConflictDialog() {
           loadingLabel={APP_MESSAGES.LOADING}
           onClick={handleReload}
           variant="secondary"
+          size="sm"
         >
           <UndoIcon className="w-4 h-4 text-gray-500" />
-          <span>{APP_MESSAGES.DISCARD_LOCAL_ACCEPT_SERVER}</span>
+          <Text variant="inherit">
+            {APP_MESSAGES.DISCARD_LOCAL_ACCEPT_SERVER}
+          </Text>
         </Button>
 
         <Button
@@ -492,10 +537,14 @@ function ConflictDialog() {
           loading={pendingAction === "overwrite"}
           loadingLabel={APP_MESSAGES.SAVING}
           onClick={handleForceOverwrite}
-          variant="warning"
+          variant="primary"
+          tone="warning"
+          size="sm"
         >
           <SaveIcon className="w-4 h-4" />
-          <span>{APP_MESSAGES.KEEP_ALL_MINE_OVERWRITE_SERVER}</span>
+          <Text variant="inherit">
+            {APP_MESSAGES.KEEP_ALL_MINE_OVERWRITE_SERVER}
+          </Text>
         </Button>
 
         {mergeResult && (
@@ -506,13 +555,14 @@ function ConflictDialog() {
             loadingLabel={APP_MESSAGES.SAVING}
             onClick={handleApplyMerge}
             variant="primary"
+            size="sm"
           >
             <CheckIcon className="w-4 h-4" />
-            <span>
+            <Text variant="inherit">
               {mergeResult.hasConflicts
                 ? APP_MESSAGES.APPLY_RESOLVED_MERGE_SAVE_CAS
                 : APP_MESSAGES.APPLY_SAFE_3_WAY_MERGE_SAVE_CAS}
-            </span>
+            </Text>
           </Button>
         )}
       </DialogActions>

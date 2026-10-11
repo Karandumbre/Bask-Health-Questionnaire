@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import { COMPONENT_STYLES } from "@/design-system/component-styles";
@@ -173,12 +174,16 @@ export function QuestionControl({
           {checkboxLabel ? (
             checkboxLabel
           ) : (
-            <span className="leading-snug">
+            <Text variant="inherit">
               {question.label}
               {question.required && (
-                <span className="ml-1 text-red-600">*</span>
+                <span className="ml-1">
+                  <Text variant="inherit" tone="danger">
+                    *
+                  </Text>
+                </span>
               )}
-            </span>
+            </Text>
           )}
         </label>
       );

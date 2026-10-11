@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { CheckIcon, MoonIcon, SunIcon } from "@/components/ui/icons";
@@ -45,38 +46,64 @@ export function PatientProgressBar({
       className="sticky top-0 z-30 backdrop-blur-xs border-b px-4 py-3 sm:px-6 transition-colors bg-intake-surface/95 border-intake-border text-intake-text-primary"
     >
       <div className="max-w-2xl mx-auto flex flex-col gap-2">
-        <div className="flex items-center justify-between text-xs sm:text-sm">
-          <div role="status" className="flex items-center gap-2 font-medium">
-            <span className="text-intake-text-secondary">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs sm:text-sm">
+          <div
+            role="status"
+            className="flex items-center gap-2 font-medium whitespace-nowrap shrink-0"
+          >
+            <Text variant="inherit" tone="intakeSecondary" wrap="nowrap">
               {answeredCount} of {totalCount} answered ({percentage}%)
-            </span>
+            </Text>
             {saveStatus === "saving" && (
-              <span className="inline-flex items-center gap-1 text-xs text-blue-500 font-medium">
+              <span className="inline-flex items-center gap-1 shrink-0">
                 <Spinner />
-                Saving...
+                <Text
+                  variant="small"
+                  tone="intakeSecondary"
+                  wrap="nowrap"
+                  weight="medium"
+                >
+                  Saving...
+                </Text>
               </span>
             )}
             {saveStatus === "saved" && (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
-                <CheckIcon className="h-3 w-3" />
-                Saved
+              <span className="inline-flex items-center gap-1 shrink-0">
+                <CheckIcon className="h-3 w-3 shrink-0" />
+                <Text
+                  variant="small"
+                  tone="intakeSecondary"
+                  wrap="nowrap"
+                  weight="medium"
+                >
+                  Saved
+                </Text>
               </span>
             )}
             {saveStatus === "error" && (
-              <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-medium">
-                {APP_MESSAGES.UNSAVED}
+              <span className="inline-flex items-center gap-1 shrink-0">
+                <Text
+                  variant="small"
+                  tone="intakeSecondary"
+                  wrap="nowrap"
+                  weight="medium"
+                >
+                  {APP_MESSAGES.UNSAVED}
+                </Text>
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {/* Jump to Next Unanswered button for long forms */}
             {onJumpToNextUnanswered && unansweredRequiredCount > 0 && (
               <Button
                 type="button"
                 onClick={onJumpToNextUnanswered}
-                className="text-xs font-semibold px-2 py-1 rounded-md border border-intake-border-focus bg-intake-surface text-intake-text-primary hover:bg-intake-bg focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
                 aria-label={`Jump to next required question (${unansweredRequiredCount} remaining)`}
+                theme="intake"
+                variant="secondary"
+                size="xs"
               >
                 Next Required ({unansweredRequiredCount})
               </Button>
@@ -89,26 +116,34 @@ export function PatientProgressBar({
                 onClick={onToggleThemeMode}
                 aria-label={`Switch to ${themeMode === "light" ? "dark" : "light"} mode`}
                 aria-pressed={themeMode === "dark"}
-                className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border font-medium border-intake-border bg-intake-bg text-intake-text-primary hover:border-intake-border-focus focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
+                theme="intake"
+                variant="secondary"
+                size="xs"
               >
                 {themeMode === "light" ? (
-                  <MoonIcon className="h-4 w-4" />
+                  <MoonIcon className="h-3.5 w-3.5 shrink-0" />
                 ) : (
-                  <SunIcon className="h-4 w-4" />
+                  <SunIcon className="h-3.5 w-3.5 shrink-0" />
                 )}
-                {themeMode === "light" ? "Dark" : "Light"}
+                <Text variant="inherit">
+                  {themeMode === "light" ? "Dark" : "Light"}
+                </Text>
               </Button>
             )}
 
             {onResumeExisting && (
-              <Button
-                type="button"
-                disabled={disabled}
-                onClick={onResumeExisting}
-                className="text-xs font-medium text-intake-text-secondary hover:text-intake-text-primary underline underline-offset-2 transition-colors cursor-pointer hidden sm:inline"
-              >
-                Resume with code
-              </Button>
+              <div className="hidden sm:inline-flex">
+                <Button
+                  type="button"
+                  disabled={disabled}
+                  onClick={onResumeExisting}
+                  theme="intake"
+                  variant="link"
+                  size="xs"
+                >
+                  Resume with code
+                </Button>
+              </div>
             )}
             {onSaveAndResume && (
               <Button
@@ -117,7 +152,9 @@ export function PatientProgressBar({
                 loading={saving}
                 loadingLabel={APP_MESSAGES.SAVING}
                 onClick={onSaveAndResume}
-                className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-intake-border bg-intake-bg hover:border-intake-border-focus text-intake-text-primary focus-visible:outline-2 focus-visible:outline-intake-focus-ring transition-colors cursor-pointer"
+                theme="intake"
+                variant="secondary"
+                size="xs"
               >
                 Save &amp; Exit
               </Button>

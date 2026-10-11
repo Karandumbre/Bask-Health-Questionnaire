@@ -1,3 +1,4 @@
+import { Text } from "@/components/ui/text";
 import { type ReactNode } from "react";
 import { Input } from "./input";
 import { twMerge } from "tailwind-merge";
@@ -72,7 +73,11 @@ export function ChoiceGroup({
         >
           {legend}
           {!legendSrOnly && required && (
-            <span className="ml-1 text-red-600">*</span>
+            <span className="ml-1">
+              <Text variant="inherit" tone="danger">
+                *
+              </Text>
+            </span>
           )}
         </legend>
       )}
@@ -108,7 +113,7 @@ export function ChoiceGroup({
                 onChange={(e) => handleOptionChange(opt.id, e.target.checked)}
                 className="h-4 w-4 accent-intake-primary-action cursor-pointer"
               />
-              <span>{opt.label}</span>
+              <Text variant="inherit">{opt.label}</Text>
             </label>
           );
         })}

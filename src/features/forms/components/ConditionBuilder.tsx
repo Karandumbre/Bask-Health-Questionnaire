@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import {
@@ -111,14 +112,16 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
             >
               <AlertTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">
+                <Text as="p" variant="inherit" weight="semibold">
                   {APP_MESSAGES.NO_ELIGIBLE_PARENT_FIELDS}
-                </p>
-                <p className="mt-0.5 text-amber-700">
-                  {
-                    APP_MESSAGES.CONDITIONS_REQUIRE_AN_EARLIER_SINGLE_CHOICE_QUESTION_THAT_IS
-                  }
-                </p>
+                </Text>
+                <div className="mt-0.5">
+                  <Text as="p" variant="inherit" tone="warning">
+                    {
+                      APP_MESSAGES.CONDITIONS_REQUIRE_AN_EARLIER_SINGLE_CHOICE_QUESTION_THAT_IS
+                    }
+                  </Text>
+                </div>
               </div>
             </Alert>
           ) : (
@@ -190,7 +193,9 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                   className="flex items-center gap-1.5 text-caption text-emerald-700 px-2 py-1 rounded"
                 >
                   <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{APP_MESSAGES.CONDITION_IS_VALID_AND_ACTIVE}</span>
+                  <Text variant="inherit">
+                    {APP_MESSAGES.CONDITION_IS_VALID_AND_ACTIVE}
+                  </Text>
                 </Alert>
               ) : (
                 <Alert
@@ -199,15 +204,17 @@ export function ConditionBuilder({ question }: ConditionBuilderProps) {
                 >
                   <div className="flex items-start gap-1.5 min-w-0">
                     <AlertTriangleIcon className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
-                    <span>{validationMessage}</span>
+                    <Text variant="inherit">{validationMessage}</Text>
                   </div>
                   <Button
                     type="button"
                     onClick={() =>
                       updateQuestion(question.id, { visibility: null })
                     }
-                    className="text-micro font-semibold text-red-700 underline hover:text-red-900 shrink-0 cursor-pointer"
                     title={APP_MESSAGES.REMOVE_BROKEN_CONDITION}
+                    variant="link"
+                    tone="danger"
+                    size="xs"
                   >
                     {APP_MESSAGES.REMOVE_CONDITION}
                   </Button>

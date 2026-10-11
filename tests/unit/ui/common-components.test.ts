@@ -88,16 +88,19 @@ describe("Common UI primitives (src/components/ui)", () => {
       ["warning", COMPONENT_STYLES.badge.tones.warning],
       ["info", COMPONENT_STYLES.badge.tones.info],
       ["purple", COMPONENT_STYLES.badge.tones.purple],
-    ] as const)("renders %s tone with design-system tokens", (tone, classes) => {
-      const html = renderToStaticMarkup(
-        createElement(Badge, { tone, title: `badge-${tone}` }, tone),
-      );
-      expect(html).toContain("<span");
-      expect(html).toContain(`title="badge-${tone}"`);
-      for (const token of classes.split(" ")) {
-        expect(html).toContain(token);
-      }
-    });
+    ] as const)(
+      "renders %s tone with design-system tokens",
+      (tone, classes) => {
+        const html = renderToStaticMarkup(
+          createElement(Badge, { tone, title: `badge-${tone}` }, tone),
+        );
+        expect(html).toContain("<span");
+        expect(html).toContain(`title="badge-${tone}"`);
+        for (const token of classes.split(" ")) {
+          expect(html).toContain(token);
+        }
+      },
+    );
 
     it("defaults to neutral tone and merges custom className", () => {
       const html = renderToStaticMarkup(
@@ -110,22 +113,26 @@ describe("Common UI primitives (src/components/ui)", () => {
   });
 
   describe("Button", () => {
-    it.each(["plain", "primary", "secondary", "warning"] as const)(
-      "renders %s variant with default type=button",
-      (variant) => {
-        const html = renderToStaticMarkup(
-          createElement(Button, { variant }, `Action ${variant}`),
-        );
-        expect(html).toContain('type="button"');
-        expect(html).toContain(`Action ${variant}`);
-        const variantClasses = COMPONENT_STYLES.button.variants[variant];
-        if (variantClasses) {
-          for (const token of variantClasses.split(" ")) {
-            expect(html).toContain(token);
-          }
+    it.each([
+      "ghost",
+      "primary",
+      "secondary",
+      "link",
+      "menu",
+      "segment",
+    ] as const)("renders %s variant with default type=button", (variant) => {
+      const html = renderToStaticMarkup(
+        createElement(Button, { variant }, `Action ${variant}`),
+      );
+      expect(html).toContain('type="button"');
+      expect(html).toContain(`Action ${variant}`);
+      const variantClasses = COMPONENT_STYLES.button.variants[variant];
+      if (variantClasses) {
+        for (const token of variantClasses.split(" ")) {
+          expect(html).toContain(token);
         }
-      },
-    );
+      }
+    });
 
     it("disables button, sets aria-busy, renders Spinner, and swaps to loadingLabel when loading", () => {
       const htmlWithLabel = renderToStaticMarkup(
@@ -228,7 +235,7 @@ describe("Common UI primitives (src/components/ui)", () => {
       );
       expect(html).toContain('for="email-input"');
       expect(html).toContain("Email Address");
-      expect(html).toContain('<span class="ml-1 text-red-600">*</span>');
+      expect(html).toContain('<span class="text-red-600">*</span>');
       expect(html).toContain('id="email-input-help"');
       expect(html).toContain("Used for clinical notifications");
       expect(html).toContain("pt-2");
@@ -282,7 +289,7 @@ describe("Common UI primitives (src/components/ui)", () => {
       expect(html).toContain('aria-invalid="true"');
       expect(html).toContain('aria-describedby="q_single-desc"');
       expect(html).toContain("Choose one option");
-      expect(html).toContain('<span class="ml-1 text-red-600">*</span>');
+      expect(html).toContain('<span class="text-red-600">*</span>');
       expect(html).toContain('type="radio"');
       expect(html).toContain('name="choice-q_single"');
       expect(html).toContain('id="q_single-opt-opt_b"');
@@ -353,7 +360,12 @@ describe("Common UI primitives (src/components/ui)", () => {
       const html = renderToStaticMarkup(
         createElement(
           Dialog,
-          { open: false, titleId: "modal-title", onClose, className: "max-w-xl" },
+          {
+            open: false,
+            titleId: "modal-title",
+            onClose,
+            className: "max-w-xl",
+          },
           createElement(DialogHeader, {
             titleId: "modal-title",
             title: "Confirm Action",
@@ -369,7 +381,9 @@ describe("Common UI primitives (src/components/ui)", () => {
           ),
         ),
       );
-      expect(html).toContain('<dialog tabindex="-1" aria-labelledby="modal-title"');
+      expect(html).toContain(
+        '<dialog tabindex="-1" aria-labelledby="modal-title"',
+      );
       expect(html).toContain("max-w-xl");
       expect(html).toContain('id="modal-title"');
       expect(html).toContain("Confirm Action");
@@ -409,7 +423,7 @@ describe("Common UI primitives (src/components/ui)", () => {
   });
 
   describe("Table, Thead, Tbody, Tr, Th, and Td", () => {
-    it("exports semantic table primitives and matching aliases with merged styles", () => {
+    it("exports semantic table primitives with named alignment and spacing", () => {
       expect(TableHead).toBe(Thead);
       expect(TableBody).toBe(Tbody);
       expect(TableRow).toBe(Tr);
@@ -419,14 +433,14 @@ describe("Common UI primitives (src/components/ui)", () => {
       const html = renderToStaticMarkup(
         createElement(
           Table,
-          { "aria-label": "Forms Table", className: "custom-table" },
+          { "aria-label": "Forms Table" },
           createElement(
             Thead,
             null,
             createElement(
               Tr,
-              { className: "hover:bg-transparent" },
-              createElement(Th, { scope: "col", className: "px-5" }, "Name"),
+              { variant: "header" },
+              createElement(Th, { scope: "col", padding: "roomy" }, "Name"),
             ),
           ),
           createElement(
@@ -437,7 +451,7 @@ describe("Common UI primitives (src/components/ui)", () => {
               null,
               createElement(
                 Td,
-                { className: "px-5 text-right whitespace-normal" },
+                { padding: "roomy", align: "right" },
                 "Row Value",
               ),
             ),
@@ -445,15 +459,21 @@ describe("Common UI primitives (src/components/ui)", () => {
         ),
       );
 
-      expect(html).toContain('<table class="w-full text-left border-collapse text-xs custom-table"');
+      expect(html).toContain('aria-label="Forms Table"');
+      expect(html).toContain(
+        'class="w-full text-left border-collapse text-xs"',
+      );
       expect(html).toContain("<thead");
       expect(html).toContain("text-caption");
       expect(html).toContain("text-gray-500");
-      expect(html).toContain("hover:bg-transparent");
-      expect(html).toContain('<th class="py-3.5 whitespace-nowrap px-5" scope="col">Name</th>');
-      expect(html).toContain('<tbody class="divide-y divide-gray-100">');
+      expect(html).toContain('<tr class="align-middle">');
+      expect(html).toContain('<th scope="col"');
+      expect(html).toContain("px-5");
       expect(html).toContain(
-        '<td class="py-3.5 px-5 text-right whitespace-normal">Row Value</td>',
+        '<tbody class="divide-y divide-gray-100 text-gray-800">',
+      );
+      expect(html).toContain(
+        '<td class="py-3.5 whitespace-nowrap px-5 text-right">Row Value</td>',
       );
     });
   });
@@ -469,7 +489,9 @@ describe("Common UI primitives (src/components/ui)", () => {
       );
       expect(html).toContain('role="status"');
       expect(html).toContain('aria-busy="true"');
-      expect(html).toContain('<span class="sr-only">Loading patient intake</span>');
+      expect(html).toContain(
+        '<span class="sr-only">Loading patient intake</span>',
+      );
       expect(html).toContain('aria-hidden="true"');
       expect(html).toContain("h-6 w-32");
     });

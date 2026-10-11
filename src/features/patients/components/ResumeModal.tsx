@@ -113,6 +113,7 @@ export function ResumeModal({
             disabled={isLoading}
             onClick={onClose}
             variant="secondary"
+            size="sm"
           >
             Cancel
           </Button>
@@ -121,6 +122,7 @@ export function ResumeModal({
             loading={isLoading}
             loadingLabel={APP_MESSAGES.RESTORING}
             variant="primary"
+            size="sm"
           >
             {APP_MESSAGES.RESTORE_PROGRESS}
           </Button>

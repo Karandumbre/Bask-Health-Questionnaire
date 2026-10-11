@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@/components/ui/text";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants/application";
@@ -158,9 +159,15 @@ export function ResponsesView({
           <div className="h-4 w-px bg-gray-200" />
 
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-sm font-semibold text-gray-900 truncate">
+            <Text
+              as="h1"
+              variant="body"
+              tone="primary"
+              truncate
+              weight="semibold"
+            >
               {formName}
-            </h1>
+            </Text>
             <Badge tone="mono" className="text-gray-500">
               Responses ({totalCount})
             </Badge>
@@ -174,7 +181,7 @@ export function ResponsesView({
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors shadow-2xs"
           >
             <EditIcon className="w-3.5 h-3.5" />
-            <span>Editor</span>
+            <Text variant="inherit">Editor</Text>
           </Link>
         </div>
       </header>
@@ -184,13 +191,15 @@ export function ResponsesView({
         {/* Banner / Stat summary */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">
+            <Text as="h2" variant="heading" tone="primary" weight="semibold">
               Clinical Intake Submissions
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Authoritative, immutable patient intake records submitted against
-              published form versions.
-            </p>
+            </Text>
+            <div className="mt-0.5">
+              <Text as="p" variant="small" tone="muted">
+                Authoritative, immutable patient intake records submitted
+                against published form versions.
+              </Text>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 text-xs">
@@ -201,10 +210,11 @@ export function ResponsesView({
             </Badge>
           </div>
           <Button
-            variant="secondary"
             loading={loadingList}
             loadingLabel={APP_MESSAGES.LOADING_RESPONSES}
             onClick={() => void handleRefresh()}
+            variant="secondary"
+            size="sm"
           >
             {listError ? APP_MESSAGES.RETRY : APP_MESSAGES.REFRESH_RESPONSES}
           </Button>
@@ -230,19 +240,21 @@ export function ResponsesView({
               <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center">
                 <ViewIcon className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-900">
+              <Text as="h3" variant="body" tone="primary" weight="semibold">
                 No Responses Yet
-              </h3>
-              <p className="text-xs text-gray-500 max-w-md mx-auto">
-                Patient submissions will appear here automatically once clinical
-                intake forms are completed.
-              </p>
+              </Text>
+              <div className="max-w-md mx-auto">
+                <Text as="p" variant="small" tone="muted">
+                  Patient submissions will appear here automatically once
+                  clinical intake forms are completed.
+                </Text>
+              </div>
               <div className="pt-2">
                 <Link
                   href={ROUTES.editForm(formId)}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-2xs"
                 >
-                  <span>Open Editor</span>
+                  <Text variant="inherit">Open Editor</Text>
                 </Link>
               </div>
             </div>
@@ -252,74 +264,82 @@ export function ResponsesView({
           <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <Table aria-label="Clinical Form Responses">
-                <Thead className="bg-gray-50 text-micro font-semibold">
-                  <Tr className="hover:bg-transparent">
-                    <Th scope="col" className="px-5 py-3">
+                <Thead>
+                  <Tr variant="header">
+                    <Th scope="col" padding="roomy">
                       Submission Date
                     </Th>
-                    <Th scope="col" className="px-5 py-3">
+                    <Th scope="col" padding="roomy">
                       Form Name
                     </Th>
-                    <Th scope="col" className="px-5 py-3">
+                    <Th scope="col" padding="roomy">
                       Version
                     </Th>
-                    <Th scope="col" className="px-5 py-3">
+                    <Th scope="col" padding="roomy">
                       Status
                     </Th>
-                    <Th scope="col" className="px-5 py-3">
+                    <Th scope="col" padding="roomy">
                       Session Ref
                     </Th>
-                    <Th scope="col" className="px-5 py-3 text-right">
+                    <Th scope="col" padding="roomy" align="right">
                       Actions
                     </Th>
                   </Tr>
                 </Thead>
-                <Tbody className="text-gray-800">
+                <Tbody>
                   {submissions.map((sub) => (
                     <Tr
                       key={sub.id}
-                      className="hover:bg-blue-50/40 cursor-pointer"
                       onClick={(event) => {
                         detailTrigger.current =
                           event.currentTarget.querySelector("button");
                         void handleOpenDetail(sub.id);
                       }}
+                      interactive
+                      selected={selectedSubmissionId === sub.id}
                     >
-                      <Td className="px-5 font-medium text-gray-900">
-                        {formatDetailedDateTime(sub.submittedAt)}
+                      <Td padding="roomy">
+                        <Text variant="small" weight="medium">
+                          {formatDetailedDateTime(sub.submittedAt)}
+                        </Text>
                       </Td>
-                      <Td className="px-5 font-medium truncate max-w-xs text-gray-900">
-                        {sub.formName || formName}
+                      <Td padding="roomy" truncate>
+                        <Text variant="small" weight="medium">
+                          {sub.formName || formName}
+                        </Text>
                       </Td>
-                      <Td className="px-5">
+                      <Td padding="roomy">
                         <Badge tone="neutral" className="px-2">
                           v{sub.versionNumber}
                         </Badge>
                       </Td>
-                      <Td className="px-5">
+                      <Td padding="roomy">
                         <Badge tone="success" className="px-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           Completed
                         </Badge>
                       </Td>
-                      <Td className="px-5 font-mono text-gray-500">
-                        {sub.sessionReference}
+                      <Td padding="roomy">
+                        <Text variant="small" tone="muted" mono>
+                          {sub.sessionReference}
+                        </Text>
                       </Td>
-                      <Td className="px-5 text-right">
+                      <Td padding="roomy" align="right">
                         <Button
                           loading={
                             loadingDetail && selectedSubmissionId === sub.id
                           }
                           loadingLabel={APP_MESSAGES.LOADING}
-                          variant="secondary"
                           onClick={(e) => {
                             e.stopPropagation();
                             detailTrigger.current = e.currentTarget;
                             void handleOpenDetail(sub.id);
                           }}
-                          className="text-xs px-2.5 py-1 text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
+                          variant="link"
+                          tone="primary"
+                          size="xs"
                         >
-                          <span>View Detail</span>
+                          <Text variant="inherit">View Detail</Text>
                           <ArrowRightIcon className="w-3.5 h-3.5" />
                         </Button>
                       </Td>
@@ -330,29 +350,33 @@ export function ResponsesView({
             </div>
             {totalCount > PAGE_SIZE && (
               <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 bg-gray-50 text-xs text-gray-600">
-                <span>
+                <Text variant="inherit">
                   Showing {currentPage * PAGE_SIZE + 1}–
                   {Math.min((currentPage + 1) * PAGE_SIZE, totalCount)} of{" "}
                   {totalCount} responses
-                </span>
+                </Text>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="secondary"
                     disabled={currentPage === 0 || loadingList}
                     onClick={() => void loadPage(currentPage - 1)}
+                    variant="secondary"
+                    size="sm"
                   >
                     Previous
                   </Button>
-                  <span className="px-2 font-medium">
-                    Page {currentPage + 1} of{" "}
-                    {Math.ceil(totalCount / PAGE_SIZE)}
+                  <span className="px-2">
+                    <Text variant="inherit" weight="medium">
+                      Page {currentPage + 1} of{" "}
+                      {Math.ceil(totalCount / PAGE_SIZE)}
+                    </Text>
                   </span>
                   <Button
-                    variant="secondary"
                     disabled={
                       (currentPage + 1) * PAGE_SIZE >= totalCount || loadingList
                     }
                     onClick={() => void loadPage(currentPage + 1)}
+                    variant="secondary"
+                    size="sm"
                   >
                     Next
                   </Button>
@@ -385,11 +409,11 @@ export function ResponsesView({
             <div className="p-8 text-center space-y-3">
               <Alert>{detailError}</Alert>
               <Button
-                variant="secondary"
                 loading={loadingDetail}
                 loadingLabel={APP_MESSAGES.RETRYING}
                 onClick={() => void handleOpenDetail(selectedSubmissionId)}
-                className="text-xs"
+                variant="secondary"
+                size="sm"
               >
                 Retry
               </Button>
@@ -399,15 +423,19 @@ export function ResponsesView({
           {!loadingDetail && !detailError && selectedDetail && (
             <div className="flex flex-col max-h-conflict-height">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50/80">
-                <h3 className="text-sm font-semibold text-gray-900 break-words">
-                  {selectedDetail.definitionSnapshot.title}
-                </h3>
-                <p className="mt-1 text-caption text-gray-500">
-                  {APP_MESSAGES.RESPONSE_SUBMITTED_SUMMARY(
-                    formatShortDateTime(selectedDetail.submittedAt),
-                    selectedDetail.versionNumber,
-                  )}
-                </p>
+                <div className="break-words">
+                  <Text as="h3" variant="body" tone="primary" weight="semibold">
+                    {selectedDetail.definitionSnapshot.title}
+                  </Text>
+                </div>
+                <div className="mt-1">
+                  <Text as="p" variant="caption" tone="muted">
+                    {APP_MESSAGES.RESPONSE_SUBMITTED_SUMMARY(
+                      formatShortDateTime(selectedDetail.submittedAt),
+                      selectedDetail.versionNumber,
+                    )}
+                  </Text>
+                </div>
               </div>
 
               {/* Modal Body: Q&A Snapshot Breakdown */}
@@ -457,11 +485,7 @@ export function ResponsesView({
 
               {/* Modal Footer */}
               <DialogActions className="px-6 py-3.5 border-t border-gray-200 bg-gray-50 items-center">
-                <Button
-                  variant="primary"
-                  onClick={handleCloseDetail}
-                  className="text-xs px-4 py-1.5 font-medium rounded-lg"
-                >
+                <Button onClick={handleCloseDetail} variant="primary" size="sm">
                   Close
                 </Button>
               </DialogActions>
@@ -500,13 +524,15 @@ function ResponseFieldRow({
       {/* Question Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h4 className="text-xs font-semibold text-gray-900 leading-snug">
+          <Text as="h4" variant="small" tone="primary" weight="semibold">
             {index + 1}. {question.label}
-          </h4>
+          </Text>
           {question.description && (
-            <p className="text-caption text-gray-500 mt-0.5">
-              {question.description}
-            </p>
+            <div className="mt-0.5">
+              <Text as="p" variant="caption" tone="muted">
+                {question.description}
+              </Text>
+            </div>
           )}
         </div>
       </div>
@@ -514,13 +540,13 @@ function ResponseFieldRow({
       {/* Answer Display */}
       <div className="mt-2 break-words">
         {!wasVisible ? (
-          <p className="text-caption italic text-gray-400">
+          <Text as="p" variant="caption" tone="subtle" italic>
             {APP_MESSAGES.RESPONSE_NOT_SHOWN}
-          </p>
+          </Text>
         ) : answer === undefined || answer === null || answer === "" ? (
-          <p className="text-caption italic text-gray-400">
+          <Text as="p" variant="caption" tone="subtle" italic>
             {APP_MESSAGES.RESPONSE_NO_ANSWER}
-          </p>
+          </Text>
         ) : (
           <AnswerValueRenderer question={question} answer={answer} />
         )}
@@ -546,11 +572,11 @@ function AnswerValueRenderer({
           {answer === true && (
             <CheckIcon className="w-4 h-4 text-emerald-600" />
           )}
-          <span>
+          <Text variant="inherit">
             {answer === true
               ? APP_MESSAGES.RESPONSE_CHECKED
               : APP_MESSAGES.RESPONSE_UNCHECKED}
-          </span>
+          </Text>
         </div>
       );
 
@@ -558,8 +584,10 @@ function AnswerValueRenderer({
       const selectedOption = question.options.find((opt) => opt.id === answer);
       return (
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-900 font-semibold text-xs border border-blue-200">
-            {selectedOption ? selectedOption.label : String(answer)}
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200">
+            <Text variant="small" tone="info" weight="semibold">
+              {selectedOption ? selectedOption.label : String(answer)}
+            </Text>
           </span>
         </div>
       );
@@ -575,16 +603,18 @@ function AnswerValueRenderer({
       return (
         <div className="flex flex-wrap gap-1.5">
           {selectedOptions.length === 0 ? (
-            <span className="text-caption italic text-gray-400">
+            <Text variant="caption" tone="subtle" italic>
               None selected
-            </span>
+            </Text>
           ) : (
             selectedOptions.map((optLabel, i) => (
               <span
                 key={i}
-                className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-900 font-medium text-xs border border-indigo-200"
+                className="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200"
               >
-                {optLabel}
+                <Text variant="small" tone="info" weight="medium">
+                  {optLabel}
+                </Text>
               </span>
             ))
           )}
@@ -594,16 +624,22 @@ function AnswerValueRenderer({
 
     case "number":
       return (
-        <span className="font-mono text-sm font-semibold text-gray-900">
+        <Text variant="body" tone="primary" mono weight="semibold">
           {String(answer)}
-        </span>
+        </Text>
       );
 
     case "short_text":
       return (
-        <p className="text-xs font-medium text-gray-900 whitespace-pre-wrap">
+        <Text
+          as="p"
+          variant="small"
+          tone="primary"
+          wrap="preserve"
+          weight="medium"
+        >
           {String(answer)}
-        </p>
+        </Text>
       );
 
     case "long_text":
@@ -615,9 +651,9 @@ function AnswerValueRenderer({
 
     default:
       return (
-        <span className="font-mono text-caption text-gray-700">
+        <Text variant="caption" tone="secondary" mono>
           {JSON.stringify(answer)}
-        </span>
+        </Text>
       );
   }
 }

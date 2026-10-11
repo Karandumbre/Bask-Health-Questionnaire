@@ -89,6 +89,7 @@ export const APP_MESSAGES = {
   SIGNING_IN: "Signing in...",
   SIGN_IN_TO_INTAKE_STUDIO: "Sign in to Intake Studio",
   BH: "BH",
+  INTAKE_STUDIO: "Intake Studio",
   INTAKE_STUDIO_REVIEWER_PORTAL: "Intake Studio — Reviewer Portal",
   SECURE_CLINICAL_ADMINISTRATION_AND_FORM_AUTHORING:
     "Secure clinical administration and form authoring",
@@ -240,6 +241,7 @@ export const APP_MESSAGES = {
   LAST_UPDATED: "Last Updated",
   ACTIONS: "Actions",
   SAVE: "Save",
+  PUBLISHED: "Published",
   PUBLISHED_V: "Published v",
   UNPUBLISHED_DRAFT: "Unpublished Draft",
   AT: "at",

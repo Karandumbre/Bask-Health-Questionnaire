@@ -1,4 +1,5 @@
 "use client";
+import { Text } from "@/components/ui/text";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Dialog, DialogHeader, DialogActions } from "@/components/ui/dialog";
@@ -65,7 +66,7 @@ export function CreateFormDialog({
             {errorMessage && (
               <Alert className="flex items-center gap-1.5">
                 <AlertTriangleIcon className="w-4 h-4 text-red-500 shrink-0" />
-                <span>{errorMessage}</span>
+                <Text variant="inherit">{errorMessage}</Text>
               </Alert>
             )}
 
@@ -75,7 +76,7 @@ export function CreateFormDialog({
                 disabled={isCreating}
                 onClick={() => setIsCreateModalOpen(false)}
                 variant="secondary"
-                className="py-2"
+                size="sm"
               >
                 {APP_MESSAGES.CANCEL}
               </Button>
@@ -85,7 +86,7 @@ export function CreateFormDialog({
                 loadingLabel={APP_MESSAGES.CREATING}
                 disabled={!newFormName.trim() || isCreating}
                 variant="primary"
-                className="py-2"
+                size="sm"
               >
                 {APP_MESSAGES.CREATE_OPEN}
               </Button>
