@@ -17,6 +17,9 @@ describe("forms loading shells", () => {
       APP_MESSAGES.CREATE_NEW_FORM,
     ])
       expect(html).toContain(label);
+    expect(html).toContain(
+      '<main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6">',
+    );
     expect(html).not.toContain('<div aria-hidden="true"><header');
   });
   it("shows editor navigation and panel headings before the draft", () => {
