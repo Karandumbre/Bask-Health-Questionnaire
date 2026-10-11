@@ -1,6 +1,6 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import { ROUTES } from "@/lib/constants/application";
-
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import Link from "next/link";
@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   CheckIcon,
+  ChevronDownIcon,
   EditIcon,
   DeleteIcon,
   ShareIcon,
   ExternalIcon,
+  ViewIcon,
 } from "@/components/ui/icons";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { useClipboard } from "@/lib/hooks/use-clipboard";
@@ -37,9 +39,39 @@ export function FormRow({
     pendingAction,
   } = model;
 
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const { copied, copy } = useClipboard();
   const isPublished = Boolean(form.latestPublishedVersionNumber);
   const publicSlug = form.publicSlug || form.id;
+
+  useEffect(() => {
+    if (!isActionsOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        event.target instanceof Node &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setIsActionsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsActionsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isActionsOpen]);
 
   const handleCopyLink = () => {
     if (!isPublished) return;
@@ -47,19 +79,27 @@ export function FormRow({
     const publicUrl = `${origin}/intake/${publicSlug}`;
     void copy(publicUrl);
   };
+
+  const isRenamingThisForm = renamingFormId === form.id;
+  const isDeletingThisForm =
+    pendingAction?.type === "delete" && pendingAction.formId === form.id;
+
   return (
-    <tr key={form.id} className="hover:bg-gray-50/70 transition-colors group">
-      {/* Title */}
-      <td className="py-3.5 px-4 font-medium text-gray-900">
-        {renamingFormId === form.id ? (
-          <div className="flex items-center gap-1.5">
+    <tr
+      key={form.id}
+      className="hover:bg-gray-50/70 transition-colors group align-middle"
+    >
+      {/* Title (Desktop) + Responsive Summary (Mobile: Ellipsis Name + Status + Last Edited) */}
+      <td className="py-4 pl-4 sm:pl-5 pr-3 font-medium text-gray-900 max-w-0 md:max-w-xs lg:max-w-md w-full md:w-auto">
+        {isRenamingThisForm ? (
+          <div className="flex items-center gap-2">
             <Input
               type="text"
               disabled={isMutating}
               aria-label={APP_MESSAGES.FORM_TITLE}
               value={renamingName}
               onChange={(e) => setRenamingName(e.target.value)}
-              className="border border-blue-500 rounded px-2 py-0.5 text-xs outline-none"
+              className="border border-blue-500 rounded-lg px-2.5 py-1 text-xs outline-none min-w-0 flex-1"
               autoFocus
             />
             <Button
@@ -70,82 +110,123 @@ export function FormRow({
               }
               loadingLabel={APP_MESSAGES.SAVING}
               onClick={() => handleSaveRename(form.id)}
-              className="text-blue-600 font-bold hover:underline"
+              className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded-lg whitespace-nowrap shrink-0"
             >
               {APP_MESSAGES.SAVE}
             </Button>
             <Button
               disabled={isMutating}
               onClick={() => setRenamingFormId(null)}
-              className="text-gray-400 hover:underline"
+              className="text-xs font-medium text-gray-500 hover:text-gray-800 px-2 py-1 rounded-lg hover:bg-gray-100 whitespace-nowrap shrink-0"
             >
               {APP_MESSAGES.CANCEL}
             </Button>
           </div>
         ) : (
-          <Link
-            href={ROUTES.editForm(form.id)}
-            className="hover:text-blue-600 font-semibold text-gray-900 transition-colors"
-          >
-            {form.name}
-          </Link>
+          <div className="min-w-0">
+            {/* Top line: Form name with ellipsis + Mobile status badge */}
+            <div className="flex items-center gap-2 min-w-0">
+              <Link
+                href={ROUTES.editForm(form.id)}
+                title={form.name}
+                className="truncate block font-semibold text-gray-900 hover:text-blue-600 transition-colors min-w-0"
+              >
+                {form.name}
+              </Link>
+
+              {/* Mobile-only Status Badge beside truncated name */}
+              <div className="md:hidden shrink-0">
+                {isPublished ? (
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-micro font-semibold text-emerald-700">
+                    <CheckIcon className="w-3 h-3 shrink-0 text-emerald-600" />
+                    <span>
+                      {APP_MESSAGES.PUBLISHED_V}
+                      {form.latestPublishedVersionNumber}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center whitespace-nowrap rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-micro font-semibold text-amber-800">
+                    {APP_MESSAGES.UNPUBLISHED_DRAFT}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile-only Second line: Last edited timestamp + revision */}
+            <div className="md:hidden mt-1 flex items-center gap-1.5 text-caption text-gray-500 truncate">
+              <span className="truncate">
+                {APP_MESSAGES.LAST_EDITED} {formatShortDateTime(form.updatedAt)}
+              </span>
+              <span aria-hidden="true" className="text-gray-300">
+                ·
+              </span>
+              <span className="font-mono text-gray-400 shrink-0">
+                {APP_MESSAGES.REV} {form.draftRevision ?? 0}
+              </span>
+            </div>
+          </div>
         )}
       </td>
 
-      {/* Status Badge */}
-      <td className="py-3.5 px-4">
+      {/* Desktop Status Badge */}
+      <td className="hidden md:table-cell py-4 px-4 whitespace-nowrap">
         {isPublished ? (
           <Button
             onClick={handleCopyLink}
-            title="Click to copy deployed link"
-            className="group/badge inline-flex items-center gap-1.5 text-caption font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer"
+            title={APP_MESSAGES.CLICK_TO_COPY_DEPLOYED_LINK}
+            className="inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full hover:bg-emerald-100 hover:border-emerald-300 transition-colors cursor-pointer"
           >
-            <CheckIcon className="w-3 h-3 text-emerald-600" />
+            <CheckIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
             <span>
               {APP_MESSAGES.PUBLISHED_V}
               {form.latestPublishedVersionNumber}
             </span>
-            <span className="text-[10px] text-emerald-600 font-normal">
-              {copied ? "(Copied)" : ""}
-            </span>
+            {copied && (
+              <span className="text-micro text-emerald-600 font-normal">
+                ({APP_MESSAGES.COPIED})
+              </span>
+            )}
           </Button>
         ) : (
-          <span className="inline-flex items-center gap-1 text-caption font-medium text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
             {APP_MESSAGES.UNPUBLISHED_DRAFT}
           </span>
         )}
       </td>
 
-      {/* Draft Revision */}
-      <td className="py-3.5 px-4 font-mono text-caption text-gray-500">
-        {APP_MESSAGES.REV} {form.draftRevision ?? 0}
+      {/* Desktop Draft Revision */}
+      <td className="hidden md:table-cell py-4 px-4 whitespace-nowrap">
+        <span className="inline-flex items-center rounded-md bg-gray-100 border border-gray-200/80 px-2 py-0.5 font-mono text-caption font-medium text-gray-600 whitespace-nowrap">
+          {APP_MESSAGES.REV} {form.draftRevision ?? 0}
+        </span>
       </td>
 
-      {/* Updated At */}
-      <td className="py-3.5 px-4 text-gray-500 text-caption">
+      {/* Desktop Updated At */}
+      <td className="hidden md:table-cell py-4 px-4 text-gray-500 text-caption whitespace-nowrap">
         {formatShortDateTime(form.updatedAt)}
       </td>
 
-      {/* Actions */}
-      <td className="py-3.5 px-4 text-right">
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+      {/* Actions: Inline on Desktop, Dropdown Menu on Mobile */}
+      <td className="py-4 pl-3 pr-4 sm:pr-5 text-right whitespace-nowrap">
+        {/* Desktop Inline Actions */}
+        <div className="hidden md:inline-flex items-center justify-end gap-2 whitespace-nowrap">
           {isPublished && (
-            <div className="flex items-center gap-1">
+            <>
               <Button
                 type="button"
                 onClick={handleCopyLink}
-                className="text-xs font-semibold px-2.5 py-1 rounded-md transition-colors inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/80 hover:border-emerald-300"
-                title="Copy live deployed intake form link"
+                className="text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300"
+                title={APP_MESSAGES.COPY_DEPLOYED_LINK}
               >
                 {copied ? (
                   <>
-                    <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Copied!</span>
+                    <CheckIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                    <span>{APP_MESSAGES.COPIED}</span>
                   </>
                 ) : (
                   <>
-                    <ShareIcon className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Copy Link</span>
+                    <ShareIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                    <span>{APP_MESSAGES.COPY_LINK}</span>
                   </>
                 )}
               </Button>
@@ -153,25 +234,25 @@ export function FormRow({
                 href={`/intake/${publicSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1 text-gray-400 hover:text-emerald-700 rounded hover:bg-emerald-50 transition-colors inline-flex items-center"
-                title="Open deployed live form in new tab"
-                aria-label="Open deployed live form in new tab"
+                className="w-8 h-8 shrink-0 text-gray-500 hover:text-emerald-700 rounded-lg border border-gray-200 bg-white hover:border-emerald-200 hover:bg-emerald-50 transition-colors inline-flex items-center justify-center"
+                title={APP_MESSAGES.OPEN_LIVE_FORM_NEW_TAB}
+                aria-label={APP_MESSAGES.OPEN_LIVE_FORM_NEW_TAB}
               >
                 <ExternalIcon className="w-3.5 h-3.5" />
               </a>
-            </div>
+            </>
           )}
 
           <Link
             href={ROUTES.formResponses(form.id)}
-            className="text-xs font-semibold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-md transition-colors"
+            className="inline-flex items-center justify-center whitespace-nowrap shrink-0 text-xs font-semibold text-gray-700 hover:text-gray-900 bg-white hover:bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors shadow-2xs"
           >
-            Responses
+            {APP_MESSAGES.RESPONSES}
           </Link>
 
           <Link
             href={ROUTES.editForm(form.id)}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/70 hover:bg-blue-100/70 px-2.5 py-1 rounded-md transition-colors"
+            className="inline-flex items-center justify-center whitespace-nowrap shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200/80 px-3 py-1.5 rounded-lg transition-colors"
           >
             {APP_MESSAGES.OPEN_EDITOR}
           </Link>
@@ -179,7 +260,7 @@ export function FormRow({
           <Button
             disabled={isMutating}
             onClick={() => handleStartRename(form)}
-            className="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100"
+            className="w-8 h-8 shrink-0 inline-flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label={APP_MESSAGES.RENAME_FORM}
             title={APP_MESSAGES.RENAME_FORM}
           >
@@ -189,14 +270,10 @@ export function FormRow({
           <Button
             disabled={isMutating}
             onClick={() => handleDeleteForm(form.id, form.name)}
-            className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50"
-            loading={
-              pendingAction?.type === "delete" &&
-              pendingAction.formId === form.id
-            }
+            className="w-8 h-8 shrink-0 inline-flex items-center justify-center text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            loading={isDeletingThisForm}
             aria-label={
-              pendingAction?.type === "delete" &&
-              pendingAction.formId === form.id
+              isDeletingThisForm
                 ? APP_MESSAGES.DELETING
                 : APP_MESSAGES.ARCHIVE_OR_DELETE_FORM
             }
@@ -204,6 +281,125 @@ export function FormRow({
           >
             <DeleteIcon className="w-3.5 h-3.5" />
           </Button>
+        </div>
+
+        {/* Mobile Actions Dropdown */}
+        <div
+          className="md:hidden relative inline-block text-left"
+          ref={menuRef}
+        >
+          <Button
+            type="button"
+            disabled={isMutating}
+            aria-haspopup="menu"
+            aria-expanded={isActionsOpen}
+            onClick={() => setIsActionsOpen((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-2xs whitespace-nowrap"
+          >
+            <span>{APP_MESSAGES.ACTIONS}</span>
+            <ChevronDownIcon className="w-3.5 h-3.5 text-gray-500" />
+          </Button>
+
+          {isActionsOpen && (
+            <div
+              role="menu"
+              aria-label={APP_MESSAGES.ACTIONS}
+              className="absolute right-0 mt-1.5 w-48 rounded-xl bg-white border border-gray-200 shadow-lg py-1.5 z-30 text-left"
+            >
+              <Link
+                role="menuitem"
+                href={ROUTES.editForm(form.id)}
+                onClick={() => setIsActionsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50 transition-colors"
+              >
+                <EditIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>{APP_MESSAGES.OPEN_EDITOR}</span>
+              </Link>
+
+              <Link
+                role="menuitem"
+                href={ROUTES.formResponses(form.id)}
+                onClick={() => setIsActionsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <ViewIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" />
+                <span>{APP_MESSAGES.RESPONSES}</span>
+              </Link>
+
+              {isPublished && (
+                <>
+                  <Button
+                    role="menuitem"
+                    type="button"
+                    onClick={() => {
+                      handleCopyLink();
+                      setIsActionsOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors text-left"
+                  >
+                    {copied ? (
+                      <>
+                        <CheckIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                        <span>{APP_MESSAGES.COPIED}</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShareIcon className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                        <span>{APP_MESSAGES.COPY_LINK}</span>
+                      </>
+                    )}
+                  </Button>
+
+                  <a
+                    role="menuitem"
+                    href={`/intake/${publicSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsActionsOpen(false)}
+                    className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <ExternalIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" />
+                    <span>{APP_MESSAGES.OPEN_LIVE_FORM}</span>
+                  </a>
+                </>
+              )}
+
+              <div className="my-1 border-t border-gray-100" />
+
+              <Button
+                role="menuitem"
+                type="button"
+                disabled={isMutating}
+                onClick={() => {
+                  setIsActionsOpen(false);
+                  handleStartRename(form);
+                }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors text-left"
+              >
+                <EditIcon className="w-3.5 h-3.5 shrink-0 text-gray-500" />
+                <span>{APP_MESSAGES.RENAME_FORM}</span>
+              </Button>
+
+              <Button
+                role="menuitem"
+                type="button"
+                disabled={isMutating}
+                loading={isDeletingThisForm}
+                onClick={() => {
+                  setIsActionsOpen(false);
+                  handleDeleteForm(form.id, form.name);
+                }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors text-left"
+              >
+                <DeleteIcon className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                <span>
+                  {isDeletingThisForm
+                    ? APP_MESSAGES.DELETING
+                    : APP_MESSAGES.ARCHIVE_OR_DELETE_FORM}
+                </span>
+              </Button>
+            </div>
+          )}
         </div>
       </td>
     </tr>
