@@ -11,7 +11,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url:
-      readEnvironment(ENVIRONMENT_KEYS.DIRECT_DATABASE_URL) ||
+      readEnvironment(ENVIRONMENT_KEYS.DATABASE_DIRECT_URL) ||
       readEnvironment(ENVIRONMENT_KEYS.DATABASE_URL) ||
       ENVIRONMENT_DEFAULTS.EMPTY,
   },

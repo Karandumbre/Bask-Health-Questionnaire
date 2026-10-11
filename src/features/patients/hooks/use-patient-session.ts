@@ -241,13 +241,7 @@ export function usePatientSession(initialSlug: string) {
 
   const handleAnswerChange = useCallback(
     (questionId: string, value: CanonicalAnswer | undefined) => {
-      if (
-        !form ||
-        submitBusy.current ||
-        accessEnded ||
-        isConflict
-      )
-        return;
+      if (!form || submitBusy.current || accessEnded || isConflict) return;
 
       const updated = { ...answersRef.current };
       if (value === undefined || value === null) delete updated[questionId];
@@ -280,13 +274,7 @@ export function usePatientSession(initialSlug: string) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !form ||
-      submitBusy.current ||
-      accessEnded ||
-      isConflict
-    )
-      return;
+    if (!form || submitBusy.current || accessEnded || isConflict) return;
 
     const validation = validateSessionSubmission(
       answers,

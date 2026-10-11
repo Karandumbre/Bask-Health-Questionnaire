@@ -7,6 +7,9 @@ import { getFieldDescribedBy } from "@/features/forms/components/QuestionControl
 import { PatientQuestionField } from "@/features/patients/components/PatientQuestionField";
 import { RecoveryCodeModal } from "@/features/patients/components/RecoveryCodeModal";
 import { FormRow } from "@/features/forms/components/FormRow";
+import { FormCanvas } from "@/features/forms/components/FormCanvas";
+import { BuilderProvider } from "@/features/forms/context/builder-context";
+import { THEME_PRESET_EMERALD } from "@/features/themes/domain/presets";
 import { isQuestionAnswered } from "@/features/patients/domain/validation";
 import { APP_MESSAGES } from "@/lib/constants/messages";
 import type { Question } from "@/features/forms/domain/types";
@@ -92,7 +95,7 @@ describe("Preview controls", () => {
             question,
             index: 0,
             value: undefined,
-            onChange: () => {},
+            onAnswerChange: () => {},
           }),
         );
 
@@ -128,7 +131,7 @@ describe("Preview controls", () => {
             question,
             index: 0,
             value: undefined,
-            onChange: () => {},
+            onAnswerChange: () => {},
           }),
         );
 
@@ -164,7 +167,7 @@ describe("Preview controls", () => {
           question,
           index: 0,
           value: "",
-          onChange: () => {},
+          onAnswerChange: () => {},
           error: "History is required",
         }),
       );
@@ -274,7 +277,7 @@ describe("Preview controls", () => {
           question,
           index: 0,
           value: 101,
-          onChange: () => {},
+          onAnswerChange: () => {},
           error: "Number cannot exceed 100",
           disabled: false,
         }),
@@ -288,7 +291,7 @@ describe("Preview controls", () => {
           question,
           index: 0,
           value: 101,
-          onChange: () => {},
+          onAnswerChange: () => {},
           disabled: true,
         }),
       );
@@ -324,13 +327,19 @@ describe("Preview controls", () => {
         createElement(
           "table",
           null,
-          createElement("tbody", null, createElement(FormRow, { form: publishedForm, model: mockModel })),
+          createElement(
+            "tbody",
+            null,
+            createElement(FormRow, { form: publishedForm, model: mockModel }),
+          ),
         ),
       );
 
       // Must have "Copy Link" action button and live intake href
       expect(publishedRowHtml).toContain("Copy Link");
-      expect(publishedRowHtml).toContain('href="/intake/adhd-initial-screening-v1-8492"');
+      expect(publishedRowHtml).toContain(
+        'href="/intake/adhd-initial-screening-v1-8492"',
+      );
       expect(publishedRowHtml).toContain("Published v1");
 
       const draftForm: FormListItem = {
@@ -349,7 +358,11 @@ describe("Preview controls", () => {
         createElement(
           "table",
           null,
-          createElement("tbody", null, createElement(FormRow, { form: draftForm, model: mockModel })),
+          createElement(
+            "tbody",
+            null,
+            createElement(FormRow, { form: draftForm, model: mockModel }),
+          ),
         ),
       );
 
@@ -357,6 +370,64 @@ describe("Preview controls", () => {
       expect(draftRowHtml).not.toContain("Copy Link");
       expect(draftRowHtml).not.toContain('href="/intake/');
       expect(draftRowHtml).toContain(APP_MESSAGES.UNPUBLISHED_DRAFT);
+    });
+
+    it("FormCanvas applies theme CSS variables and scoped intake tokens in Editor mode", () => {
+      const html = renderToStaticMarkup(
+        createElement(
+          BuilderProvider,
+          {
+            formId: "form-theme-test",
+            initialName: "Themed Intake",
+            initialRevision: 1,
+            initialTheme: THEME_PRESET_EMERALD,
+            initialDefinition: {
+              schemaVersion: 1,
+              title: "Themed Intake",
+              description: "Verify editor theme binding",
+              questions: [
+                {
+                  id: "q1",
+                  type: "short_text",
+                  label: "First Name",
+                  required: true,
+                  visibility: null,
+                },
+              ],
+            },
+          },
+          createElement(FormCanvas),
+        ),
+      );
+
+      expect(html).toContain("data-patient-theme");
+      expect(html).toContain('data-theme-mode="light"');
+      expect(html).toContain(
+        `--theme-primary-action:${THEME_PRESET_EMERALD.light.primaryAction}`,
+      );
+      expect(html).toContain("bg-intake-surface");
+      expect(html).toContain("border-t-intake-primary-action");
+    });
+
+    it("PatientQuestionField accepts stable onAnswerChange prop for memoized 100-field rendering", () => {
+      const question: Question = {
+        id: "q_memo",
+        type: "short_text",
+        label: "Memoized Question",
+        required: true,
+        visibility: null,
+      };
+      const stableHandler = () => {};
+      const html = renderToStaticMarkup(
+        createElement(PatientQuestionField, {
+          question,
+          index: 0,
+          value: "Initial",
+          onAnswerChange: stableHandler,
+        }),
+      );
+      expect(html).toContain('data-question-id="q_memo"');
+      expect(html).toContain('value="Initial"');
     });
   });
 });

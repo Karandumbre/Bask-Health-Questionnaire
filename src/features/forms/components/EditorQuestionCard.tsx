@@ -20,21 +20,21 @@ export function EditorQuestionCard({
     <div
       key={q.id}
       onClick={() => selectQuestion(q.id)}
-      className={`relative rounded-xl border transition-all p-5 cursor-pointer ${
+      className={`relative rounded-xl border transition-all p-5 cursor-pointer bg-intake-surface ${
         isSelected
-          ? "bg-white border-blue-500 shadow-md ring-2 ring-blue-500/10"
-          : "bg-white hover:border-gray-300 border-gray-200/90 shadow-2xs"
+          ? "border-intake-border-focus shadow-md ring-2 ring-intake-focus-ring/20"
+          : "hover:border-intake-border-focus border-intake-border shadow-2xs"
       }`}
     >
       {/* Top Header of Question Card */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="text-xs font-mono font-bold shrink-0 text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+          <span className="text-xs font-mono font-bold shrink-0 text-intake-text-secondary bg-intake-bg border border-intake-border px-2 py-0.5 rounded">
             #{index + 1}
           </span>
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="text-sm font-semibold text-intake-text-primary">
             {q.label || (
-              <span className="text-gray-400 italic">
+              <span className="text-intake-text-secondary italic">
                 {APP_MESSAGES.UNTITLED_QUESTION}
               </span>
             )}
@@ -52,7 +52,9 @@ export function EditorQuestionCard({
 
       {/* Description / Instructions */}
       {q.description && (
-        <p className="text-xs text-gray-500 mb-3 -mt-1">{q.description}</p>
+        <p className="text-xs text-intake-text-secondary mb-3 -mt-1">
+          {q.description}
+        </p>
       )}
 
       {/* Mock Input Controls */}
@@ -62,7 +64,7 @@ export function EditorQuestionCard({
             type="text"
             readOnly
             placeholder={q.placeholder || APP_MESSAGES.SHORT_TEXT_RESPONSE}
-            className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-400"
+            className="w-full text-xs bg-intake-bg border border-intake-border rounded-lg p-2.5 text-intake-text-secondary"
           />
         )}
 
@@ -73,7 +75,7 @@ export function EditorQuestionCard({
             placeholder={
               q.placeholder || APP_MESSAGES.DETAILED_LONG_TEXT_RESPONSE
             }
-            className="w-full text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-400 resize-none"
+            className="w-full text-xs bg-intake-bg border border-intake-border rounded-lg p-2.5 text-intake-text-secondary resize-none"
           />
         )}
 
@@ -82,7 +84,7 @@ export function EditorQuestionCard({
             type="number"
             readOnly
             placeholder={q.placeholder || "0"}
-            className="w-48 text-xs bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-gray-400"
+            className="w-48 text-xs bg-intake-bg border border-intake-border rounded-lg p-2.5 text-intake-text-secondary"
           />
         )}
 
@@ -91,9 +93,9 @@ export function EditorQuestionCard({
             {q.options.map((opt) => (
               <div
                 key={opt.id}
-                className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 bg-gray-50/50 text-xs text-gray-700"
+                className="flex items-center gap-2.5 p-2.5 rounded-lg border border-intake-border bg-intake-bg text-xs text-intake-text-primary"
               >
-                <div className="w-3.5 h-3.5 rounded-full border border-gray-300 bg-white" />
+                <div className="w-3.5 h-3.5 rounded-full border border-intake-border bg-intake-surface" />
                 <span>{opt.label}</span>
               </div>
             ))}
@@ -105,9 +107,9 @@ export function EditorQuestionCard({
             {q.options.map((opt) => (
               <div
                 key={opt.id}
-                className="flex items-center gap-2.5 p-2.5 rounded-lg border border-gray-200 bg-gray-50/50 text-xs text-gray-700"
+                className="flex items-center gap-2.5 p-2.5 rounded-lg border border-intake-border bg-intake-bg text-xs text-intake-text-primary"
               >
-                <div className="w-3.5 h-3.5 rounded border border-gray-300 bg-white" />
+                <div className="w-3.5 h-3.5 rounded border border-intake-border bg-intake-surface" />
                 <span>{opt.label}</span>
               </div>
             ))}
@@ -115,17 +117,19 @@ export function EditorQuestionCard({
         )}
 
         {q.type === "checkbox" && (
-          <div className="flex items-start gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
-            <div className="w-4 h-4 rounded border border-gray-300 bg-white mt-0.5" />
-            <span className="text-xs text-gray-700 font-medium">{q.label}</span>
+          <div className="flex items-start gap-2.5 p-3 rounded-lg border border-intake-border bg-intake-bg">
+            <div className="w-4 h-4 rounded border border-intake-border bg-intake-surface mt-0.5" />
+            <span className="text-xs text-intake-text-primary font-medium">
+              {q.label}
+            </span>
           </div>
         )}
       </div>
 
       {/* Condition Footer Indicator */}
       {q.visibility && (
-        <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center gap-1.5 text-caption text-purple-700">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+        <div className="mt-3 pt-2.5 border-t border-intake-border flex items-center gap-1.5 text-caption text-intake-text-secondary">
+          <span className="w-1.5 h-1.5 rounded-full bg-intake-primary-action" />
           <span>
             {
               APP_MESSAGES.CONDITIONAL_DISPLAYS_ONLY_WHEN_PARENT_CONDITION_IS_SATISFIED
