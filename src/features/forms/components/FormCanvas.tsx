@@ -14,8 +14,15 @@ import { getVisibleQuestions } from "@/features/patients/domain/visibility";
 import { usePreviewAnswers } from "../hooks/use-preview-answers";
 import { focusQuestion } from "@/lib/dom/focus-question";
 export function FormCanvas() {
-  const { definition, theme, updateTheme, activeMode, previewViewport } =
-    useBuilder();
+  const {
+    definition,
+    theme,
+    updateTheme,
+    activeMode,
+    previewViewport,
+    selectedQuestionId,
+    selectQuestion,
+  } = useBuilder();
 
   // Preview mode answers state
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
@@ -68,7 +75,13 @@ export function FormCanvas() {
 
           {/* Question List */}
           {definition.questions.map((q, idx) => (
-            <EditorQuestionCard key={q.id} question={q} index={idx} />
+            <EditorQuestionCard
+              key={q.id}
+              question={q}
+              index={idx}
+              isSelected={q.id === selectedQuestionId}
+              selectQuestion={selectQuestion}
+            />
           ))}
         </div>
       ) : (

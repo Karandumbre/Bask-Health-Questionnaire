@@ -22,11 +22,8 @@ export async function getUserWorkspaces(
     createdAt: Date;
   }>
 > {
-  return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`,
-    );
-    const memberships = await tx
+  const findMemberships = (executor: Pick<typeof db, "select"> = db) => {
+    return executor
       .select({
         workspaceId: adminMemberships.workspaceId,
         role: adminMemberships.role,
@@ -41,7 +38,15 @@ export async function getUserWorkspaces(
           isNull(adminMemberships.revokedAt),
         ),
       );
+  };
+  const existing = await findMemberships();
+  if (existing.length > 0) return existing;
 
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`,
+    );
+    const memberships = await findMemberships(tx);
     if (memberships.length > 0) {
       return memberships as Array<{
         workspaceId: string;

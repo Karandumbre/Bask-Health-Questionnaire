@@ -94,11 +94,10 @@ const submitResponseSchema = z.object({
  * Fetches the published intake form by public slug.
  */
 export function fetchPublishedForm(slug: string, signal?: AbortSignal) {
-  return apiRequest(
+  return apiRequest.get(
     `/api/patient/forms/${encodeURIComponent(slug)}`,
     patientFormResponseSchema,
     {
-      method: "GET",
       signal,
     },
   );
@@ -108,11 +107,10 @@ export function fetchPublishedForm(slug: string, signal?: AbortSignal) {
  * Inspects whether the browser has an active session capability on this published form.
  */
 export function getActiveSession(slug: string, signal?: AbortSignal) {
-  return apiRequest(
+  return apiRequest.get(
     `/api/patient/forms/${encodeURIComponent(slug)}/session`,
     activeSessionResponseSchema,
     {
-      method: "GET",
       signal,
     },
   );
@@ -122,11 +120,10 @@ export function getActiveSession(slug: string, signal?: AbortSignal) {
  * Initializes a new patient intake session, issuing a namespaced HttpOnly capability cookie.
  */
 export function startPatientSession(slug: string, signal?: AbortSignal) {
-  return apiRequest(
+  return apiRequest.post(
     `/api/patient/forms/${encodeURIComponent(slug)}/session`,
     startSessionResponseSchema,
     {
-      method: "POST",
       signal,
     },
   );
@@ -141,11 +138,10 @@ export function savePatientProgress(
   answers: PatientAnswers,
   signal?: AbortSignal,
 ) {
-  return apiRequest(
+  return apiRequest.put(
     "/api/patient/session/progress",
     saveProgressResponseSchema,
     {
-      method: "PUT",
       json: {
         publicSlug: slug,
         expectedSessionRevision,
@@ -164,11 +160,10 @@ export function resumePatientSession(
   recoveryCode: string,
   signal?: AbortSignal,
 ) {
-  return apiRequest(
+  return apiRequest.post(
     "/api/patient/session/resume",
     resumeSessionResponseSchema,
     {
-      method: "POST",
       json: {
         sessionReference,
         recoveryCode,
@@ -186,8 +181,7 @@ export function submitPatientSession(
   answers: PatientAnswers,
   signal?: AbortSignal,
 ) {
-  return apiRequest("/api/patient/session/submit", submitResponseSchema, {
-    method: "POST",
+  return apiRequest.post("/api/patient/session/submit", submitResponseSchema, {
     json: {
       publicSlug: slug,
       answers,

@@ -8,6 +8,8 @@ export interface DraftSnapshot {
   theme: z.infer<typeof ThemeDefinitionSchema>;
 }
 
+import { clearFormsCache } from "./forms-cache";
+
 const revisionSchema = z.number().int().nonnegative();
 const saveSchema = successSchema.extend({ revision: revisionSchema });
 const draftSchema = successSchema.extend({
@@ -30,39 +32,84 @@ export async function saveFormDraft(
   revision: number,
   signal?: AbortSignal,
 ) {
-  const data = await apiRequest(formUrl(id), saveSchema, {
-    method: "PATCH",
+  const data = await apiRequest.patch(formUrl(id), saveSchema, {
     json: { ...snapshot, expectedRevision: revision },
     signal,
   });
+  clearFormsCache();
   return data.revision;
 }
 
 export function loadFormDraft(id: string, signal?: AbortSignal) {
-  return apiRequest(formUrl(id), draftSchema, { signal });
+  return apiRequest.get(formUrl(id), draftSchema, { signal });
 }
 
-export function createForm(name: string) {
-  return apiRequest(API_ROUTES.forms, formSchema, {
-    method: "POST",
+export async function createForm(name: string) {
+  const data = await apiRequest.post(API_ROUTES.forms, formSchema, {
     json: { name },
   });
+  clearFormsCache();
+  return data;
 }
 
-export function renameForm(id: string, name: string, expectedRevision: number) {
-  return apiRequest(formUrl(id), formSchema, {
-    method: "PATCH",
+export async function renameForm(
+  id: string,
+  name: string,
+  expectedRevision: number,
+) {
+  const data = await apiRequest.patch(formUrl(id), formSchema, {
     json: { name, expectedRevision },
   });
+  clearFormsCache();
+  return data;
 }
 
-export function deleteForm(id: string) {
-  return apiRequest(formUrl(id), successSchema, { method: "DELETE" });
+export async function deleteForm(id: string) {
+  const data = await apiRequest.delete(formUrl(id), successSchema);
+  clearFormsCache();
+  return data;
 }
 
-export function publishForm(id: string, revision: number, operationId: string) {
-  return apiRequest(API_ROUTES.publishForm(id), publishedSchema, {
-    method: "POST",
-    json: { expectedRevision: revision, operationId },
-  });
+export async function publishForm(
+  id: string,
+  revision: number,
+  operationId: string,
+) {
+  const data = await apiRequest.post(
+    API_ROUTES.publishForm(id),
+    publishedSchema,
+    {
+      json: { expectedRevision: revision, operationId },
+    },
+  );
+  clearFormsCache();
+  return data;
+}
+
+const formsListSchema = successSchema.extend({
+  forms: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      workspaceId: z.string(),
+      latestPublishedVersionNumber: z.number().int().positive().nullable(),
+      latestPublicSlug: z.string().nullable(),
+      createdAt: z.string(),
+      updatedAt: z.string(),
+      draftRevision: revisionSchema.nullable(),
+      draftUpdatedAt: z.string().nullable(),
+    }),
+  ),
+});
+
+export async function listForms(workspaceId: string, signal: AbortSignal) {
+  const data = await apiRequest.get(
+    `${API_ROUTES.forms}?workspaceId=${encodeURIComponent(workspaceId)}`,
+    formsListSchema,
+    { signal },
+  );
+  return data.forms.map(({ latestPublicSlug, ...form }) => ({
+    ...form,
+    publicSlug: latestPublicSlug,
+  }));
 }

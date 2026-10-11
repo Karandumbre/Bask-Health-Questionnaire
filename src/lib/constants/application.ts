@@ -1,5 +1,6 @@
 /** Shared behavior settings. Units are explicit at call sites. */
 export const APPLICATION = {
+  formsCacheFreshMs: 30_000,
   requestTimeoutMs: 30_000,
   autosaveDelayMs: 800,
   draftAutosaveDelayMs: 2_000,

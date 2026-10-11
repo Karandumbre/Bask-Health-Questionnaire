@@ -2,11 +2,7 @@ import { AppError } from "@/lib/errors";
 import { ROUTES } from "@/lib/constants/application";
 import { redirect } from "next/navigation";
 import { requireAdmin, getUserWorkspaces } from "@/lib/auth/admin";
-import { listWorkspaceForms } from "@/features/forms/server/draft-service";
-import {
-  FormDashboard,
-  type FormListItem,
-} from "@/features/forms/components/FormDashboard";
+import { FormDashboard } from "@/features/forms/components/FormDashboard";
 
 export default async function AdminFormsPage() {
   let user;
@@ -24,23 +20,11 @@ export default async function AdminFormsPage() {
     redirect(ROUTES.adminLogin);
   }
 
-  const forms = await listWorkspaceForms(activeWorkspace.workspaceId, user.id);
-
-  const formattedForms: FormListItem[] = forms.map((f) => ({
-    id: f.id,
-    name: f.name,
-    workspaceId: f.workspaceId,
-    latestPublishedVersionNumber: f.latestPublishedVersionNumber,
-    publicSlug: f.latestPublicSlug,
-    createdAt: f.createdAt,
-    updatedAt: f.updatedAt,
-    draftRevision: f.draftRevision,
-    draftUpdatedAt: f.draftUpdatedAt,
-  }));
-
   return (
     <FormDashboard
-      initialForms={formattedForms}
+      key={`${user.id}:${activeWorkspace.workspaceId}`}
+      userId={user.id}
+      workspaceId={activeWorkspace.workspaceId}
       workspaceName={activeWorkspace.workspaceName}
       userEmail={user.email}
     />

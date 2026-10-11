@@ -1,30 +1,103 @@
 "use client";
+
+import {
+  readFormsCache,
+  fetchAndCacheForms,
+  clearFormsCache,
+} from "../client/forms-cache";
 import { ROUTES } from "@/lib/constants/application";
 
 import { APP_MESSAGES } from "@/lib/constants/messages";
 
-import { useState, useRef, type FormEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
-import { apiErrorMessage } from "@/lib/http/api-client";
+import { ApiError, apiErrorMessage } from "@/lib/http/api-client";
 import { logout } from "@/features/auth/client/auth-api";
-import { createForm, deleteForm, renameForm } from "../client/forms-api";
+import {
+  createForm,
+  deleteForm,
+  renameForm,
+  listForms,
+} from "../client/forms-api";
 import type { FormListItem } from "../domain/dashboard-types";
 
-export function useFormDashboard(initialForms: FormListItem[]) {
+export function useFormDashboard(userId: string, workspaceId: string) {
+  const cacheKey = `${userId}:${workspaceId}`;
+  const refreshController = useRef<AbortController | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
   const busy = useRef(false);
   const [pendingAction, setPendingAction] = useState<{
     type: "create" | "rename" | "delete" | "logout";
     formId?: string;
   } | null>(null);
-  const isMutating = pendingAction !== null;
+  const isMutating = pendingAction !== null || isRefreshing || isLoading;
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [formsList, setFormsList] = useState<FormListItem[]>(initialForms);
+  const [formsList, setFormsList] = useState<FormListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newFormName, setNewFormName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleRefresh = useCallback(async () => {
+    if (busy.current) return;
+    busy.current = true;
+    const controller = new AbortController();
+    refreshController.current = controller;
+    setIsRefreshing(true);
+    setErrorMessage(null);
+    try {
+      const forms = await fetchAndCacheForms(
+        cacheKey,
+        () => listForms(workspaceId, controller.signal),
+        controller.signal,
+      );
+      if (forms) setFormsList(forms);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        if (error instanceof ApiError && [401, 403].includes(error.status)) {
+          clearFormsCache();
+          setFormsList([]);
+        }
+        setErrorMessage(
+          apiErrorMessage(error, APP_MESSAGES.NETWORK_ERROR_LOADING_FORMS),
+        );
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        busy.current = false;
+      }
+    }
+  }, [cacheKey, workspaceId]);
+
+  useEffect(() => {
+    let disposed = false;
+    async function load() {
+      const cached = await Promise.resolve(readFormsCache(cacheKey));
+      if (disposed) return;
+      if (cached) {
+        setFormsList(cached.forms);
+        setIsLoading(false);
+      }
+      if (!cached?.fresh) void handleRefresh();
+    }
+    void load();
+    return () => {
+      disposed = true;
+      refreshController.current?.abort();
+      busy.current = false;
+    };
+  }, [cacheKey, handleRefresh]);
 
   // Rename state
   const [renamingFormId, setRenamingFormId] = useState<string | null>(null);
@@ -173,6 +246,9 @@ export function useFormDashboard(initialForms: FormListItem[]) {
 
   return {
     openCreateDialog,
+    isLoading,
+    isRefreshing,
+    handleRefresh,
     formsList,
     filteredForms,
     searchQuery,

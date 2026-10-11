@@ -119,7 +119,7 @@ export type ApiRequestOptions = Pick<
 };
 
 /** Parse responses at the network boundary; callers receive validated data. */
-export async function apiRequest<T>(
+async function request<T>(
   url: string,
   schema: z.ZodType<T>,
   options: ApiRequestOptions = {},
@@ -140,6 +140,22 @@ export async function apiRequest<T>(
   }
   return result.data;
 }
+
+function withMethod(method: NonNullable<ApiRequestOptions["method"]>) {
+  return <T>(
+    url: string,
+    schema: z.ZodType<T>,
+    options: Omit<ApiRequestOptions, "method"> = {},
+  ) => request(url, schema, { ...options, method });
+}
+
+export const apiRequest = Object.assign(request, {
+  get: withMethod("GET"),
+  post: withMethod("POST"),
+  put: withMethod("PUT"),
+  patch: withMethod("PATCH"),
+  delete: withMethod("DELETE"),
+});
 
 export function apiErrorMessage(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.message : fallback;

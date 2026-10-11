@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import crypto from "node:crypto";
-import { NextRequest } from "next/server";
+import { createPatientRequest } from "../helpers/patient-request";
 import { eq } from "drizzle-orm";
 import { assertTestDatabaseIsolation } from "@/lib/db/test-db-isolation";
 import { db } from "@/lib/db";
@@ -111,40 +111,12 @@ describe("Patient HTTP and database integration", () => {
     publishedVersionIdV1 = pub.publishedVersionId;
   });
 
-  // Helper to create NextRequest with origin and optional cookies
-  function createPatientRequest(
-    url: string,
-    options: {
-      method?: string;
-      body?: unknown;
-      cookieHeader?: string;
-    } = {},
-  ) {
-    const { method = "GET", body, cookieHeader } = options;
-    const headers = new Headers();
-    headers.set("origin", "http://localhost:3000");
-    headers.set("host", "localhost:3000");
-    if (body) {
-      headers.set("content-type", "application/json");
-    }
-    if (cookieHeader) {
-      headers.set("cookie", cookieHeader);
-    }
-
-    return new NextRequest(new URL(url, "http://localhost:3000"), {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  }
-
   // ---------------------------------------------------------------------------
   // 1. Patient starts a session pinned to published version 1
   // ---------------------------------------------------------------------------
   it("1. starts a session pinned to published version 1 via HTTP with HttpOnly cookie", async () => {
-    const req = createPatientRequest(
+    const req = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
 
     const res = await startSessionRoute(req, {
@@ -181,9 +153,8 @@ describe("Patient HTTP and database integration", () => {
   // ---------------------------------------------------------------------------
   it("2. saves incomplete progress via HTTP and increments session revision", async () => {
     // Start session
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -192,10 +163,9 @@ describe("Patient HTTP and database integration", () => {
     const setCookie = startRes.headers.get("set-cookie")!;
 
     // Save incomplete progress (e.g. only answering chest pain Yes)
-    const progressReq = createPatientRequest(
+    const progressReq = createPatientRequest.put(
       "http://localhost:3000/api/patient/session/progress",
       {
-        method: "PUT",
         cookieHeader: setCookie,
         body: {
           publicSlug: publicSlugV1,
@@ -231,9 +201,8 @@ describe("Patient HTTP and database integration", () => {
   // ---------------------------------------------------------------------------
   it("3. resumes in a separate browser context using recovery credentials", async () => {
     // Browser 1 starts and saves progress
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -243,10 +212,9 @@ describe("Patient HTTP and database integration", () => {
     const cookie1 = startRes.headers.get("set-cookie")!;
 
     await saveProgressRoute(
-      createPatientRequest(
+      createPatientRequest.put(
         "http://localhost:3000/api/patient/session/progress",
         {
-          method: "PUT",
           cookieHeader: cookie1,
           body: {
             publicSlug: publicSlugV1,
@@ -261,10 +229,9 @@ describe("Patient HTTP and database integration", () => {
     );
 
     // Browser 2 (no cookies) redempts recovery code
-    const resumeReq = createPatientRequest(
+    const resumeReq = createPatientRequest.post(
       "http://localhost:3000/api/patient/session/resume",
       {
-        method: "POST",
         body: {
           sessionReference,
           recoveryCode,
@@ -286,10 +253,9 @@ describe("Patient HTTP and database integration", () => {
     expect(cookie2).toContain(getSessionCookieName(publicSlugV1));
 
     // Browser 2 can now continue saving progress with cookie2
-    const progressReq2 = createPatientRequest(
+    const progressReq2 = createPatientRequest.put(
       "http://localhost:3000/api/patient/session/progress",
       {
-        method: "PUT",
         cookieHeader: cookie2,
         body: {
           publicSlug: publicSlugV1,
@@ -309,9 +275,8 @@ describe("Patient HTTP and database integration", () => {
   // 4. Invalid recovery codes cannot access another session
   // ---------------------------------------------------------------------------
   it("4. rejects invalid recovery codes and tracks failed attempts", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -320,10 +285,9 @@ describe("Patient HTTP and database integration", () => {
     const { sessionReference, sessionId } = startBody.data;
 
     // Attempt resume with wrong recovery code
-    const invalidResumeReq = createPatientRequest(
+    const invalidResumeReq = createPatientRequest.post(
       "http://localhost:3000/api/patient/session/resume",
       {
-        method: "POST",
         body: {
           sessionReference,
           recoveryCode: "BK-XXXX-YYYY-ZZZZ",
@@ -349,9 +313,8 @@ describe("Patient HTTP and database integration", () => {
   // 5. Concurrent recovery attempts cannot both redeem the same code
   // ---------------------------------------------------------------------------
   it("5. prevents concurrent recovery attempts from both redeeming the same code", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -362,19 +325,17 @@ describe("Patient HTTP and database integration", () => {
     // Two simultaneous resume requests with identical one-time code
     const [res1, res2] = await Promise.all([
       resumeSessionRoute(
-        createPatientRequest(
+        createPatientRequest.post(
           "http://localhost:3000/api/patient/session/resume",
           {
-            method: "POST",
             body: { sessionReference, recoveryCode },
           },
         ),
       ),
       resumeSessionRoute(
-        createPatientRequest(
+        createPatientRequest.post(
           "http://localhost:3000/api/patient/session/resume",
           {
-            method: "POST",
             body: { sessionReference, recoveryCode },
           },
         ),
@@ -394,9 +355,8 @@ describe("Patient HTTP and database integration", () => {
   // 6. Changing a conditional parent removes hidden answers from persisted progress
   // ---------------------------------------------------------------------------
   it("6. automatically removes hidden answers from persisted progress when conditional parent changes", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -406,10 +366,9 @@ describe("Patient HTTP and database integration", () => {
 
     // Step 1: Save progress with parent Yes and child details
     await saveProgressRoute(
-      createPatientRequest(
+      createPatientRequest.put(
         "http://localhost:3000/api/patient/session/progress",
         {
-          method: "PUT",
           cookieHeader: cookie,
           body: {
             publicSlug: publicSlugV1,
@@ -425,10 +384,9 @@ describe("Patient HTTP and database integration", () => {
 
     // Step 2: Change parent to No
     const updateRes = await saveProgressRoute(
-      createPatientRequest(
+      createPatientRequest.put(
         "http://localhost:3000/api/patient/session/progress",
         {
-          method: "PUT",
           cookieHeader: cookie,
           body: {
             publicSlug: publicSlugV1,
@@ -464,9 +422,8 @@ describe("Patient HTTP and database integration", () => {
   // 7. Hidden answers sent directly to the API are not persisted
   // ---------------------------------------------------------------------------
   it("7. prunes malicious hidden answers sent directly to the API", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -475,10 +432,9 @@ describe("Patient HTTP and database integration", () => {
     const cookie = startRes.headers.get("set-cookie")!;
 
     // Send hidden question answer when parent is No
-    const maliciousReq = createPatientRequest(
+    const maliciousReq = createPatientRequest.put(
       "http://localhost:3000/api/patient/session/progress",
       {
-        method: "PUT",
         cookieHeader: cookie,
         body: {
           publicSlug: publicSlugV1,
@@ -516,9 +472,8 @@ describe("Patient HTTP and database integration", () => {
   // 8. Two simultaneous submissions produce exactly one response
   // ---------------------------------------------------------------------------
   it("8. ensures two simultaneous submissions produce exactly one response record", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -539,20 +494,18 @@ describe("Patient HTTP and database integration", () => {
     // Fire two parallel submit requests (simulating double click race)
     const [submitRes1, submitRes2] = await Promise.all([
       submitSessionRoute(
-        createPatientRequest(
+        createPatientRequest.post(
           "http://localhost:3000/api/patient/session/submit",
           {
-            method: "POST",
             cookieHeader: cookie,
             body: validSubmissionPayload,
           },
         ),
       ),
       submitSessionRoute(
-        createPatientRequest(
+        createPatientRequest.post(
           "http://localhost:3000/api/patient/session/submit",
           {
-            method: "POST",
             cookieHeader: cookie,
             body: validSubmissionPayload,
           },
@@ -582,9 +535,8 @@ describe("Patient HTTP and database integration", () => {
   // 9. Retrying after a lost success response returns the original confirmation
   // ---------------------------------------------------------------------------
   it("9. returns the original confirmation on idempotent retry after lost success response", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -603,11 +555,13 @@ describe("Patient HTTP and database integration", () => {
 
     // First submit attempt
     const initialRes = await submitSessionRoute(
-      createPatientRequest("http://localhost:3000/api/patient/session/submit", {
-        method: "POST",
-        cookieHeader: cookie,
-        body: payload,
-      }),
+      createPatientRequest.post(
+        "http://localhost:3000/api/patient/session/submit",
+        {
+          cookieHeader: cookie,
+          body: payload,
+        },
+      ),
     );
     expect(initialRes.status).toBe(200);
     const initialBody = await initialRes.json();
@@ -615,11 +569,13 @@ describe("Patient HTTP and database integration", () => {
 
     // Retry submit attempt (e.g. client lost connection before receiving response)
     const retryRes = await submitSessionRoute(
-      createPatientRequest("http://localhost:3000/api/patient/session/submit", {
-        method: "POST",
-        cookieHeader: cookie,
-        body: payload,
-      }),
+      createPatientRequest.post(
+        "http://localhost:3000/api/patient/session/submit",
+        {
+          cookieHeader: cookie,
+          body: payload,
+        },
+      ),
     );
     expect(retryRes.status).toBe(200);
     const retryBody = await retryRes.json();
@@ -633,9 +589,8 @@ describe("Patient HTTP and database integration", () => {
   // 10. Completed answers cannot be silently modified
   // ---------------------------------------------------------------------------
   it("10. rejects progress modifications after session has been completed", async () => {
-    const startReq = createPatientRequest(
+    const startReq = createPatientRequest.post(
       `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-      { method: "POST" },
     );
     const startRes = await startSessionRoute(startReq, {
       params: Promise.resolve({ slug: publicSlugV1 }),
@@ -646,25 +601,26 @@ describe("Patient HTTP and database integration", () => {
 
     // Complete session
     await submitSessionRoute(
-      createPatientRequest("http://localhost:3000/api/patient/session/submit", {
-        method: "POST",
-        cookieHeader: cookie,
-        body: {
-          publicSlug: publicSlugV1,
-          answers: {
-            "q-chest-pain": "opt-cp-no",
-            "q-systolic-bp": 115,
-            "q-consent": true,
+      createPatientRequest.post(
+        "http://localhost:3000/api/patient/session/submit",
+        {
+          cookieHeader: cookie,
+          body: {
+            publicSlug: publicSlugV1,
+            answers: {
+              "q-chest-pain": "opt-cp-no",
+              "q-systolic-bp": 115,
+              "q-consent": true,
+            },
           },
         },
-      }),
+      ),
     );
 
     // Attempt to modify progress after completion
-    const modifyReq = createPatientRequest(
+    const modifyReq = createPatientRequest.put(
       "http://localhost:3000/api/patient/session/progress",
       {
-        method: "PUT",
         cookieHeader: cookie,
         body: {
           publicSlug: publicSlugV1,
@@ -734,20 +690,14 @@ describe("Patient HTTP and database integration", () => {
     // Start Session A on Form A and Session B on Form B
     const [resA, resB] = await Promise.all([
       startSessionRoute(
-        createPatientRequest(
+        createPatientRequest.post(
           `http://localhost:3000/api/patient/forms/${publicSlugV1}/session`,
-          {
-            method: "POST",
-          },
         ),
         { params: Promise.resolve({ slug: publicSlugV1 }) },
       ),
       startSessionRoute(
-        createPatientRequest(
+        createPatientRequest.post(
           `http://localhost:3000/api/patient/forms/${pubB.publicSlug}/session`,
-          {
-            method: "POST",
-          },
         ),
         { params: Promise.resolve({ slug: pubB.publicSlug }) },
       ),
@@ -768,10 +718,9 @@ describe("Patient HTTP and database integration", () => {
     expect(cookieB).toContain(getSessionCookieName(pubB.publicSlug));
 
     // Attempt cross-access: Try to save progress to Form B using Cookie A
-    const crossAccessReq = createPatientRequest(
+    const crossAccessReq = createPatientRequest.put(
       "http://localhost:3000/api/patient/session/progress",
       {
-        method: "PUT",
         cookieHeader: cookieA, // Cookie only has slug A
         body: {
           publicSlug: pubB.publicSlug, // targeting slug B

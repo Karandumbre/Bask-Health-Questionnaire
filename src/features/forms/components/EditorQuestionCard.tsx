@@ -3,19 +3,20 @@ import { APP_MESSAGES } from "@/lib/constants/messages";
 
 import { Input, Textarea } from "@/components/ui/input";
 import type { Question } from "../domain/types";
-import { useBuilder } from "../context/builder-context";
+import { memo } from "react";
 import { QuestionActions } from "./QuestionActions";
 
-export function EditorQuestionCard({
+export const EditorQuestionCard = memo(function EditorQuestionCard({
   question: q,
   index,
+  isSelected,
+  selectQuestion,
 }: {
   question: Question;
   index: number;
+  isSelected: boolean;
+  selectQuestion: (id: string) => void;
 }) {
-  const { selectedQuestionId, selectQuestion } = useBuilder();
-  const isSelected = q.id === selectedQuestionId;
-
   return (
     <div
       key={q.id}
@@ -139,4 +140,4 @@ export function EditorQuestionCard({
       )}
     </div>
   );
-}
+});

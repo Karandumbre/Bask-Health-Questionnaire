@@ -91,61 +91,61 @@ async function login(page: Page) {
   await page.waitForURL("**/admin/forms", { timeout: 15000 });
 }
 
-async function api<T>(
-  page: Page,
-  method: "POST" | "PATCH" | "GET",
-  url: string,
-  data?: unknown,
-): Promise<T> {
-  const response = await page.request.fetch(url, {
-    method,
-    data,
-    headers: { origin: ORIGIN },
-  });
-  expect(response.ok(), `${method} ${url} -> ${response.status()}`).toBe(true);
-  return (await response.json()) as T;
+function requestWithMethod(method: "get" | "post" | "patch") {
+  return async <T>(page: Page, url: string, data?: unknown): Promise<T> => {
+    const response = await page.request[method](url, {
+      data,
+      headers: { origin: ORIGIN },
+    });
+    expect(
+      response.ok(),
+      `${method.toUpperCase()} ${url} -> ${response.status()}`,
+    ).toBe(true);
+    return (await response.json()) as T;
+  };
 }
+
+const api = {
+  get: requestWithMethod("get"),
+  post: requestWithMethod("post"),
+  patch: requestWithMethod("patch"),
+};
 
 async function createPublishedFixture(browser: Browser): Promise<Fixture> {
   adminContext = await browser.newContext();
   const page = await adminContext.newPage();
   await login(page);
 
-  const created = await api<{ form: { id: string } }>(
+  const created = await api.post<{ form: { id: string } }>(
     page,
-    "POST",
     "/api/admin/forms",
     { name: `E2E Intake Journey ${Date.now()}` },
   );
   const formId = created.form.id;
 
-  const draft = await api<{ draft: { revision: number } }>(
+  const draft = await api.get<{ draft: { revision: number } }>(
     page,
-    "GET",
     `/api/admin/forms/${formId}`,
   );
   let revision = draft.draft.revision;
 
   const save = async (nameLabel: string, theme: unknown) => {
-    const saved = await api<{ revision: number }>(
+    const saved = await api.patch<{ revision: number }>(
       page,
-      "PATCH",
       `/api/admin/forms/${formId}`,
       { definition: definition(nameLabel), theme, expectedRevision: revision },
     );
     revision = saved.revision;
   };
   const publish = async () => {
-    const result = await api<{ publicSlug: string; revision?: number }>(
+    const result = await api.post<{ publicSlug: string; revision?: number }>(
       page,
-      "POST",
       `/api/admin/forms/${formId}/publish`,
       { expectedRevision: revision, operationId: crypto.randomUUID() },
     );
     // Publishing advances the draft revision.
-    const reloaded = await api<{ draft: { revision: number } }>(
+    const reloaded = await api.get<{ draft: { revision: number } }>(
       page,
-      "GET",
       `/api/admin/forms/${formId}`,
     );
     revision = reloaded.draft.revision;
@@ -393,11 +393,9 @@ test.describe("Intake journeys (real backend)", () => {
 
     const draftTheme = async () =>
       (
-        await api<{ theme: { presetName: string; isCustomShuffle: boolean } }>(
-          admin,
-          "GET",
-          `/api/admin/forms/${fixture.formId}`,
-        )
+        await api.get<{
+          theme: { presetName: string; isCustomShuffle: boolean };
+        }>(admin, `/api/admin/forms/${fixture.formId}`)
       ).theme;
 
     const shuffle1Save = admin.waitForResponse(

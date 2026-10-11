@@ -1,12 +1,16 @@
+import { clearFormsCache } from "@/features/forms/client/forms-cache";
 import { API_ROUTES } from "@/lib/constants/application";
 import { apiRequest, successSchema } from "@/lib/http/api-client";
 
-export function login(email: string, password: string) {
-  return apiRequest(API_ROUTES.login, successSchema, {
-    method: "POST",
+export async function login(email: string, password: string) {
+  const data = await apiRequest.post(API_ROUTES.login, successSchema, {
     json: { email, password },
   });
+  clearFormsCache();
+  return data;
 }
-export function logout() {
-  return apiRequest(API_ROUTES.logout, successSchema, { method: "POST" });
+export async function logout() {
+  const data = await apiRequest.post(API_ROUTES.logout, successSchema);
+  clearFormsCache();
+  return data;
 }

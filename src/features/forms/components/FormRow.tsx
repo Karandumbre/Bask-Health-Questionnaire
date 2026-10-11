@@ -89,8 +89,8 @@ export function FormRow({
       key={form.id}
       className="hover:bg-gray-50/70 transition-colors group align-middle"
     >
-      {/* Title (Desktop) + Responsive Summary (Mobile: Ellipsis Name + Status + Last Edited) */}
-      <td className="py-4 pl-4 sm:pl-5 pr-3 font-medium text-gray-900 max-w-0 md:max-w-xs lg:max-w-md w-full md:w-auto">
+      {/* Title (Desktop) + Responsive Summary (Mobile/Tablet: Ellipsis Name + Status + Last Edited) */}
+      <td className="py-4 pl-4 sm:pl-5 pr-4 font-medium text-gray-900 w-full max-lg:max-w-0">
         {isRenamingThisForm ? (
           <div className="flex items-center gap-2">
             <Input
@@ -129,13 +129,13 @@ export function FormRow({
               <Link
                 href={ROUTES.editForm(form.id)}
                 title={form.name}
-                className="truncate block font-semibold text-gray-900 hover:text-blue-600 transition-colors min-w-0"
+                className="truncate block font-semibold text-gray-900 hover:text-blue-600 transition-colors min-w-0 lg:max-w-2xs xl:max-w-md"
               >
                 {form.name}
               </Link>
 
-              {/* Mobile-only Status Badge beside truncated name */}
-              <div className="md:hidden shrink-0">
+              {/* Compact Status Badge beside truncated name (< lg) */}
+              <div className="lg:hidden shrink-0">
                 {isPublished ? (
                   <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-micro font-semibold text-emerald-700">
                     <CheckIcon className="w-3 h-3 shrink-0 text-emerald-600" />
@@ -152,8 +152,8 @@ export function FormRow({
               </div>
             </div>
 
-            {/* Mobile-only Second line: Last edited timestamp + revision */}
-            <div className="md:hidden mt-1 flex items-center gap-1.5 text-caption text-gray-500 truncate">
+            {/* Compact Second line: Last edited timestamp + revision (< lg) */}
+            <div className="lg:hidden mt-1 flex items-center gap-1.5 text-caption text-gray-500 truncate">
               <span className="truncate">
                 {APP_MESSAGES.LAST_EDITED} {formatShortDateTime(form.updatedAt)}
               </span>
@@ -169,7 +169,7 @@ export function FormRow({
       </td>
 
       {/* Desktop Status Badge */}
-      <td className="hidden md:table-cell py-4 px-4 whitespace-nowrap">
+      <td className="hidden lg:table-cell py-4 px-3.5 whitespace-nowrap">
         {isPublished ? (
           <Button
             onClick={handleCopyLink}
@@ -195,21 +195,21 @@ export function FormRow({
       </td>
 
       {/* Desktop Draft Revision */}
-      <td className="hidden md:table-cell py-4 px-4 whitespace-nowrap">
+      <td className="hidden lg:table-cell py-4 px-3.5 whitespace-nowrap">
         <span className="inline-flex items-center rounded-md bg-gray-100 border border-gray-200/80 px-2 py-0.5 font-mono text-caption font-medium text-gray-600 whitespace-nowrap">
           {APP_MESSAGES.REV} {form.draftRevision ?? 0}
         </span>
       </td>
 
       {/* Desktop Updated At */}
-      <td className="hidden md:table-cell py-4 px-4 text-gray-500 text-caption whitespace-nowrap">
+      <td className="hidden lg:table-cell py-4 px-3.5 text-gray-500 text-caption whitespace-nowrap">
         {formatShortDateTime(form.updatedAt)}
       </td>
 
-      {/* Actions: Inline on Desktop, Dropdown Menu on Mobile */}
+      {/* Actions: Inline on Desktop, Dropdown Menu on Mobile/Tablet */}
       <td className="py-4 pl-3 pr-4 sm:pr-5 text-right whitespace-nowrap">
         {/* Desktop Inline Actions */}
-        <div className="hidden md:inline-flex items-center justify-end gap-2 whitespace-nowrap">
+        <div className="hidden lg:inline-flex items-center justify-end gap-1.5 whitespace-nowrap">
           {isPublished && (
             <>
               <Button
@@ -283,9 +283,9 @@ export function FormRow({
           </Button>
         </div>
 
-        {/* Mobile Actions Dropdown */}
+        {/* Mobile/Tablet Actions Dropdown */}
         <div
-          className="md:hidden relative inline-block text-left"
+          className="lg:hidden relative inline-block text-left"
           ref={menuRef}
         >
           <Button

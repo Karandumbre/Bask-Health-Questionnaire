@@ -49,6 +49,44 @@ describe("API client", () => {
     apiClient.defaults.adapter = originalAdapter;
   });
 
+  it.each(["get", "post", "put", "patch", "delete"] as const)(
+    "%s sets its method and preserves request options",
+    async (method) => {
+      const adapter = respond({ success: true, revision: 4 });
+      const controller = new AbortController();
+      expect(
+        await apiRequest[method]("/api/form", resultSchema, {
+          json: { name: "Intake" },
+          signal: controller.signal,
+          params: { limit: 10 },
+          timeout: 1000,
+          headers: { "X-Test": "yes" },
+        }),
+      ).toEqual({ success: true, revision: 4 });
+      const config = adapter.mock.calls[0]![0];
+      expect(config.method).toBe(method);
+      expect(config.signal).toBe(controller.signal);
+      expect(config.data).toBe('{"name":"Intake"}');
+      expect(config.params).toEqual({ limit: 10 });
+      expect(config.timeout).toBe(1000);
+      expect(config.headers.get("X-Test")).toBe("yes");
+    },
+  );
+
+  it("method helpers retain response validation and cancellation", async () => {
+    const adapter = respond({ success: true, revision: "invalid" });
+    await expect(
+      apiRequest.get("/api/form", resultSchema),
+    ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+    const controller = new AbortController();
+    controller.abort();
+    const error = await apiRequest
+      .post("/api/form", resultSchema, { signal: controller.signal })
+      .catch((reason) => reason);
+    expect(axios.isCancel(error)).toBe(true);
+    expect(adapter).toHaveBeenCalledOnce();
+  });
+
   it("validates successful data and sends JSON with caller headers and a timeout", async () => {
     const adapter = respond({ success: true, revision: 4 });
     expect(

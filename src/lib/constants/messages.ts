@@ -20,6 +20,9 @@ export const APP_MESSAGES = {
     "Preview validation passed. Nothing was submitted.",
   FIX_ANSWER_ERRORS:
     "Correct the highlighted fields before saving or submitting.",
+  REFRESHING_FORMS: "Refreshing forms...",
+  LOADING_FORMS: "Loading forms...",
+  NETWORK_ERROR_LOADING_FORMS: "Unable to load forms. Please refresh to retry.",
   REFRESH: "Refresh",
   REFRESH_RESPONSES: "Refresh responses",
   RESPONSE_DETAIL: "Intake Response Detail",

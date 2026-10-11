@@ -58,8 +58,7 @@ export async function fetchFormSubmissions(
   }
 
   const endpoint = `${url.pathname}${url.search}`;
-  const response = await apiRequest(endpoint, listResponseSchema, {
-    method: "GET",
+  const response = await apiRequest.get(endpoint, listResponseSchema, {
     signal: options?.signal,
   });
 
@@ -75,8 +74,7 @@ export async function fetchSubmissionDetail(
   signal?: AbortSignal,
 ) {
   const endpoint = `${API_ROUTES.formResponses(formId)}?submissionId=${encodeURIComponent(submissionId)}`;
-  const response = await apiRequest(endpoint, detailResponseSchema, {
-    method: "GET",
+  const response = await apiRequest.get(endpoint, detailResponseSchema, {
     signal,
   });
 

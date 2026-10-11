@@ -15,20 +15,26 @@ import { CreateFormDialog } from "./CreateFormDialog";
 import { FormRow } from "./FormRow";
 import { useFormDashboard } from "../hooks/use-form-dashboard";
 
-import type { FormListItem } from "../domain/dashboard-types";
+import { DashboardHeader } from "./DashboardHeader";
+import { ResponseListSkeleton } from "./FormLoading";
 export type { FormListItem } from "../domain/dashboard-types";
 
 export function FormDashboard({
-  initialForms,
+  userId,
+  workspaceId,
   workspaceName,
   userEmail,
 }: {
-  initialForms: FormListItem[];
+  userId: string;
+  workspaceId: string;
   workspaceName: string;
   userEmail: string | null;
 }) {
-  const model = useFormDashboard(initialForms);
+  const model = useFormDashboard(userId, workspaceId);
   const {
+    isLoading,
+    isRefreshing,
+    handleRefresh,
     formsList,
     filteredForms,
     searchQuery,
@@ -55,39 +61,16 @@ export function FormDashboard({
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navigation */}
-      <header className="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 shrink-0 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-            {APP_MESSAGES.BH}
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-gray-900 leading-tight truncate">
-              {APP_MESSAGES.BASK_HEALTH_INTAKE_STUDIO}
-            </h1>
-            <p className="text-caption text-gray-500 truncate">
-              {workspaceName}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-          <span className="text-xs text-gray-600 hidden sm:inline truncate max-w-xs">
-            {userEmail}
-          </span>
-          <Button
-            loading={pendingAction?.type === "logout"}
-            loadingLabel={APP_MESSAGES.SIGNING_OUT}
-            onClick={handleLogout}
-            disabled={isMutating}
-            className="text-xs text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors whitespace-nowrap"
-          >
-            {APP_MESSAGES.SIGN_OUT}
-          </Button>
-        </div>
-      </header>
+      <DashboardHeader
+        workspaceName={workspaceName}
+        userEmail={userEmail}
+        handleLogout={handleLogout}
+        isMutating={isMutating}
+        isLoggingOut={pendingAction?.type === "logout"}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6">
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div>
@@ -101,15 +84,26 @@ export function FormDashboard({
             </p>
           </div>
 
-          <Button
-            onClick={openCreateDialog}
-            disabled={isMutating}
-            variant="primary"
-            className="gap-2 whitespace-nowrap self-start sm:self-auto"
-          >
-            <PlusIcon className="w-4 h-4 shrink-0" />
-            <span>{APP_MESSAGES.CREATE_NEW_FORM}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => void handleRefresh()}
+              disabled={isMutating}
+              loading={isRefreshing}
+              loadingLabel={APP_MESSAGES.REFRESHING_FORMS}
+              variant="secondary"
+            >
+              {APP_MESSAGES.REFRESH}
+            </Button>
+            <Button
+              onClick={openCreateDialog}
+              disabled={isMutating}
+              variant="primary"
+              className="gap-2 whitespace-nowrap self-start sm:self-auto"
+            >
+              <PlusIcon className="w-4 h-4 shrink-0" />
+              <span>{APP_MESSAGES.CREATE_NEW_FORM}</span>
+            </Button>
+          </div>
         </div>
 
         {/* Metric Summary Cards */}
@@ -120,7 +114,7 @@ export function FormDashboard({
                 {APP_MESSAGES.TOTAL_INTAKE_FORMS}
               </span>
               <div className="text-2xl font-bold text-gray-900 tracking-tight">
-                {totalForms}
+                {isLoading ? APP_MESSAGES.LOADING : totalForms}
               </div>
               <p className="text-caption text-gray-500">
                 {APP_MESSAGES.REGISTERED_CLINICAL_QUESTIONNAIRES}
@@ -142,7 +136,7 @@ export function FormDashboard({
                 </span>
               </div>
               <div className="text-2xl font-bold text-emerald-700 tracking-tight">
-                {publishedCount}
+                {isLoading ? APP_MESSAGES.LOADING : publishedCount}
               </div>
               <p className="text-caption text-gray-500">
                 {APP_MESSAGES.LIVE_PATIENT_INTAKE_VERSIONS}
@@ -159,7 +153,7 @@ export function FormDashboard({
                 {APP_MESSAGES.WORKING_DRAFTS}
               </span>
               <div className="text-2xl font-bold text-gray-900 tracking-tight">
-                {draftCount}
+                {isLoading ? APP_MESSAGES.LOADING : draftCount}
               </div>
               <p className="text-caption text-gray-500">
                 {APP_MESSAGES.UNPUBLISHED_FORMS_IN_PROGRESS}
@@ -224,7 +218,9 @@ export function FormDashboard({
         </div>
 
         {/* Forms Table */}
-        {filteredForms.length === 0 ? (
+        {isLoading ? (
+          <ResponseListSkeleton />
+        ) : filteredForms.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
               <PlusIcon className="w-6 h-6" />
@@ -250,19 +246,19 @@ export function FormDashboard({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50/80 text-caption font-bold uppercase tracking-wider text-gray-500">
-                  <th className="py-3.5 pl-4 sm:pl-5 pr-3 whitespace-nowrap rounded-tl-2xl">
+                  <th className="py-3.5 pl-4 sm:pl-5 pr-4 whitespace-nowrap rounded-tl-2xl w-full">
                     {APP_MESSAGES.FORM_TITLE}
                   </th>
-                  <th className="hidden md:table-cell py-3.5 px-4 whitespace-nowrap">
+                  <th className="hidden lg:table-cell py-3.5 px-3.5 whitespace-nowrap">
                     {APP_MESSAGES.STATUS}
                   </th>
-                  <th className="hidden md:table-cell py-3.5 px-4 whitespace-nowrap">
+                  <th className="hidden lg:table-cell py-3.5 px-3.5 whitespace-nowrap">
                     {APP_MESSAGES.WORKING_DRAFT}
                   </th>
-                  <th className="hidden md:table-cell py-3.5 px-4 whitespace-nowrap">
+                  <th className="hidden lg:table-cell py-3.5 px-3.5 whitespace-nowrap">
                     {APP_MESSAGES.LAST_UPDATED}
                   </th>
-                  <th className="py-3.5 pl-3 pr-4 sm:pr-5 text-right whitespace-nowrap rounded-tr-2xl">
+                  <th className="py-3.5 pl-3.5 pr-4 sm:pr-5 text-right whitespace-nowrap rounded-tr-2xl">
                     {APP_MESSAGES.ACTIONS}
                   </th>
                 </tr>
