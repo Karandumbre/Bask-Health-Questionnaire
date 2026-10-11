@@ -32,7 +32,7 @@ These statuses describe the available local evidence; they do not certify a depl
 
 ## Stack and structure
 
-Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS v4, and Polaris icons. Supabase Auth verifies administrators; Drizzle and PostgreSQL provide persistence. Axios and Zod handle browser API requests and response contracts.
+Next.js 16 App Router, React 19, strict TypeScript 6, Tailwind CSS v4, and Polaris icons. Supabase Auth verifies administrators; Drizzle and PostgreSQL provide persistence. Axios and Zod handle browser API requests and response contracts.
 
 | Path                               | Responsibility                                                        |
 | ---------------------------------- | --------------------------------------------------------------------- |
@@ -47,6 +47,19 @@ Next.js 16 App Router, React 19, strict TypeScript, Tailwind CSS v4, and Polaris
 | `db/migrations/`                   | Versioned schema and database protections                             |
 | `scripts/lib/migration-engine.mjs` | Shared migration engine with locking and checksums                    |
 | `tests/`                           | Unit, database integration, browser journeys, and synthetic fixtures  |
+
+### Database model
+
+The schema combines relational access boundaries with JSONB form and answer snapshots:
+
+- `workspaces` and `admin_memberships` scope administrative access through owner/editor roles.
+- `forms` and `form_drafts` store mutable definitions and themes with revision checks.
+- `published_versions` preserve immutable form/theme snapshots; `publication_operations` identify publication retries.
+- `patient_sessions` pin progress to a published version and store capability/recovery hashes, expiry, and recovery-attempt state.
+- `submissions` enforce one response per session and preserve submitted answers.
+- `audit_events` record administrative lifecycle metadata.
+
+See the [schema](src/lib/db/schema.ts) and [ERD](docs/architecture/ERD.md).
 
 ## Local setup
 
@@ -153,7 +166,7 @@ The latest local review ran typecheck, lint, and 194 unit tests successfully. A 
 
 ### Performance evidence
 
-The 100-field fixture exercises visibility and hidden-answer pruning in a timed unit benchmark. `PatientQuestionField` uses `React.memo`, but the current `PatientIntakeView` creates an inline `onChange` callback for each question on every render. That callback can invalidate memoization; no claim of isolated per-field rendering or measured browser improvement is made here.
+The 100-field fixture exercises visibility and hidden-answer pruning in a timed unit benchmark. `PatientQuestionField` uses `React.memo`; `PatientIntakeView` passes the stable `onAnswerChange` handler, and the field binds its question ID through `useCallback`. This avoids allocating a new parent callback for each field on every render. The [performance report](docs/architecture/PERFORMANCE_100_FIELD.md) describes earlier measurements, but the underlying browser trace has not been verified during this README review.
 
 **Still required:** attach a browser performance trace from a production build using the 100-field fixture. Record browser/version, viewport/device, CPU/network conditions, and the exact commit. Measure typing, editing, or changing visibility, and report an observed improvement or explain why further optimization is unnecessary. No browser latency numbers or FPS claims are asserted here without a trace.
 
@@ -177,4 +190,12 @@ Full signup/account recovery, mobile authoring, nested conditions, clinical deci
 
 Outstanding submission work is listed at the top: hosted verification and links, reviewer access/invitations, the five-minute video, redacted AI logs, and a browser performance trace. Confirm login abuse controls and production database permissions before expanding access beyond private reviewers.
 
-For AI disclosure, an initial README suggestion claimed the patient fields received a stable callback and avoided sibling renders. That claim was rejected after checking the current `PatientQuestionField` and `PatientIntakeView` source: the parent supplies inline `onChange` callbacks. The performance section now describes the actual implementation and marks the browser trace pending instead of inventing timing results. Include the original session logs in the submission; this summary does not replace them.
+For AI disclosure, the earlier generated README claimed a 35.6× browser-performance improvement and described a more elaborate Shuffle algorithm. Those claims were not copied as verified results: the current source was checked against the descriptions, and the performance section distinguishes the implemented callback optimization from measurements requiring a trace. Include the original session logs in the submission; this summary does not replace them.
+
+## Further documentation
+
+- [Master checklist](CHECKLIST.md) and [progress log](docs/PROGRESS.md)
+- [Architecture overview](docs/architecture/README.md), [decisions](docs/architecture/ADRS.md), and [API contracts](docs/architecture/API_CONTRACTS.md)
+- [Deployment](docs/DEPLOYMENT.md), [threat model](docs/architecture/THREAT_MODEL.md), and [defense in depth](docs/architecture/DEFENSE_IN_DEPTH.md)
+- [Concurrency and edge cases](docs/architecture/EDGE_CASES.md), [maintenance boundaries](docs/architecture/MAINTAINABILITY.md), and [design system](docs/architecture/DESIGN_SYSTEM.md)
+- [Test plan](docs/testing/TEST_PLAN.md) and [performance report](docs/architecture/PERFORMANCE_100_FIELD.md)
