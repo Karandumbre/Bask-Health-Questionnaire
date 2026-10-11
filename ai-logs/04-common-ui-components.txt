@@ -2,17 +2,18 @@ Stage 4 — Common UI Components and Design System
 
 ME — Initial prompt
 
-Now that the database and API structure are planned, I want to start with reusable frontend components before building the admin screens.
+As the admin and patient screens develop, I want to extract reusable frontend controls and make their styling and accessibility consistent.
 
 I'm using Next.js 16, React, TypeScript, Tailwind CSS, and Shopify Polaris icons. The application has an admin form builder and a public patient intake form. Both need buttons, text inputs, selects, checkboxes, dialogs, alerts, loading states, and consistent typography.
 
 Can you suggest a simple component structure that works for both sides? This is a take-home assessment, so I don't want to create too many wrappers or a large design system just for a few pages.
 
-AI Response — 
+AI Response —
 
-Start with a small set of shared UI primitives under src/components/ui/. Keep them presentation-focused, accessible, and independent of database or business rules.
+Extract a small set of shared UI primitives under src/components/ui/ where screens reveal repeated behavior. Keep them presentation-focused, accessible, and independent of database or business rules. Extract controls as repeated patterns appear rather than building a complete library upfront.
 
 Suggested starting components:
+
 - Button: primary, secondary, and destructive variants; disabled and loading states.
 - Input and Textarea: labels, descriptions, and error messages.
 - Select and CheckboxField: native controls with clear keyboard behavior.
@@ -32,7 +33,7 @@ I have a concern about the number of files. For example, should every button, ba
 
 Also, the admin builder has editable inputs but the patient form has validation and required fields. Should both use the same question component?
 
-AI Response — Keeping abstractions practical
+AI —
 
 You don't need to wrap every HTML element. Extract a component when it is reused, contains meaningful behavior, or needs consistent accessibility handling. A small Button or Input file is reasonable; dozens of tiny wrappers with no shared behavior would add maintenance cost.
 
@@ -48,32 +49,19 @@ ME — Follow-up
 
 What about responsive design and theming? The admin editor is mainly for desktop, while the intake is mobile-first. I also need named color presets, light/dark mode, and a Shuffle option later. Should we build the theme logic into the shared Button and Input components now?
 
-AI Response — Separate styling from theme behavior
+AI —
 
 Keep the UI primitives theme-aware through semantic CSS variables, but don't give each component its own theme-selection logic.
 
 For example, a shared Button can use semantic colors such as --primary and --primary-foreground. A theme module can assign different values to those variables for the admin preview or published patient form. That allows one component to support Ocean, Emerald, Slate, and generated palettes without importing theme-generation code.
 
 Build responsive layouts where they belong:
+
 - Admin builder: desktop-oriented navigator, form canvas, and settings inspector; adapt gracefully to narrower widths.
 - Patient intake: single-column mobile-first layout, readable fields, accessible error messages, and comfortable touch targets.
 
 For accessibility, prefer native inputs, associate labels and errors correctly, keep focus visible, and offer keyboard controls for actions such as question reordering. Validate contrast in both light and dark variants when the theme feature is implemented.
 
-ME — Final response
+ME — Final decision
 
-Okay. Let's create only the common controls we actually need, keep domain logic out of them, and reuse the styles consistently. We can build the admin dashboard and form builder screens next, then the mobile patient intake, and add the theme-generation functionality as a separate feature.
-
-AI Response — Agreed sequence
-
-1. Set up shared typography, spacing, and semantic color tokens.
-2. Add reusable Button, Input, Textarea, Select, CheckboxField, Alert, Badge, Dialog, Spinner, and table controls where needed.
-3. Verify keyboard navigation, labels, focus states, disabled states, and error messages.
-4. Build the admin dashboard and form editor with these primitives.
-5. Build patient-specific question fields and mobile layouts using the same foundation.
-6. Connect presets, light/dark mode, and Shuffle through theme tokens instead of duplicating components.
-7. Keep the component library small and refactor only when repeated patterns justify it.
-
-Implementation reference
-
-The existing application organizes reusable controls under src/components/ui/, shared styling under src/design-system/, admin form components under src/features/forms/components/, and patient rendering under src/features/patients/. Its theme logic is maintained separately under src/features/themes/. This is a newly drafted example discussion based on that implementation, not a recovered chat transcript.
+Okay. Let's extract only the common controls we actually need, keep domain logic out of them, and reuse styles across the dashboard, builder and patient screens. Keep theme generation separate from the controls.

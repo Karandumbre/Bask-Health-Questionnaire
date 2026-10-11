@@ -77,30 +77,14 @@ What about patient progress and the final submission? Patients will not have acc
 
 AI —
 
-Give each patient session a reference and a separate recovery code. Store only cryptographic digests of the access and recovery secrets. For same-browser access, use a per-form HttpOnly cookie; for another browser, ask the patient to enter the reference and recovery code and rotate credentials after successful recovery.
+Give each patient session a reference and a separate recovery code. Use keyed HMAC digests to verify the access and recovery secrets. The session also stores an encrypted replacement-credential payload; storage is not entirely hash-only. For same-browser access, use a per-slug named HttpOnly cookie; for another browser, ask for the reference and recovery code and rotate credentials after successful recovery.
 
 Store a patient session revision to prevent stale progress requests from overwriting more recent answers. Before saving or submitting, validate answers against the session's pinned published version and remove answers belonging to fields that are no longer visible.
 
 For final submission, lock the patient session row in a transaction, validate the visible required answers, and insert the submission. Enforce UNIQUE(session_id). If the same completed session submits again, return the original submission confirmation instead of inserting another row.
 
-ME — Final response
+ME — Final decision
 
 That works. Let's keep the database schema focused on those tables, use JSONB for form definitions and answers, and keep PostgreSQL responsible for revisions, unique constraints, transactions, and immutable snapshots.
 
 We'll use Supabase Auth for admin identity and verify workspace access in the Next.js backend. Let's finish schema and migration setup first, then connect the API handlers and start building the UI components.
-
-AI —
-
-Agreed. A practical implementation order is:
-
-1. Define the Drizzle tables, relationships, indexes, and constraints.
-2. Configure the runtime PostgreSQL pool and separate migration connection.
-3. Add migrations, the migration ledger, and safeguards for concurrent migration runs.
-4. Integrate Supabase Auth and server-side workspace authorization.
-5. Create form CRUD, draft save, and publication APIs.
-6. Add patient session, recovery, and submission services.
-7. Connect the frontend to those APIs after the data contracts are stable.
-
-Implementation reference
-
-The existing project contains the corresponding implementation in src/lib/db/schema.ts, src/lib/db/index.ts, db/migrations/, scripts/migrate.mjs, src/lib/supabase/, src/lib/auth/admin.ts, src/features/forms/server/, and src/features/patients/server/.

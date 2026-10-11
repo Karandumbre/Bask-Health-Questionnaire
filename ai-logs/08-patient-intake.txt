@@ -1,5 +1,4 @@
 Stage 8 — Patient Intake, Save/Resume and Submission
-Sample reconstructed ME/AI discussion based on the existing Bask Health implementation. Not an original recovered transcript.
 
 ME — Initial prompt
 
@@ -15,7 +14,8 @@ Keep the patient route separate from the admin experience:
 
   /intake/[slug]                 Public patient screen
   /api/patient/forms/[slug]      Published form definition
-  /api/patient/session/*         Session creation, progress, recovery and submit
+  /api/patient/forms/[slug]/session  Session creation and current state
+  /api/patient/session/*         Progress, recovery and submit
 
 Only load the immutable published version associated with the URL. Do not render from the current admin draft; otherwise edits made after publication could change a patient's in-progress form.
 
@@ -23,30 +23,30 @@ Use the same domain-level field definitions and validation rules as the admin pr
 
 For conditional visibility, store references to question and option IDs rather than labels. Recompute visible questions whenever answers change. If a parent answer hides a dependent field, remove the hidden answer from local state and also prune it on the server when saving progress.
 
-Create a patient_sessions record for each started intake. Pin it to published_version_id, store incomplete answers as JSONB and give the session a revision number. Use an HttpOnly capability cookie for same-browser access. The cookie should be scoped to the relevant form and set Secure in production.
+Create a patient_sessions record for each started intake. Pin it to published_version_id, store incomplete answers as JSONB and give the session a revision number. Use an HttpOnly capability cookie for same-browser access. Use a per-slug cookie name with Path=/ and Secure in production; server checks enforce the session/version boundary.
 
 ME — Follow-up
 
 For resume, cookies will not work if the patient switches their phone or browser. I don't want patients to register or receive email or SMS. Can we provide a reference number and recovery code? Also, how do we avoid storing the actual recovery code in the database?
 
-AI Response —
+AI —
 
 Yes. At session creation, show the patient two values they can save securely:
 
 - A non-secret session reference for looking up the session.
 - A high-entropy recovery code that proves control of that session.
 
-Use cryptographically secure random generation. Store only a keyed HMAC digest of the recovery code and capability token, using a server-side APP_SESSION_PEPPER. Never return the stored hashes to the browser and never place the recovery code in the public URL.
+Use cryptographically secure random generation and keyed HMAC digests for verification, with a server-side APP_SESSION_PEPPER. The session also stores an encrypted replacement-credential payload, so storage is not entirely hash-only. Never return the hashes to the browser or put the recovery code in the public URL.
 
 When the patient resumes from another browser, request the reference and code, verify them on the server, then issue a new capability cookie. Rotate credentials after successful recovery and invalidate the old ones. Add expiry and a bounded failed-attempt cooldown to make guessing more difficult.
 
-Keep the recovery UI clear: explain that the reference and code must be saved, show what happens when they expire, and do not include either value in analytics or logs.
+Keep the recovery UI clear: explain that the reference and code must be saved, show what happens when they expire, and do not include either value in analytics or logs. Recovery does not replay the encrypted replacement payload. If a successful recovery response is lost, the old code no longer works after rotation. Do not promise safe recovery retries; submission retries are handled separately.
 
 ME — Follow-up
 
 What happens if the patient changes a conditional answer from Yes to No after already entering the dependent details? And what if the same session is open in two tabs? I don't want hidden information to be submitted or an old tab to overwrite recent answers.
 
-AI Response —
+AI —
 
 Handle both cases on the server, not only in React.
 
@@ -60,7 +60,7 @@ ME — Follow-up
 
 For the final submit, users may double-click or lose network connectivity after the server has already saved the response. How do we prevent duplicate submissions? And should the completion page still work after refreshing?
 
-AI Response —
+AI —
 
 Put final submission inside a PostgreSQL transaction. Lock the patient session row, verify the session capability and expiry, load its pinned published version, prune hidden answers, and validate every visible required field.
 
@@ -68,23 +68,8 @@ Insert the final answer into submissions with UNIQUE(session_id), then mark the 
 
 Once a session is completed, reject further progress writes. Allow the user to retrieve the completion state so a refresh or network retry does not create a new submission.
 
-ME — Final response
+ME — Final decision
 
 Okay. Let's keep the patient screen as a responsive continuous form rather than introducing a multi-step wizard. Reuse the existing field validation and autosave infrastructure where it makes sense, but keep patient capabilities and admin authentication separate.
 
 Please implement mobile-friendly question components, progress states, the reference/recovery-code flow and transactional submission. Make sure conditional answers are removed both in the UI and database, and add tests for cross-browser resume, two-tab revisions, double submit and retry after a lost response.
-
-AI —
-
-Agreed. The next implementation sequence is:
-
-1. Render the published form and six field types on /intake/[slug].
-2. Add visibility evaluation, required-field messages and mobile layout states.
-3. Add patient session creation and debounced progress saves using session revisions.
-4. Add same-browser capability cookies and reference/recovery-code resume.
-5. Add server-side answer pruning, strict final validation and transactional submission.
-6. Test recovery, hidden answers, stale revisions, duplicate submissions and completion refresh.
-
-Implementation reference
-
-The existing project contains patient domain validation and visibility modules, server-side session and submission services, patient capability cookie handling, and the /intake/[slug] route. Relevant paths include src/features/patients/domain/, src/features/patients/server/session-service.ts, src/features/patients/server/submission-service.ts, src/features/patients/hooks/use-patient-progress.ts and src/app/intake/[slug]/.

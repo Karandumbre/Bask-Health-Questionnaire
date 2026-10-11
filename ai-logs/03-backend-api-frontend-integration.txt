@@ -1,5 +1,4 @@
 Bask Health — Stage 3: Backend APIs and Frontend Integration
-Reconstructed example discussion based on the implemented application (not an original chat transcript).
 
 ME — Initial prompt
 
@@ -9,13 +8,14 @@ Now I want to connect the frontend to the backend. We need admin APIs to create,
 
 Can you suggest the API routes, request/response format, and a simple way to call them from React? I want to keep things maintainable, with validation and security on the server. Please don't add GraphQL or a separate backend service unless necessary.
 
-AI Response — API structure
+AI Response —
 
 We can use Next.js App Router Route Handlers for all HTTP endpoints. Keep route.ts files thin: parse the request, verify authentication or the patient session capability, call a domain service and return a consistent JSON response.
 
 Suggested route groups:
 
 Admin:
+
 - GET /api/admin/forms — list forms in an authorized workspace.
 - POST /api/admin/forms — create a form and initial draft.
 - GET /api/admin/forms/[formId] — load the current draft.
@@ -25,11 +25,13 @@ Admin:
 - GET /api/admin/forms/[formId]/responses — list submissions for the form.
 
 Authentication:
+
 - POST /api/auth/login
 - POST /api/auth/logout
 - GET /api/auth/me
 
 Patient:
+
 - GET /api/patient/forms/[slug] — load the published form definition and theme.
 - Session endpoints for starting a session, checking current progress, saving progress, recovering access and submitting.
 
@@ -41,11 +43,12 @@ ME — Follow-up
 
 For the frontend, should we call these APIs using fetch or Axios? And how should the UI handle validation errors, expired sessions, or a 409 when the draft revision has changed?
 
-AI Response — Frontend integration
+AI —
 
-Either fetch or Axios works. Since the project already uses Axios, keep a single API client wrapper instead of creating a different request pattern in every React component.
+Either fetch or Axios works. Use the shared Axios client and feature endpoint helpers to keep errors and cancellation consistent. Follow each endpoint's response contract.
 
 The wrapper should:
+
 - Use same-origin API URLs so browser cookies are included appropriately.
 - Parse successful responses and handle failures consistently.
 - Preserve HTTP status and machine-readable error codes.
@@ -63,15 +66,15 @@ Adapt the exact success payload to each route's existing contract; don't force a
 
 In the admin builder, keep the editable draft in React state. The autosave layer can send PATCH requests after a short debounce with expectedRevision. A 409 means the client must not silently overwrite a newer server draft. Keep the local edits and show a conflict resolution path.
 
-For ordinary validation failures, show a useful message near the affected field. For an expired patient session, explain that recovery is required rather than repeatedly retrying the same invalid capability. For server or network failures, keep unsaved changes visible and offer retry.
+For ordinary validation failures, show a useful message near the affected field. For an expired or invalid patient capability, explain the available recovery or new-session action rather than repeatedly retrying it; recovery cannot revive a session that has itself expired. For server or network failures, keep unsaved changes visible and offer retry.
 
 ME — Follow-up
 
 The patient page is public. How can we save progress without making users create accounts? Also, I don't want someone to modify another patient's session just by guessing an ID or changing the request payload.
 
-AI Response — Patient session security
+AI —
 
-A patient account is not necessary for this assessment. When a patient starts intake, generate a random session capability and return it using a secure HttpOnly cookie scoped to that form. Store only a cryptographic digest of the capability in PostgreSQL.
+A patient account is not necessary for this assessment. Generate a random session capability and issue an HttpOnly cookie with Secure enabled in production. Cookies use per-slug names and Path=/; server-side session and published-version checks enforce isolation. Verify capabilities using HMAC digests. Recovery also stores encrypted replacement credentials; keep that payload server-side.
 
 Each patient mutation should read the cookie on the server, verify the capability against the correct session and published version, and validate the submitted answers using the saved published snapshot. Never trust client-supplied question definitions, session ownership or visibility flags.
 
@@ -81,20 +84,6 @@ Save progress using a session revision so two browser tabs cannot silently overw
 
 Submission should run in a PostgreSQL transaction, lock the session, validate all visible required answers and insert into submissions with a UNIQUE(session_id) constraint. If the browser retries after a successful commit, return the existing submission instead of creating another one.
 
-ME — Final follow-up
+ME — Final decision
 
 Okay. Let's keep the Route Handlers small and use the existing domain and server services. I want one common Axios client, clear loading/error states, and no direct database access from Client Components. We can build the admin screens first and then integrate the patient screens using the same validation rules.
-
-AI Response — Agreed sequence
-
-1. Define and verify request/response schemas for admin and patient endpoints.
-2. Add the shared Axios client and standardized error handling.
-3. Connect login, workspace selection and the admin forms list.
-4. Connect create, load, rename, delete and draft save operations.
-5. Connect publication and response viewing.
-6. Connect public published-form loading, session start, autosave, recovery and submit.
-7. Test unauthorized access, malformed payloads, stale revisions, hidden-answer pruning and duplicate submission retries.
-
-Implementation reference
-
-The existing application organizes routes under src/app/api/, reusable HTTP handling under src/lib/http/ and src/lib/errors/, browser API calls in feature client modules such as src/features/forms/client/forms-api.ts and src/features/patients/client/patient-api.ts, and business logic under src/features/forms/server/ and src/features/patients/server/. The frontend remains separate from server-only Drizzle and credential handling.

@@ -1,9 +1,8 @@
 Stage 6 — Form Builder Discussion
-Sample reconstructed discussion based on the existing Bask Health implementation.
 
 ME — Initial prompt
 
-Now that the admin dashboard and common components are in place, I want to work on the form builder.
+I want to discuss the form builder, its shared controls and how it connects to the admin dashboard.
 
 Admins should be able to add, edit, duplicate, reorder, and delete questions. We have six question types: short text, long text, number, single select, multi select, and checkbox. Each type should show only the settings that apply to it.
 
@@ -60,32 +59,16 @@ AI —
 
 Use explicit state updates by stable ID. Avoid rebuilding independent state trees for the navigator, canvas, and inspector. For reordering, provide Move up and Move down buttons so the feature works without drag-and-drop.
 
-Changing a field type should reset settings that no longer apply and preserve only compatible values. If it was a parent for conditional questions, flag affected conditions for review rather than guessing a replacement.
+Keep the type fixed for existing fields for now. If we add type conversion, reset incompatible settings and revalidate dependent conditions rather than guessing replacements.
 
 For a 100-field form, first keep renders localized: memoize field rows where useful, keep callbacks stable, and avoid expensive validation work on every keystroke. Measure actual browser interactions before introducing virtualization or a complex state library.
 
-Autosave can be integrated after the editor's local update actions work reliably. Send the complete draft with an expected revision; keep the latest local edits if a save fails, and do not allow an older save response to mark newer changes as saved.
+Use a serialized autosave queue. Send the complete draft with an expected revision, preserve newer edits if a save fails, and acknowledge only the snapshot the request actually saved.
 
-ME — Final response
+ME — Final decision
 
 Okay. Keep the three-panel layout, with a shared builder state and reusable UI controls. We can support adding, editing, duplicating, deleting, and keyboard reordering first.
 
 Use stable IDs for questions and choices. Allow incomplete drafts to save, but block publishing if the form or its conditional rules are invalid. Preview must reuse the patient visibility logic without storing answers.
 
-We can address autosave conflicts as the next stage, after the core editing interactions work.
-
-AI —
-
-Agreed. The next implementation sequence would be:
-
-1. Define typed question models and local editor actions.
-2. Build the Field Navigator, Form Canvas, and Question Inspector.
-3. Implement field-specific controls and stable-ID duplication/reordering.
-4. Add condition selection and invalid-dependency feedback.
-5. Connect draft persistence and publish readiness checks.
-6. Add revision-aware autosave and conflict recovery.
-7. Test keyboard interactions, long labels, narrow screens, and large form definitions.
-
-Implementation reference
-
-The existing project organizes these concerns under src/features/forms/domain/, src/features/forms/components/, src/features/forms/context/, and src/features/forms/hooks/. Relevant implementation areas include the BuilderProvider, form validation and condition rules, FormCanvas, and the autosave state machine. This is a newly authored example of the design discussion, not a recovered conversation transcript.
+Keep autosave and conflict handling separate from the local editing actions.
