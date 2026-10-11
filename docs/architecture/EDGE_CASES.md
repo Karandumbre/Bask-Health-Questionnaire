@@ -1,139 +1,48 @@
-# Concurrency, Integrity & Edge Cases
+# Edge cases and verification evidence
 
-This document details critical race conditions, integrity hazards, and algorithmic resolution strategies for **Intake Studio**.
+Behavior below is checked against current source. Listed tests exist; only the unit suite was executed in this audit (282 tests passed on October 11, 2026). PostgreSQL and Playwright suites were inspected but not run. Live metadata confirms constraints/triggers on the designated disposable target, not behavioral execution or production settings.
 
----
+## Editing and publication
 
-## 1. Administrative Authoring Races
+| Case                                | Implemented behavior                                                                                                                                              | Existing evidence                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Edit while a save is in flight      | Serialized autosave acknowledges its submitted snapshot/revision; newer edits stay dirty and a follow-up save uses the acknowledged revision                      | `tests/unit/forms/draft-autosave.test.ts`                                |
+| Late/non-advancing response         | Cannot regress state or mark newer content saved                                                                                                                  | Same unit suite                                                          |
+| Network failure/ambiguous commit    | Keep edits and require explicit retry; an undo after ambiguous failure is verified rather than falsely marked saved                                               | Same unit suite; `save-failure-feedback.test.ts`                         |
+| Two editors use one revision        | Server accepts one revision update and returns conflict for stale content; automatic saves stop pending reconciliation                                            | `multi-admin-concurrency.test.ts`; PostgreSQL suite                      |
+| Three-way merge                     | Last acknowledged base, local draft, and latest server draft are matched by stable question/option IDs; disjoint edits merge, collisions require explicit choices | `three-way-merge.test.ts`                                                |
+| Delete versus modify                | Merge reports a collision instead of silently resurrecting or dropping the question                                                                               | Same merge suite                                                         |
+| Rename versus old save              | Rename locks form then draft and advances revision; stale save fails                                                                                              | PostgreSQL rename test                                                   |
+| Delete versus edit/publish          | Hard deletion locks the form; later mutations fail if deleted/archived, without recreating it                                                                     | Form services; broader browser race verification pending                 |
+| Publish versus edit                 | Form-before-draft locking and expected revision select a consistent snapshot or reject stale publication                                                          | PostgreSQL concurrent publication tests                                  |
+| Retry publication operation         | Advisory lock and operation registry return the same snapshot for the same operation; reuse on another form is rejected                                           | PostgreSQL idempotency tests                                             |
+| Separate same-revision publications | First publication advances draft revision; the other operation is stale                                                                                           | PostgreSQL concurrent publish test                                       |
+| Edit/republish                      | Same working draft remains editable; earlier versions, question/option IDs, labels, and themes are unchanged                                                      | PostgreSQL historical-snapshot test; `tests/e2e/intake-journeys.spec.ts` |
+| Leave before acknowledgment         | Only server-acknowledged changes survive reload; pending in-memory edits are not a durable offline draft                                                          | Autosave reload unit test                                                |
 
-### 1.1. Two Administrators Editing the Same Draft
+## Conditions and patient progress
 
-- **Hazard:** Admin Alice opens Draft Revision 4. Admin Bob opens Draft Revision 4. Alice saves at $T_1$, advancing the database to Revision 5. Bob attempts to save at $T_2$ with local changes based on Revision 4.
-- **Resolution Strategy:**
-  1. Bob's request sends `{ expectedRevision: 4 }`.
-  2. The server executes:
-     ```sql
-     UPDATE form_drafts
-     SET definition_json = $1, revision = revision + 1, updated_at = NOW()
-     WHERE id = $2 AND revision = 4
-     RETURNING revision;
-     ```
-  3. The query returns 0 rows.
-  4. The server responds with `HTTP 409 Conflict`, returning Bob's expected revision (4) and the server's current revision (5).
-  5. **Client UX (`ConflictModal.tsx` & `three-way-merge.ts`):** Bob's UI pauses autosave, preserves Bob's dirty changes in memory, fetches Revision 5 from the server, and runs a deterministic **Three-Way Merge** against the last server-acknowledged base (Revision 4) using stable question and option IDs:
-     - **Auto-Merge Disjoint Edits & Resolve Collisions:** Disjoint question/option edits are merged automatically; property, choice, or delete-vs-modify collisions are surfaced with explicit "Keep Local" vs "Use Server" choices and committed with `expectedRevision: 5`.
-     - **Inspect & Copy Unsaved Changes** (JSON) to clipboard.
-     - **Reload Server Revision** to accept Alice's changes or **Keep Mine & Overwrite** against Revision 5.
+Conditions reference one earlier, required, unconditional single-select and a stable option ID. Deleting/changing/reordering an eligible parent can invalidate publication; drafts remain structurally saveable. Labels are not merge or condition identities. These rules have passing unit coverage in `form-validation.test.ts` and `conditional-dependencies.test.ts`.
 
-### 1.2. Stale Network Responses Overwriting Newer Edits
+Changing Yes → No removes the dependent answer in client state immediately. PostgreSQL removes it when a progress save succeeds, not at the instant the local selection changes. Re-showing the child leaves it empty. Progress and submission independently prune hidden/unknown answers and validate remaining values against the pinned published snapshot. Visibility/validation unit tests passed; real persistence and browser journeys remain unrun here.
 
-- **Hazard:** Admin Alice types "Chest Pain" (autosave request #1 dispatched). Alice immediately types "Severe Chest Pain" (autosave request #2 dispatched). Network latency causes request #2 to resolve at the server first, and request #1 resolves second.
-- **Resolution Strategy:**
-  - Client increments an internal monotonic sequence number (`clientMutationSeq`) per keystroke.
-  - Autosaves are serialized via a promise queue or debounced worker.
-  - Even if request #1 arrives late at the server, its `expectedRevision` will be stale compared to request #2, failing safely with a rejected CAS.
-  - The client ignores incoming responses whose sequence number is older than the latest dispatched request.
+Two tabs saving one session must supply `expectedSessionRevision`. CAS also checks `in_progress` status and the active credential hash, preventing stale progress from overwriting another save, completion, or credential rotation. Conflict requires refresh/reconciliation; there is no patient three-way merge. Session-expiry/error browser tests exist, but were not executed in this audit.
 
-### 1.3. Simultaneous Form Publish & Edit
+## Recovery, isolation, and completion
 
-- **Hazard:** Alice edits the draft while Bob triggers "Publish".
-- **Resolution Strategy:**
-  - `publishForm` begins an explicit PostgreSQL transaction:
-    ```sql
-    BEGIN;
-    SELECT * FROM form_drafts WHERE form_id = $1 FOR UPDATE;
-    -- Verify draft.revision == expectedRevision
-    -- Validate form definition against strict publish rules
-    -- Increment forms.latest_published_version_number
-    -- Insert into published_versions
-    COMMIT;
-    ```
-  - The row lock blocks concurrent draft updates until publication completes.
-  - If Alice's edit committed right before Bob's publish, Bob's `expectedRevision` check fails, alerting Bob that the draft changed and must be re-reviewed before publishing.
+| Case                                        | Implemented behavior                                                                                                                          | Existing evidence / limit                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Reference without secret / wrong capability | Denied; slug and version checks isolate patient session routes                                                                                | Passing credential/session-route unit tests; HTTP integration isolation scenario |
+| Independent browser                         | No capability cookie means no existing answers; explicit new session or recovery is required                                                  | `tests/e2e/intake-completion.spec.ts`                                            |
+| Concurrent recovery                         | Session row lock permits one rotation; old code/capability becomes invalid                                                                    | PostgreSQL and HTTP integration tests                                            |
+| Failed recovery / expiry                    | Failed count persists; five failures trigger bounded 15-minute cooldown; recovery expires after seven days and session after 30               | Passing session-policy tests; PostgreSQL expiry/attempt scenario                 |
+| Lost successful recovery response           | Stored encrypted replacement payload is not consumed by resume; retrying old code fails and former browser capability has been invalidated    | Source-confirmed limitation; recovery lost-response regression coverage pending  |
+| New publication during v1 session           | Session remains pinned to v1, including historical labels/theme                                                                               | PostgreSQL/Playwright historical-version tests                                   |
+| Archive published form                      | History is retained; public slug lookup excludes archived forms, so do not promise that an archived intake remains accessible through its URL | `getPublishedFormBySlug`; archive retention integration test                     |
+| Hidden/invalid injected answers             | Hidden/unknown question data is pruned; invalid visible values reject final submission                                                        | Passing patient validation unit tests; integration bypass tests                  |
+| Duplicate/concurrent submission             | Session lock plus UNIQUE(session_id) produce one immutable response                                                                           | PostgreSQL/HTTP integration duplicate-submission scenarios                       |
+| Lost submission success response            | Valid, unexpired capability retry returns original submission ID/time/snapshot, even if submitted payload differs                             | Integration retry tests; Playwright lost-response journey                        |
+| Refresh after completion                    | Session GET supplies original completion; progress mutation is rejected                                                                       | Passing patient flow/session route tests; completion browser tests               |
+| Expired capability after completion         | Replay still checks access/expiry; no indefinite confirmation-access promise                                                                  | Session/submission policy source                                                 |
 
-### 1.4. Network Timeout on Publish (Idempotent Retry)
-
-- **Hazard:** Bob clicks Publish. The server completes the transaction, but the network connection drops before Bob's browser receives the HTTP response. Bob clicks Publish again.
-- **Resolution Strategy:**
-  - Publish requests require a client-generated UUID `operationId`.
-  - The database records successful publications in `publication_operations (operation_id, published_version_id)`.
-  - When the retried request arrives with the same `operationId`, the server returns the previously created version record without allocating a duplicate version number (vN+1).
-
----
-
-## 2. Dependency & Visibility Hazards
-
-### 2.1. Parent Question Reordered After Child
-
-- **Hazard:** Question 2 depends on Question 1. Admin reorders Question 1 to position 5.
-- **Resolution Strategy:**
-  - Draft autosave **permits** invalid drafts so work is never lost while rearranging.
-  - The form inspector immediately flags Question 2 with an error badge: _"Depends on Question 1, which appears later in the form."_
-  - `publishForm` executes pure validator `validateFormForPublish`. The publish transaction aborts with `HTTP 422 INVALID_FORM` specifying `{ questionId: "q2", error: "FORWARD_DEPENDENCY" }`.
-
-### 2.2. Parent Question or Option Deleted
-
-- **Hazard:** Question 2 depends on Option "opt-yes" of Question 1. Admin deletes Option "opt-yes" or Question 1.
-- **Resolution Strategy:**
-  - System retains Question 2's condition metadata pointing to `q1` / `opt-yes`.
-  - The UI highlights the broken dependency in red: _"Condition references a deleted question/option. Click to repair."_
-  - Conditions never silently retarget to the first remaining option.
-  - Publish is blocked until the condition is either deleted or pointed to a valid parent.
-
-### 2.3. Parent Changed from Yes -> No -> Yes (Answer Pruning)
-
-- **Hazard:**
-  1. Patient selects "Yes" to "Do you smoke?" (Q1).
-  2. Patient enters "10 cigarettes per day" in dependent question (Q2).
-  3. Patient changes Q1 to "No".
-  4. Later, patient changes Q1 back to "Yes".
-- **Resolution Strategy:**
-  - The moment Q1 is changed to "No", Q2 becomes hidden.
-  - **Pruning Invariant:** In both the client state and the server database progress record, `answers["q2"]` is immediately deleted upon Q1 becoming "No".
-  - When the patient switches back to "Yes", Q2 re-appears completely blank. It does NOT resurrect the prior answer "10 cigarettes per day".
-
----
-
-## 3. Patient Submission & Resume Hazards
-
-### 3.1. Concurrent Duplicate Submissions (Double-Click / Retry)
-
-- **Hazard:** Patient taps "Submit" twice rapidly on a mobile device, or a mobile network drops the connection after commit and retries automatically.
-- **Resolution Strategy:**
-  - The `submissions` table enforces `UNIQUE(session_id)`.
-  - The submission endpoint acquires an exclusive lock:
-    ```sql
-    BEGIN;
-    SELECT * FROM patient_sessions WHERE id = $1 FOR UPDATE;
-    IF session.status = 'completed' THEN
-        SELECT * FROM submissions WHERE session_id = $1;
-        COMMIT;
-        RETURN existing_submission;
-    END IF;
-    -- Validate and sanitize answers
-    INSERT INTO submissions (id, session_id, published_version_id, answer_snapshot, submitted_at)
-    VALUES (...);
-    UPDATE patient_sessions SET status = 'completed', completed_at = NOW() WHERE id = $1;
-    COMMIT;
-    ```
-  - Both requests return the identical submission ID and timestamp.
-
-### 3.2. Malicious Client Injecting Hidden or Invalid Answers
-
-- **Hazard:** An attacker intercepts the network request and injects answers for questions that were hidden, non-existent choice IDs, or strings exceeding maximum limits.
-- **Resolution Strategy:**
-  - The server evaluates `pruneHiddenAnswers(answers, pinnedVersion.questions)` before validation. Any answer for a question not currently visible is discarded.
-  - The server executes `validateFinalSubmission` against the pinned snapshot:
-    - Single-select values must exist in the question's option list.
-    - Multi-select values must be an array of known option IDs with no duplicates.
-    - Required text fields must contain non-whitespace characters (`value.trim().length > 0`).
-    - Required checkboxes must be boolean `true`.
-    - Numbers must be finite, valid numbers matching integer/bounds constraints.
-  - Any violation immediately rejects the submission with `HTTP 422 INVALID_ANSWER`.
-
-### 3.3. Two Patient Tabs Saving Stale Answers
-
-- **Hazard:** Patient opens the intake on their phone in two tabs. Tab A answers Q1. Tab B (opened earlier) answers Q2 and autosaves.
-- **Resolution Strategy:**
-  - Patient progress saves enforce monotonic `expectedSessionRevision`.
-  - Tab B's save fails with `HTTP 409 Conflict`, prompting the user to refresh the latest saved progress rather than silently overwriting Tab A's answers.
+The UPDATE/DELETE immutability triggers were observed enabled on the disposable database. This audit did not attempt mutations to exercise them. They are row triggers, so privileged TRUNCATE/trigger disabling remains outside their protection. No patient records or recovery values were inspected.

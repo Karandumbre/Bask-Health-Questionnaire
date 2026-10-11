@@ -1,10 +1,12 @@
-# Entity-Relationship Diagram (ERD) & Database Specification
+# Database model and metadata audit
 
-This document specifies the PostgreSQL data model for **Intake Studio**, implemented via Drizzle ORM and executable SQL migrations.
+Source contracts: [Drizzle schema](../../src/lib/db/schema.ts), [initial migration](../../db/migrations/0001_initial_schema.sql), [RLS/recovery migration](../../db/migrations/0002_enable_rls_and_revoke_grants.sql), and [migration engine](../../scripts/lib/migration-engine.mjs).
 
----
+On October 11, 2026, both configured URLs resolved to the project listed in the repository's disposable-test allowlist, matching the public Supabase project host. Read-only inspection used the session pooler on port 5432; the application URL uses transaction pooling on port 6543. The target is classified as the repository-designated disposable database. Its relationship to the hosted application requires owner confirmation; these findings do not verify production.
 
-## Mermaid Entity-Relationship Diagram
+## Tables and columns
+
+Catalog inspection found the nine application tables below plus `_schema_migrations`. Application columns, nullability, foreign-key relationships, and uniqueness match the intended source model. User/actor UUIDs are identity references in application code, not foreign keys to Supabase Auth. No application or Auth records were read.
 
 ```mermaid
 erDiagram
@@ -12,12 +14,14 @@ erDiagram
     workspaces ||--o{ forms : "owns"
     workspaces ||--o{ audit_events : "records"
 
-    forms ||--|| form_drafts : "has current"
+    forms ||--o| form_drafts : "has current"
     forms ||--o{ published_versions : "produces"
     forms ||--o{ publication_operations : "tracks"
 
     published_versions ||--o{ patient_sessions : "instances"
     published_versions ||--o{ submissions : "receives"
+
+    published_versions ||--o| publication_operations : "publication operation"
 
     patient_sessions ||--o| submissions : "results in"
 
@@ -31,7 +35,7 @@ erDiagram
     admin_memberships {
         uuid id PK
         uuid workspace_id FK
-        uuid user_id "auth.users FK"
+        uuid user_id "Supabase identity; no SQL FK"
         text role "owner | editor"
         timestamptz created_at
         timestamptz revoked_at
@@ -42,7 +46,7 @@ erDiagram
         uuid workspace_id FK
         text name
         integer latest_published_version_number
-        uuid created_by "auth.users FK"
+        uuid created_by "Supabase identity; no SQL FK"
         timestamptz created_at
         timestamptz updated_at
         timestamptz archived_at
@@ -54,7 +58,7 @@ erDiagram
         jsonb definition_json
         jsonb theme_json
         bigint revision "CAS Monotonic"
-        uuid updated_by "auth.users FK"
+        uuid updated_by "Supabase identity; no SQL FK"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -67,7 +71,7 @@ erDiagram
         jsonb definition_snapshot "IMMUTABLE"
         jsonb theme_snapshot "IMMUTABLE"
         bigint draft_revision
-        uuid published_by "auth.users FK"
+        uuid published_by "Supabase identity; no SQL FK"
         timestamptz published_at
     }
 
@@ -118,79 +122,52 @@ erDiagram
         jsonb metadata_json
         timestamptz occurred_at
     }
+    _schema_migrations {
+        serial id PK
+        text name UK
+        text checksum "nullable SHA-256"
+        timestamptz applied_at
+    }
 ```
 
----
+## Relationships and constraints
 
-## Relational Constraints & Retention Rules
+All declared foreign keys use ON DELETE RESTRICT. They connect memberships/forms/audit events to workspaces; drafts/versions/publication operations to forms; operations/sessions/submissions to published versions; and submissions to sessions. A draft's UNIQUE(form_id) permits at most one draft at the SQL level; createForm creates one transactionally. No FK ensures that every form has a draft.
 
-### 1. Retention & Non-Cascading Deletion
+| Table                    | Additional uniqueness observed                            |
+| ------------------------ | --------------------------------------------------------- |
+| `form_drafts`            | `form_id`                                                 |
+| `published_versions`     | `(form_id, version_number)` and `public_slug`             |
+| `publication_operations` | Primary key `operation_id`; unique `published_version_id` |
+| `patient_sessions`       | `session_reference`                                       |
+| `submissions`            | `session_id`                                              |
+| `_schema_migrations`     | `name`                                                    |
 
-Clinical compliance mandates that patient responses and historical forms cannot be deleted implicitly:
+Every table has its diagrammed primary key. `admin_memberships(user_id, workspace_id)` has an index, not a uniqueness constraint. The live migration adds CHECK constraints for owner/editor roles and in_progress/completed status; Drizzle text enum typing alone does not define those SQL checks. The database does not enforce JSON question/option identities or equality between a submission's version and its session's version; services maintain those invariants.
 
-- `forms` table references `workspaces(id)` with `ON DELETE RESTRICT`.
-- `published_versions` table references `forms(id)` with `ON DELETE RESTRICT`. Forms with published versions cannot be deleted via SQL `DELETE`; they must be flagged as `archived_at = NOW()`.
-- `submissions` references `patient_sessions(id)` and `published_versions(id)` with `ON DELETE RESTRICT`.
-- `patient_sessions` references `published_versions(id)` with `ON DELETE RESTRICT`.
+Unique public slugs prevent collisions; the current name/version plus three-random-byte suffix is a public identifier, not a patient access secret. Unpublished forms may be hard-deleted after deleting the draft. Published forms are archived by the service, preserving snapshots/responses; SQL RESTRICT blocks parent deletion while children exist. These are assessment retention choices, not certification of clinical retention compliance.
 
-### 2. Unique Constraints & Concurrency Indexes
+## Indexes observed
 
-- `published_versions`: `UNIQUE(form_id, version_number)` prevents split-brain duplicate versions.
-- `published_versions`: `UNIQUE(public_slug)` guarantees unguessable, one-to-one public URLs.
-- `submissions`: `UNIQUE(session_id)` ensures that even if concurrent requests attempt insertion, exactly one row can ever exist for a session.
-- `form_drafts`: `UNIQUE(form_id)` ensures one active editable draft aggregate per form.
-- `publication_operations`: `UNIQUE(published_version_id)` binds an idempotent publishing ticket to its resultant version snapshot.
+Primary keys and unique constraints have supporting B-tree indexes. Additional indexes are:
 
-### 3. Database Triggers for Absolute Immutability
+| Table                | Index                       | Columns / predicate                                          |
+| -------------------- | --------------------------- | ------------------------------------------------------------ |
+| `admin_memberships`  | `idx_memberships_user_ws`   | `(user_id, workspace_id)`                                    |
+| `forms`              | `idx_forms_workspace`       | `(workspace_id) WHERE archived_at IS NULL`                   |
+| `published_versions` | `idx_pub_versions_slug`     | `(public_slug)`                                              |
+| `published_versions` | `idx_pub_versions_form_ver` | `(form_id, version_number DESC)`                             |
+| `patient_sessions`   | `idx_patient_sessions_ref`  | `(session_reference)`; separate from unique constraint index |
+| `patient_sessions`   | `idx_patient_sessions_ver`  | `(published_version_id)`                                     |
+| `submissions`        | `idx_submissions_ver_date`  | `(published_version_id, submitted_at DESC)`                  |
+| `audit_events`       | `idx_audit_events_ws_time`  | `(workspace_id, occurred_at DESC)`                           |
 
-#### Published Versions Immutability Trigger
+Migration/live index names and definitions above are authoritative for the inspected database. Drizzle declares `idx_forms_workspace` without the partial predicate, and the version/date indexes without descending order. It omits the redundant session-reference index and uses explicit names for some uniques where migration SQL uses PostgreSQL-generated names. These differences are documented rather than changed during this audit; inspect generated migrations carefully.
 
-```sql
-CREATE OR REPLACE FUNCTION prevent_published_version_mutation()
-RETURNS TRIGGER AS $$
-BEGIN
-    RAISE EXCEPTION 'Table published_versions is immutable. UPDATE and DELETE statements are forbidden.';
-END;
-$$ LANGUAGE plpgsql;
+## Triggers, RLS, and migration tracking
 
-CREATE TRIGGER trg_protect_published_versions
-BEFORE UPDATE OR DELETE ON published_versions
-FOR EACH ROW EXECUTE FUNCTION prevent_published_version_mutation();
-```
+`trg_protect_published_versions` and `trg_protect_submissions` were enabled (`tgenabled=O`). Their BEFORE UPDATE OR DELETE row functions raise exceptions. This verifies definitions/enabled state, not a mutation test, and does not protect against privileged TRUNCATE or disabling triggers.
 
-#### Submissions Immutability Trigger
+All ten tables have RLS enabled, not forced, and no policies. The current `postgres` role owns them and has BYPASSRLS; browser roles have no visible table grants. See [defense in depth](DEFENSE_IN_DEPTH.md) for privilege and transport limits.
 
-```sql
-CREATE OR REPLACE FUNCTION prevent_submission_mutation()
-RETURNS TRIGGER AS $$
-BEGIN
-    RAISE EXCEPTION 'Table submissions is immutable. UPDATE and DELETE statements are forbidden.';
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_protect_submissions
-BEFORE UPDATE OR DELETE ON submissions
-FOR EACH ROW EXECUTE FUNCTION prevent_submission_mutation();
-```
-
-### 4. Row-Level Security (RLS) & PostgREST Privilege Revocation (`0002_enable_rls_and_revoke_grants.sql`)
-
-- Default-deny Row-Level Security (`ENABLE ROW LEVEL SECURITY`) is enabled across all tables (`workspaces`, `admin_memberships`, `forms`, `form_drafts`, `published_versions`, `publication_operations`, `patient_sessions`, `submissions`, `audit_events`, and `_schema_migrations`).
-- All table, sequence, and routine privileges in the `public` schema are explicitly `REVOKE`d from Supabase's `anon` and `authenticated` roles so callers cannot bypass application-layer authorization via the Supabase PostgREST Data API.
-
----
-
-## Indexing Strategy
-
-1. **`forms`**:
-   - `idx_forms_workspace_id`: Index on `workspace_id` where `archived_at IS NULL` for rapid dashboard listings.
-2. **`published_versions`**:
-   - `idx_published_versions_slug`: Hash/B-Tree index on `public_slug` for instant public patient resolution.
-   - `idx_published_versions_form_ver`: Composite index on `(form_id, version_number DESC)`.
-3. **`patient_sessions`**:
-   - `idx_patient_sessions_ref`: Unique B-Tree index on `session_reference` for cross-browser lookup.
-   - `idx_patient_sessions_version`: Index on `published_version_id` for administrative cohort telemetry.
-4. **`submissions`**:
-   - `idx_submissions_version_date`: Composite index on `(published_version_id, submitted_at DESC)` for admin response pagination.
-5. **`audit_events`**:
-   - `idx_audit_events_workspace_time`: Composite index on `(workspace_id, occurred_at DESC)` for security review logs.
+The migration engine owns `_schema_migrations`, outside the Drizzle application schema. Its columns are serial `id`, unique non-null `name`, non-null `applied_at`, and nullable `checksum`. Applied entries `0001_initial_schema.sql` and `0002_enable_rls_and_revoke_grants.sql` both match the repository files' SHA-256 checksums. Migration 0002 adds the three nullable recovery replay/previous-credential columns. No migrations or database writes were executed in this audit.

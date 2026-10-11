@@ -16,6 +16,7 @@ export const ENVIRONMENT_KEYS = Object.freeze({
   CI: "ci",
   PLAYWRIGHT_BASE_URL: "playwrightBaseUrl",
 });
+
 export const ENVIRONMENT_NAMES = Object.freeze({
   [ENVIRONMENT_KEYS.PUBLIC_SUPABASE_URL]: "NEXT_PUBLIC_SUPABASE_URL",
   [ENVIRONMENT_KEYS.PUBLIC_SUPABASE_KEY]:
@@ -34,6 +35,7 @@ export const ENVIRONMENT_NAMES = Object.freeze({
   [ENVIRONMENT_KEYS.CI]: "CI",
   [ENVIRONMENT_KEYS.PLAYWRIGHT_BASE_URL]: "PLAYWRIGHT_TEST_BASE_URL",
 });
+
 export const ENVIRONMENT_VALUES = Object.freeze({
   PRODUCTION: "production",
   PRODUCTION_ALIAS: "prod",
@@ -45,6 +47,7 @@ export const ENVIRONMENT_VALUES = Object.freeze({
   VERCEL_ENABLED: "1",
   DISABLED_NUMERIC: "0",
 });
+
 export const ENVIRONMENT_DEFAULTS = Object.freeze({
   EMPTY: "",
   PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3000",

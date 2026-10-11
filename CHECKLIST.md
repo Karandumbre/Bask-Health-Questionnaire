@@ -1,12 +1,14 @@
 # Bask Health — Intake Studio Master Checklist
 
-**Status:** Core application features implemented; hosted deployment, performance trace, and submission deliverables pending.
+**Status:** Core application features implemented; deployed on Vercel (user-confirmed). Hosted functionality is owner-confirmed; independent hosted verification, browser performance trace, and submission deliverables remain pending.
 
 **Source:** Candidate brief and supplied reference screenshots (October 2026)
 
 **Purpose:** Track implementation, architecture decisions, edge cases, tests, deployment, and submission deliverables.
 
-**Legend:** `[ ]` not started · `[x]` completed · `[!]` decision or clarification required
+**Legend:** `[ ]` outstanding or not verified · `[x]` implemented/completed within the stated scope · `[!]` decision or clarification required
+
+> Status reviewed against current source on October 11, 2026. Vercel deployment is confirmed by the project owner. Typecheck, lint, 35 unit files / 282 tests, and build passed on Node 24.14.1 (CI targets Node 22). Read-only metadata verified the repository-designated disposable database, not production. A public HTTPS GET of the supplied Vercel root returned HTTP 200; no migrations, integration tests, authenticated/patient hosted checks, or browser journeys were run. Test-file coverage remains distinct from successful behavioral execution.
 
 > The Figma screens are loose references, not pixel-perfect specifications. Design a coherent desktop admin editor and responsive patient flow. Do not mistake the mockup's seven questions or illustrated submissions for complete acceptance criteria.
 
@@ -26,27 +28,33 @@
 | -------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Requirements analysis and reference interpretation | DONE    | Acceptance criteria decomposed into `CHECKLIST.md` and `docs/architecture/`.                                                                                                                                                                                                                                                                                                                                                    |
 | Architecture decisions                             | DONE    | Documented in `docs/architecture/README.md`, `docs/architecture/ADRS.md` (ADR-001 through ADR-012).                                                                                                                                                                                                                                                                                                                             |
-| Schema, security, and edge cases                   | DONE    | Documented in `docs/architecture/ERD.md`, `docs/architecture/API_CONTRACTS.md`, `docs/architecture/THREAT_MODEL.md`, `docs/architecture/EDGE_CASES.md`, `docs/architecture/DEFENSE_IN_DEPTH.md`.                                                                                                                                                                                                                                |
-| Next.js 16 source scaffold / strict TS / Polaris   | DONE    | `package.json` (`next@^16.4.0`), `tsconfig.json` (strict, 0 errors via `npm run typecheck`), `eslint.config.mjs` (0 errors via `npm run lint`).                                                                                                                                                                                                                                                                                 |
+| Schema, security, and edge cases                   | DONE    | Current documentation: `docs/architecture/ERD.md`, `docs/architecture/EDGE_CASES.md`, and `docs/architecture/DEFENSE_IN_DEPTH.md`; schema and authorization boundaries are implemented in source.                                                                                                                                                                                                                               |
+| Next.js 16 source scaffold / strict TS / Polaris   | DONE    | `package.json` (`next@^16.4.0`), strict `tsconfig.json`, `eslint.config.mjs`, and Polaris icons. Local typecheck/lint/build passed; Node 22 CI execution remains unverified.                                                                                                                                                                                                                                                    |
 | Domain contracts & pure validation rules           | DONE    | `src/features/forms/domain/` and `src/features/patients/domain/`; validation and condition unit tests in `tests/unit/`.                                                                                                                                                                                                                                                                                                         |
-| 100-field fixture & performance trace              | PARTIAL | Fixture (`tests/fixtures/100-field-fixture.ts`), domain benchmark (`tests/unit/domain/100-field-benchmark.test.ts`), `PatientQuestionField` `React.memo` with stabilized `onAnswerChange` callback (`PatientIntakeView.tsx`, `PatientQuestionField.tsx`); browser trace remains pending; measurement procedure (`docs/architecture/PERFORMANCE_100_FIELD.md`).                                                                  |
+| 100-field fixture & performance trace              | PARTIAL | Fixture (`tests/fixtures/100-field-fixture.ts`), domain benchmark (`tests/unit/domain/100-field-benchmark.test.ts`), and memoized patient fields with stable callbacks exist. Production-browser editor trace and measured results remain pending.                                                                                                                                                                              |
 | PostgreSQL schema and migrations                   | DONE    | Drizzle schema (`src/lib/db/schema.ts`), SQL DDL (`db/migrations/0001_initial_schema.sql`, `db/migrations/0002_enable_rls_and_revoke_grants.sql`), migration runner with advisory locking and SHA-256 checksums (`scripts/migrate.mjs`, `scripts/lib/migration-engine.mjs`).                                                                                                                                                    |
 | Admin authentication & workspace RBAC              | DONE    | Backend service & claims verification (`src/lib/auth/admin.ts`, `src/lib/supabase/server.ts`). Reviewer Login UI (`/admin/login`), login API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), route redirect guards, strict fail-closed test-auth guard with explicit DB allowlist (`src/lib/auth/test-auth-guard.ts`, `src/lib/db/test-db-isolation.ts`).                                                              |
 | Admin draft CRUD & concurrency lifecycle           | DONE    | Backend CAS service (`src/features/forms/server/draft-service.ts`), API routes (`/api/admin/forms`, `/api/admin/forms/[formId]`), 3-pane UI, Field Navigator with Polaris Icons, Inspector, Canvas, debounced autosave state machine, enhanced `ConflictModal.tsx`, draft rename/delete, with unit and browser test coverage.                                                                                                   |
 | Publish immutable versions & validation triggers   | DONE    | Backend publish service & DB triggers (`trg_protect_published_versions`), `/api/admin/forms/[formId]/publish`, publish readiness validation blocking broken rules, snapshot generation, and Playwright browser coverage.                                                                                                                                                                                                        |
 | Theme Token Architecture & Contrast Engine         | DONE    | Centralized typed tokens (`src/features/themes/domain/theme-tokens.ts`), 3 WCAG AA presets (Ocean, Emerald, Slate), self-adjusting Shuffle palette generator ($\ge 4.5:1$), seed-derived hues with exact active-palette avoidance; applied in Editor and Preview modes (`FormCanvas.tsx`), contrast tests across 1,000 deterministic samples in `tests/unit/themes/theme-tokens.test.ts`.                                       |
 | Three-Way Merge & Conflict Recovery                | DONE    | Deterministic 3-way draft merge engine (`src/features/forms/domain/three-way-merge.ts`), base revision tracking in `BuilderProvider`, auto-merge with CAS against server revision, unit coverage in `tests/unit/forms/three-way-merge.test.ts`.                                                                                                                                                                                 |
-| Patient HTTP Foundation & Endpoints                | DONE    | Public patient routes (`/api/patient/forms/[slug]`, `.../session`, `.../progress`, `.../resume`, `.../submit`), namespaced HttpOnly cookies (`bask_session_${slug}`), zero PHI in logs/URLs, CSRF origin verification, bounded 15m cooldown, route tests in `tests/unit/patients/patient-flow.test.ts`.                                                                                                                         |
+| Patient HTTP Foundation & Endpoints                | DONE    | Public patient routes, per-form HttpOnly capability cookies, origin verification, session revision checks, bounded recovery cooldown, and safe error envelopes are implemented; route tests exist in `tests/unit/patients/`.                                                                                                                                                                                                    |
 | Mobile Patient Intake Experience & Recovery        | DONE    | Responsive mobile interface (`/intake/[slug]`, `PatientIntakeView`), accessible 6 field types, dynamic conditional visibility & answer pruning, progress bar, recovery code presentation & cross-browser redemption modals, browser coverage in `tests/e2e/patient-flow.spec.ts`.                                                                                                                                               |
 | Responses administration                           | DONE    | Full admin responses view (`/admin/forms/[formId]/responses`), API endpoint (`/api/admin/forms/[formId]/responses`), client API (`src/features/forms/client/responses-api.ts`), historical snapshot viewer with label provenance, typed answer rendering, empty/loading/error states (`src/features/forms/components/ResponsesView.tsx`), workspace RBAC tests in `tests/integration/` and `tests/e2e/intake-journeys.spec.ts`. |
 | Database test isolation enforcement                | DONE    | Fail-closed database allowlist (`src/lib/db/test-db-isolation.ts`) enforcing `APPROVED_TEST_PROJECT_REFS = ["vjstbqhzfnwrkksgavfv"]` and loopback hosts, used by integration suites and the test-auth guard. Refuses execution on production or Vercel.                                                                                                                                                                         |
 | Automated database integration & E2E tests         | PARTIAL | Suites in `tests/integration/` and `tests/e2e/`; final disposable-database and browser runs pending.                                                                                                                                                                                                                                                                                                                            |
-| CI/CD & Deployment workflows                       | PARTIAL | Gated migration workflow (`.github/workflows/db-migrate.yml`), CI gate (`.github/workflows/ci.yml`), Vercel preview/production isolation plan (`docs/DEPLOYMENT.md`). Workflows authored; GitHub/Vercel linkage and live deployment not verified.                                                                                                                                                                               |
-| Reviewer deliverables & audit logs                 | PARTIAL | Root `README.md`, architecture artifacts (`docs/architecture/*`), checklist, and `docs/PROGRESS.md` aligned with implementation; production URL, public intake URL, 5-minute demo video, reviewer access and complete redacted AI logs pending live deployment.                                                                                                                                                                 |
+| CI/CD & Deployment workflows                       | PARTIAL | Vercel deployment completed (user-confirmed). Gated migration and CI workflows exist in `.github/workflows/`; successful CI runs, automatic preview/production linkage, environment isolation, and hosted smoke checks remain unverified.                                                                                                                                                                                       |
+| Reviewer deliverables & audit logs                 | PARTIAL | `README.md`, checklist, and current architecture documents exist. Published intake URL, demo video, reviewer access/invitations, browser performance evidence, and complete redacted AI logs remain pending.                                                                                                                                                                                                                    |
 
-**Files:** `README.md`, `CHECKLIST.md` (master), `docs/PROGRESS.md`, `docs/architecture/*`.
+**Files:** `README.md`, `CHECKLIST.md` (master), `docs/DEPLOYMENT.md`, five retained `docs/architecture/` documents, and `docs/testing/TEST_PLAN.md`.
 
-**Next milestone:** Hosted deployment and submission deliverables.
+**Documentation audit: DONE.** Retained documentation and local links updated against source and disposable-database metadata. See `docs/testing/TEST_PLAN.md` for actual executed checks and `docs/architecture/ERD.md` for schema differences.
+
+**Database metadata audit: DONE (disposable target only).** Ten tables, FKs/unique constraints/indexes, enabled UPDATE/DELETE triggers, default-deny RLS, SQL-role flags/table grants, and matching migration checksums inspected read-only. Production state and TLS remain PENDING. `pg_stat_ssl` showed no TLS on the pooler backend leg; client-to-pooler encryption was not established.
+
+**Next milestone:** Independent hosted verification, browser performance evidence, and submission deliverables.
+
+**Verification still required:** Node 22 CI execution, independent hosted settings/flows, database integration, and browser journeys. Database/browser mutation suites must use a designated disposable database with the existing safety guard. Local typecheck/lint/unit/build passed in this audit.
 
 ---
 
@@ -62,7 +70,7 @@
 
 ## Acceptance criteria
 
-The lists below track implementation and submission requirements. Deployment checks refer to the hosted application.
+The lists below track implementation and submission requirements. Checked implementation and test-coverage items do not certify a successful test run. Deployment checks refer to the hosted application.
 
 ## 0. Requirements and scope decisions
 
@@ -72,9 +80,9 @@ The lists below track implementation and submission requirements. Deployment che
 
 - [x] Design original UI/UX: desktop admin, mobile-first patient, responsive empty/loading/error/success states.
 
-- [ ] Use a ****real hosted database****, deployed app on ****Vercel****, and private admin access.
+- [x] Deploy the application on ****Vercel**** (user-confirmed). Hosted Supabase configuration and private admin access still require live verification.
 
-- [x] Use the small sample intake and ****100-field fixture**** as illustrative seeds and performance benchmarks.
+- [x] Use synthetic sample intake and the ****100-field fixture**** as test/demo definitions and domain benchmarks; no standalone seed command exists.
 
 - Graphify and Ponytail are development tools selected by the user; neither is an application dependency or a requirement of the brief.
 
@@ -92,7 +100,7 @@ The lists below track implementation and submission requirements. Deployment che
 
 - [x] Adopt a single ****Next.js 16 application**** with admin routes, versioned public patient routes, and server-only data access.
 
-- [ ] Select hosted ****Supabase PostgreSQL**** as the source of truth; ****skip Redis initially****. Confirm Supabase free-tier limits and Vercel integration before shipping.
+- [x] Select hosted ****Supabase PostgreSQL**** as the source of truth; ****skip Redis initially****. Confirm Supabase free-tier limits and Vercel integration before shipping.
 
 - [x] Decide DB access pattern: server-side Postgres adapter/ORM (e.g. Drizzle + migration tooling) ****or**** Supabase client with strict RLS; avoid mixing authorization models accidentally.
 
@@ -112,25 +120,29 @@ The lists below track implementation and submission requirements. Deployment che
 
 - [x] Use DB constraints and ****transactions**** for submission idempotency, optimistic concurrency, and publish races.
 
-- [ ] Configure environment validation, migrations, seed scripts, error capture without PII, and deployment pipeline.
+- [x] Centralize environment access, provide migration tooling and safe route error envelopes, and author CI/migration workflows. Vercel deployment is complete (user-confirmed).
 
-### Proposed logical data model
+- [ ] Verify hosted environment configuration and CI/workflow runs. There is no standalone seed script; demo forms are created through the UI and tests create synthetic fixtures.
 
-- [x] `users` / `admin_memberships`: authenticated user, workspace, role, active status.
+### Implemented logical data model
 
-- [x] `forms`: id, workspace_id, name, current_draft_id/current_version, created_at, updated_at, deleted_at (if soft delete).
+- [x] `workspaces` and `admin_memberships`: workspace identity/name and user UUID, owner/editor role, revoked_at. No application users table or SQL FK to Auth users.
 
-- [x] `drafts`: id, form_id, title, `definition_json`, `theme_json`, `revision` (monotonic), updated_by, updated_at; unpublished drafts may be deleted.
+- [x] `forms`: id, workspace_id, name, latest_published_version_number, created_by, timestamps, archived_at.
 
-- [x] `published_versions`: id, form_id, version_number, immutable `definition_snapshot`, immutable `theme_snapshot`, created_at, published_by, public_slug/token. Unique `(form_id, version_number)`.
+- [x] `form_drafts`: id, unique form_id, definition_json (including title), theme_json, revision, updated_by, timestamps; unpublished drafts may be deleted.
 
-- [x] `patient_sessions`: id, published_version_id, status (`in_progress`/`completed`), answer_json, last_seen_at, created_at, completed_at, access-token hash (or separate resume credentials), and optional non-secret display reference.
+- [x] `published_versions`: id, form_id, version_number, immutable `definition_snapshot`, immutable `theme_snapshot`, draft_revision, published_at, published_by, unique public_slug. Unique `(form_id, version_number)`.
 
-- [x] `submissions`: id, session_id ****UNIQUE****, published_version_id, canonical answer_json, submitted_at; immutable after creation.
+- [x] `patient_sessions`: id, published_version_id, status (`in_progress`/`completed`), answer_json, revision, capability/recovery hashes, recovery attempt/expiry/rotation metadata, encrypted replacement-credential payload, session_reference, timestamps, expires_at. No last_seen_at column.
+
+- [x] `submissions`: id, session_id ****UNIQUE****, published_version_id, canonical answer_snapshot, submitted_at; immutable after creation.
 
 - [x] Optional `audit_events`: admin operation, entity id, actor id, time, non-sensitive metadata; never log answers or resume tokens.
 
-- [ ] Add foreign keys, indexes, delete policies, and least-privilege grants. Prevent cascading deletion of submitted historical data.
+- [x] Define foreign keys, indexes, restrictive deletion policies, form archiving, immutable-history triggers, default-deny RLS, and revoked browser-role grants (`src/lib/db/schema.ts`, `db/migrations/`).
+
+- [ ] Verify the hosted database has these migrations and grants applied; review least-privilege server credentials.
 
 ### Recommended folder boundaries
 
@@ -178,13 +190,17 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Public published-form read grants no admin privileges.
 
-- [x] Patient resume requires a high-entropy, session-specific credential; store only a hash server-side.
+- [x] Patient resume requires a high-entropy, session-specific credential; store HMAC hashes. Replacement credentials are also stored in an authenticated-encrypted payload; it is not consumed for replay.
+
+- [ ] Make recovery rotation resilient to a lost success response; old-code retry currently fails after rotation.
 
 - [x] Prefer ****HttpOnly, Secure, SameSite**** cookie for same-browser resumes; provide a deliberate cross-browser mechanism, e.g. one-time resume link/code delivered to the original patient through a ****verified**** channel, or a user-held secret. Do not claim another-browser resume works through cookies alone.
 
 - [x] Ensure resume URLs never carry ****answers****; if a resume token appears in a URL, minimize leakage (Referrer-Policy, no analytics, token rotation/redemption, scrub history), and document risk. Prefer code entry / token exchange.
 
-- [x] Rate-limit guessing, credential redemption, and public writes; no cross-session access via sequential IDs.
+- [x] Bound failed recovery attempts with a database-backed cooldown and require session-specific capabilities for access.
+
+- [ ] Add or verify login and general public-write abuse controls; recovery cooldown alone does not cover these endpoints.
 
 - [x] Do not expose Supabase service-role keys in client bundles. Keep admin authorization independent of cosmetic UI hiding.
 
@@ -198,7 +214,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Rename unpublished drafts.
 
-- [x] Delete unpublished drafts with confirmation and reasonable recovery policy.
+- [x] Delete unpublished drafts with confirmation; deletion is permanent (no restore). Published forms are archived to retain history.
 
 - [x] Define how a previously published form gets a new editable draft without mutating prior versions.
 
@@ -258,7 +274,9 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ## 6. Autosave and concurrent admin editing
 
-- [x] Implement debounced autosave with explicit states: `editing`, `saving`, `saved`, `failed`, `conflict`, `offline`.
+- [x] Implement debounced autosave with explicit editing/saving/saved/failed/conflict states and retry. The `offline` state is declared in the type but not emitted by DraftAutosave.
+
+- [ ] Verify or implement a distinct offline indicator; do not treat a generic network failure as confirmed offline detection.
 
 - [x] Keep local dirty edits intact when a save fails; offer Retry, not destructive reload.
 
@@ -308,7 +326,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Render questions in defined order, skipping hidden fields; progress shows understandable answered/visible status (decide semantics when conditions change).
 
-- [x] Back/Continue behavior preserves valid answers and shows inline accessible error messages.
+- [x] Continuous-form navigation and Next Required focus preserve valid answers and show inline accessible error messages; mandatory Back/Continue pages are not used.
 
 - [x] Patient can leave and resume ****database-backed**** incomplete progress (including securely from another browser).
 
@@ -318,7 +336,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Save progress only against the session's pinned version.
 
-- [x] On switching parent Yes -> No, delete dependent answer in persisted session immediately/atomically with parent change.
+- [x] On switching parent Yes -> No, prune the dependent answer locally immediately and persist the pruned payload on a successful save; database state is not updated before that acknowledgment.
 
 - [x] Show network failure/offline status, retry, expired/invalid resume credential, and interrupted completion recovery.
 
@@ -350,21 +368,21 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Concurrent duplicate submits converge to one result; unexpected conflict cannot mutate the first answer.
 
-- [x] Once completed, progress/save/answer mutations are rejected (or return immutable completion), not silently applied (verified in `tests/integration/patient-http-integration.test.ts` Test 10).
+- [x] Once completed, progress/save/answer mutations are rejected (or return immutable completion), not silently applied (covered by `tests/integration/patient-http-integration.test.ts` Test 10).
 
-- [x] Test lost response, double click, parallel requests, slow requests and invalid client bypass attempts (verified in `tests/integration/patient-http-integration.test.ts` Tests 8, 9, 10).
+- [x] Test lost response, double click, parallel requests, slow requests and invalid client bypass attempts (covered by `tests/integration/patient-http-integration.test.ts` Tests 8, 9, 10).
 
 ## 10. Responses administration
 
-- [x] Admin-only submissions list, with paging and optional search/filter/date/version: Backend service `listFormSubmissions` DONE (`src/features/forms/server/response-service.ts`), HTTP route `/api/admin/forms/[formId]/responses`, Admin UI `/admin/forms/[formId]/responses` (`src/features/forms/components/ResponsesView.tsx`).
+- [x] Admin-only submissions list with pagination (search/date/version filters are not implemented): Backend service `listFormSubmissions` DONE (`src/features/forms/server/response-service.ts`), HTTP route `/api/admin/forms/[formId]/responses`, Admin UI `/admin/forms/[formId]/responses` (`src/features/forms/components/ResponsesView.tsx`).
 
 - [x] Distinguish draft, published version, in-progress sessions, submitted responses: Status badges, version badges, and submission timestamps rendered in table.
 
-- [x] Submission detail: submitted at, stable public version, original question and option labels, answers, skipped/hidden representation: Backend service `getSubmissionDetail` DONE (`src/features/forms/server/response-service.ts`), UI detail modal rendering all 6 answer types with historical label provenance (`ResponsesView\.tsx`).
+- [x] Submission detail: submitted at, stable public version, original question and option labels, answers, skipped/hidden representation: Backend service `getSubmissionDetail` DONE (`src/features/forms/server/response-service.ts`), UI detail modal rendering all 6 answer types with historical label provenance (`ResponsesView.tsx`).
 
-- [x] Display old-version submissions accurately after rename/reorder/delete in a new draft: Immutably preserved via `trg_protect_submissions` and `published_version_id` foreign key (verified in Integration Test 13 and `tests/e2e/intake-journeys.spec.ts`).
+- [x] Display old-version submissions accurately after rename/reorder/delete in a new draft: Immutably preserved via `trg_protect_submissions` and `published_version_id` foreign key (covered by Integration Test 13 and `tests/e2e/intake-journeys.spec.ts`).
 
-- [x] Empty/loading/error states and no cross-tenant/access leaks: Multi-tenant workspace RBAC enforced on response reads (`requireAdmin` + `requireFormWorkspaceAccess`; verified in Integration Test 15).
+- [x] Empty/loading/error states and no cross-tenant/access leaks: Multi-tenant workspace RBAC enforced on response reads (`requireAdmin` + `requireFormWorkspaceAccess`; covered by Integration Test 15).
 
 - [x] Don't expose sensitive answers through browser analytics or unguarded exports: Backend query sanitization and server-side authorization on every response query.
 
@@ -384,11 +402,13 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Patient cannot choose preset, shuffle, or edit color tokens (only light/dark mode switch presented in patient intake).
 
-- [x] Persist draft theme DB-side across refresh; snapshot published theme with version (`src/features/forms/server/publish-service.ts`, verified in `tests/e2e/intake-journeys.spec.ts`).
+- [x] Persist draft theme DB-side across refresh; snapshot published theme with version (`src/features/forms/server/publish-service.ts`, covered by `tests/e2e/intake-journeys.spec.ts`).
 
-- [x] Verify contrast for disabled, errors, buttons, selected options, inputs, links, focus, loading and completion states (verified in unit tests and Playwright).
+- [x] Add unit and Playwright contrast assertions for theme and intake states.
 
-- [x] Apply tokens consistently across admin preview and patient UI; maintain accessible contrast with long labels (`PatientQuestionField.tsx`, `PatientIntakeView\.tsx`, `FormCanvas.tsx`).
+- [ ] Run those checks and review disabled, error, selected, focus, loading, and completion states in a browser.
+
+- [x] Apply tokens consistently across admin preview and patient UI; maintain accessible contrast with long labels (`PatientQuestionField.tsx`, `PatientIntakeView.tsx`, `FormCanvas.tsx`).
 
 - [x] Respect reduced-motion preferences (`--motion-reduced-duration` in `tokens.css`).
 
@@ -406,7 +426,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Validation error summary, field-specific feedback, `aria-describedby` and announced status where appropriate.
 
-- [x] Meaningful loading, skeleton, empty, conflict, denied, offline, retry, publish and completion states.
+- [x] Meaningful loading, skeleton, empty, conflict, denied, network-error/retry, publish and completion states; dedicated offline detection remains unverified.
 
 - [x] Avoid disruptive animations; account for `prefers-reduced-motion`.
 
@@ -416,15 +436,15 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ### Unit tests (Vitest)
 
-- [x] Field validators: types, required text, lengths, numeric bounds/integer, checkboxes and select membership (verified in `tests/unit/domain/patient-validation.test.ts`).
+- [x] Field validators: types, required text, lengths, numeric bounds/integer, checkboxes and select membership (covered by `tests/unit/domain/patient-validation.test.ts`).
 
-- [x] Condition evaluation, earlier-parent invariant and stable ID behavior across labels/ordering (verified in `tests/unit/domain/patient-visibility.test.ts` and `form-validation.test.ts`).
+- [x] Condition evaluation, earlier-parent invariant and stable ID behavior across labels/ordering (covered by `tests/unit/domain/patient-visibility.test.ts` and `form-validation.test.ts`).
 
-- [x] Hidden-answer pruning and re-show-empty behavior (verified in `tests/unit/domain/patient-visibility.test.ts`).
+- [x] Hidden-answer pruning and re-show-empty behavior (covered by `tests/unit/domain/patient-visibility.test.ts`).
 
-- [x] Publish-time validation and error targeting (verified in `tests/unit/domain/form-validation.test.ts`).
+- [x] Publish-time validation and error targeting (covered by `tests/unit/domain/form-validation.test.ts`).
 
-- [x] Recovery code entropy, normalization, HMAC hashing, and constant-time check (verified in `tests/unit/security/credentials.test.ts`).
+- [x] Recovery code entropy, normalization, HMAC hashing, and constant-time check (covered by `tests/unit/security/credentials.test.ts`).
 
 - [ ] Capture a production-browser trace for the 100-field fixture. The unit benchmark validates publish rules and asserts visibility and pruning each take under 10ms; it does not measure browser rendering or publish latency.
 
@@ -462,7 +482,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [x] Fix conditions -> publish v1 -> open public URL on mobile viewport.
 
-- [ ] Fill conditional Yes -> details -> Back -> No; verify details gone, then Yes -> details blank.
+- [x] Browser coverage for Yes -> details -> No -> reload -> Yes, asserting the hidden answer is pruned and returns blank (`tests/e2e/intake-journeys.spec.ts`). The intake uses a continuous form rather than Back/Continue pages.
 
 - [x] Save progress, close/reopen and resume; repeat through chosen cross-browser redemption mechanism.
 
@@ -482,7 +502,7 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ## 14. 100-field performance
 
-- [x] Seed supplied or equivalent 100-field fixture; capture realistic conditional/options structure.
+- [x] Provide an equivalent 100-field synthetic fixture with conditional/options structure; no database seed/import command exists.
 
 - [ ] Record the device/browser and throttling conditions (e.g. Chrome, laptop model, CPU throttle, build mode).
 
@@ -498,7 +518,11 @@ tests/unit/  tests/integration/  tests/e2e/
 
 ## 15. Deployment, security and operations
 
-- [ ] Set up production Vercel project and hosted Supabase Postgres/Auth.
+- [x] Deploy the application to Vercel (user-confirmed).
+
+- [x] Configure a separate production Supabase database/Auth target (owner-marked complete in the deployment milestones).
+
+- [ ] Independently verify the hosted database target, applied migrations, and separation from the disposable test database.
 
 - [ ] Store production secrets only in Vercel/Supabase private environment configuration; `.env.example` has names only.
 
@@ -506,38 +530,51 @@ tests/unit/  tests/integration/  tests/e2e/
 
 - [ ] Run schema migrations against hosted database with backup/recovery plan.
 
-- [ ] Ensure secure cookies/session handling, CSRF protection where applicable, auth and RLS/DB access checks.
+- [x] Implement per-form HttpOnly cookies, production Secure settings, origin verification, server-verified identity, workspace authorization, and RLS migration definitions.
 
-- [ ] Add restrictive caching headers for sensitive admin/session data; avoid shared-cache leaks.
+- [ ] Verify those cookie, origin, identity, and database protections on the hosted application.
+
+- [ ] Complete and verify restrictive caching headers across sensitive admin/session responses, including failures. Patient session GET responses already set `Cache-Control: private, no-store`.
 
 - [ ] Never log PII/answers/resume tokens in application logs, analytics, monitoring or error reports.
 
-- [ ] Guard error handlers so sensitive request payloads do not leak into telemetry.
+- [x] Serialize route errors through `handleRouteError`; unexpected failures return a generic envelope without raw exceptions or request payloads.
 
-- [ ] Consider basic public endpoint rate limiting and abuse controls ****without requiring Redis**** (DB-backed or hosting protections).
+- [ ] Verify hosted logs and any monitoring/telemetry configuration do not capture sensitive payloads.
 
-- [ ] Document what must change for real patient data: regulatory/compliance review, verified BAA where needed, encryption strategy, key management/rotation, auditable access, retention/deletion, incident response.
+- [x] Implement database-backed failed-recovery attempt limits and a bounded cooldown without Redis.
 
-- [ ] Test production deployed flows; validate migrations, auth, role isolation, Vercel environment and public URLs.
+- [ ] Add or verify broader public endpoint and login abuse controls, including hosting protections where configured.
+
+- [x] Document real-patient-data limitations and follow-up in `README.md`: provider agreements, encryption/key management, least privilege, access auditing, retention/deletion, monitoring, and recovery.
+
+- [ ] Complete the regulatory/provider agreement and incident-response review before using real patient data.
+
+- [x] Hosted application functionality verified by the owner.
+
+- [ ] Independently test deployed flows; validate hosted migrations, auth, role isolation, Vercel environment and public URLs.
 
 ## Deployment and submission
 
-Use separate Supabase projects for the hosted application and disposable database tests. Complete these checks on the hosted application.
+Vercel deployment is complete based on the project owner's confirmation. Existing owner-marked completion for repository privacy, automatic deployments, production database separation, and published URLs is preserved; these external settings have not been independently verified in this review. Use separate Supabase projects for the hosted application and disposable database tests.
 
-| Milestone                                             | Status  | Completion criteria                                                                                                |
-| ----------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
-| Private `KaranBaskHealth` GitHub repository           | PENDING | Private repository URL, clean secret scan, tracked workflow files                                                  |
-| Automatic Vercel deployments                          | PENDING | Linked GitHub repo; preview deployment for PRs; production from `main`; successful deployment URLs                 |
-| Separate production Supabase database and Auth        | PENDING | Different project ref from disposable test DB; production migrations applied via approved workflow                 |
-| Secrets and transport verification                    | PENDING | Vercel environment scope; TLS database connection; provider-managed encryption at rest; no secrets in logs/commits |
-| Deployed reviewer login and workspace isolation       | PENDING | Real Supabase Auth reviewer; anonymous and cross-workspace negative tests on hosted app                            |
-| Published intake URL and end-to-end hosted smoke test | PENDING | Public URL; patient start/save/resume/submit; admin response list and detail                                       |
-| Browser performance trace                             | PARTIAL | Original Chrome trace/profile attached and 100-field **editor** interactions measured/reproducible                 |
-| Rate limit and production security review             | PARTIAL | Verify login and public writes/recovery controls, cookies, HTTP caching, CSRF, audit/retention notes               |
-| Final README                                          | PARTIAL | Setup, seed, env names, test commands, tradeoffs, performance, security, unfinished work                           |
-| Five-minute demonstration video                       | PENDING | Complete admin/patient flow plus deliberate failure and recovery                                                   |
-| AI logs and changed/rejected suggestion               | PENDING | All task-related tool/session prompts and responses, redacted, with concrete verification example                  |
-| Reviewer invitations and credentials                  | PENDING | Nine GitHub invitations sent; credentials shared privately                                                         |
+| Milestone                                             | Status  | Completion criteria                                                                                                                 |
+| ----------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub/Vercel deployment                              | DONE    | Owner confirms deployed application; Git remote is present. External linkage/branch settings remain unverified.                     |
+| Hosted functionality (owner verification)             | DONE    | Owner confirms hosted application works; this is separate from independent automated verification.                                  |
+| Independent hosted automation                         | PENDING | Record URLs and run authorized synthetic hosted smoke/negative tests.                                                               |
+| Private `KaranBaskHealth` GitHub repository           | DONE    | Owner-marked complete; Git remote verified. Private visibility, secret-scan outcome, and invitations require owner confirmation     |
+| Automatic Vercel deployments                          | DONE    | Owner-marked complete; linkage, PR previews, production branch, and successful workflow/deployment runs not independently inspected |
+| Separate production Supabase database and Auth        | DONE    | Owner-marked complete; hosted project ref/migration state and preview separation still require confirmation                         |
+| Secrets and transport verification                    | PENDING | Vercel environment scope; TLS database connection; provider-managed encryption at rest; no secrets in logs/commits                  |
+| Deployed reviewer login and workspace isolation       | PENDING | Real Supabase Auth reviewer; anonymous and cross-workspace negative tests on hosted app                                             |
+| Published intake URL and end-to-end hosted smoke test | PENDING | Owner-confirmed functionality; URLs and independent start/save/resume/submit/response checks remain pending                         |
+| Browser performance trace                             | PARTIAL | Fixture/domain benchmark exist; browser trace/profile, editor interaction measurements, and reproducible conditions remain PENDING  |
+| Rate limit and production security review             | PARTIAL | Verify login and public writes/recovery controls, cookies, HTTP caching, CSRF, audit/retention notes                                |
+| Final README                                          | DONE    | Setup, seed, env names, test commands, tradeoffs, performance, security, unfinished work                                            |
+| Five-minute demonstration video                       | PENDING | Complete admin/patient flow plus deliberate failure and recovery                                                                    |
+| AI logs and changed/rejected suggestion               | PENDING | All task-related tool/session prompts and responses, redacted, with concrete verification example                                   |
+| Reviewer invitations and credentials                  | PENDING | Nine GitHub invitations sent; credentials shared privately                                                                          |
 
 ---
 
@@ -568,9 +605,13 @@ Use separate Supabase projects for the hosted application and disposable databas
 
 ## 17. Deliverables and review checklist
 
-- [ ] ****Live Vercel URL**** with working hosted backend/database.
+- [x] Application deployed on ****Vercel**** with a live URL (owner-marked complete).
 
-- [ ] At least one ****published patient intake URL****.
+- [ ] Record application URL and reachability in the README (DONE: HTTPS GET 200); hosted backend/database and reviewer flow verification remain PENDING.
+
+- [x] At least one ****published patient intake URL**** (owner-marked complete).
+
+- [ ] Record the published intake URL in the submission/README and run the hosted patient smoke test.
 
 - [ ] Provide private working reviewer credentials by secure channel (not public README).
 
@@ -578,7 +619,9 @@ Use separate Supabase projects for the hosted application and disposable databas
 
 - [ ] Invite GitHub users: `inveve`, `p13lgst-bask`, `abdelaziz11`, `mauri-bask-health`, `MarwanBask`, `khaled-bask`, `luizbask`, `tsellobenok-bask`, `juanbask`.
 
-- [ ] `README.md`: local setup, seed data, environment names, migration/test commands, technical & design decisions, hosting, performance trace and measurement, security/privacy note, tradeoffs, unfinished work.
+- [x] `README.md`: setup/demo-fixture guidance, env names, migration/test commands, tradeoffs, owner-confirmed hosting, security/privacy, limitations, and pending evidence documented.
+
+- [ ] Attach verified URLs, reviewer access, and browser trace/measurements to the README.
 
 - [ ] Demo video ****<=5 minutes****: create/edit, preview, publish, mobile conditional completion, responses, ****one deliberate failure and recovery****.
 

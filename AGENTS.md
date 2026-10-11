@@ -46,7 +46,7 @@
 
 ## Project context
 
-- Read `CHECKLIST.md`, `docs/PROGRESS.md`, and relevant files in `docs/architecture/` when working on the corresponding feature. These describe contracts and pending work, not proof that behavior was tested.
+- Read `CHECKLIST.md` and relevant files in `docs/architecture/` when working on the corresponding feature. These describe contracts and pending work, not proof that behavior was tested.
 - Graphify is available on the development machine. When `graphify-out/graph.json` exists and code relationships or architecture are relevant, query it first and verify important findings against current source.
 - Use the Graphify implementation installed in the development environment. Read its skill or CLI documentation before invoking update commands. If the installed implementation supports `graphify update .`, use that command; do not assume all Graphify implementations share the same CLI.
 - After completing code changes, refresh an existing graph using the supported update command and verify success before claiming it is current. If unavailable or unsuccessful, report the limitation and inspect the source directly; do not claim an outdated graph is current.

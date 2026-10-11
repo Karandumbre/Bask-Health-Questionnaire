@@ -1,69 +1,28 @@
-# Intake Studio — Architecture Blueprint
+# Architecture overview
 
-## System Overview
+Intake Studio runs as one Next.js 16 App Router application. Supabase Auth verifies administrators; server-only Drizzle services access PostgreSQL. Patients use public version URLs and session-specific capabilities rather than administrator accounts.
 
-**Intake Studio** is a multi-tenant clinical form builder and patient intake platform designed for high-integrity healthcare workflows. The system decouples administrative authoring from patient execution through **strictly immutable published snapshots**, **optimistic concurrency controls (CAS)**, and **cryptographically verifiable cross-browser patient resumption**.
+## Boundaries and data flow
 
-```mermaid
-flowchart TD
-    subgraph AdminDomain [Administrative Plane]
-        Admin[Clinical Admin / Reviewer] -->|Supabase Auth JWT + Session| NextAdmin[Admin App Router]
-        NextAdmin -->|Workspace Auth Guard| FormService[Form & Draft Service]
-        FormService -->|Compare-and-Swap| DraftStore[(PostgreSQL Drafts)]
-        FormService -->|Transactional Publish| VersionStore[(Immutable Versions)]
-    end
+- `src/app/` contains pages and HTTP Route Handlers. Protected pages and handlers verify identity; services check workspace/form membership before accessing protected resources.
+- `src/features/forms/` separates question/condition validation and merging in `domain/`, persistence in `server/`, browser endpoint helpers in `client/`, and editor behavior in hooks/context. The builder composes these pieces.
+- `src/features/patients/` owns version-bound sessions, progress, recovery, final validation, and submission. Visibility and hidden-answer pruning are shared domain rules; PostgreSQL remains authoritative.
+- `src/features/themes/` provides Ocean, Emerald, and Slate presets, light/dark modes, Shuffle, and contrast checks. Shared visual foundations live in `src/design-system/`; intake aliases bind theme colors. Shared controls and dialogs live in `src/components/ui/`.
+- Application copy lives in `src/lib/constants/messages.ts`; routes and timing defaults live in `application.ts`. Environment names/defaults live in `config/constants.mjs`, with access through `config/environment.mjs` and its server-only wrapper. Browser HTTP requests use the shared Axios client and endpoint contracts.
 
-    subgraph PatientDomain [Patient Intake Plane]
-        Patient[Patient Browser] -->|Public Version URL / Slug| NextPatient[Patient App Router]
-        NextPatient -->|Capability Cookie + Recovery Proof| SessionService[Patient Session Engine]
-        SessionService -->|Read Pinned Snapshot| VersionStore
-        SessionService -->|Save In-Progress| SessionStore[(Patient Sessions)]
-        SessionService -->|Exact-Once Final Submit| SubmissionStore[(Immutable Submissions)]
-    end
+Drafts contain mutable definition/theme JSONB and a revision. Publication locks the form before the draft, validates the expected revision, and creates an immutable snapshot and operation record in one transaction. Patient sessions reference one snapshot. Submission locks the session, validates/prunes answers, and creates one immutable response per session.
 
-    subgraph PlatformIsolation [Data Boundaries & Integrity]
-        DraftStore -.->|Archive on Delete| DraftStore
-        VersionStore --- Trigger1[FORBID UPDATE/DELETE Trigger]
-        SubmissionStore --- Trigger2[FORBID UPDATE/DELETE Trigger]
-    end
-```
+Public URLs identify readable published forms; they are not patient credentials. Per-slug cookies authenticate session operations. Cross-browser recovery rotates the capability and recovery code, invalidating the former browser's credential.
 
----
+## Verification boundary
 
-## Architectural Principles
+On October 11, 2026, read-only metadata inspection verified the configured allowlisted disposable project, not the Vercel production database. Typecheck, lint, 282 unit tests, and build passed locally on Node 24.14.1; CI targets Node 22. Database writes and browser journeys were not run in this audit. Deployment and hosted functionality are owner-confirmed.
 
-1. **Strict Immutability Over In-Place Mutation**  
-   Clinical forms cannot mutate out from under active patients. Publishing clones the draft definition and active theme tokens into an immutable database snapshot identified by a unique public slug and version number. Database triggers actively reject any `UPDATE` or `DELETE` on published snapshots.
+## Supporting documents
 
-2. **Session Pinning to Version Snapshot**  
-   Every patient session is irreversibly pinned to a specific `published_version_id` at inception. Even if admins release v2, v3, or archive the parent form, patients in v1 continue rendering v1 questions, options, and theme tokens. Admin responses render against the pinned snapshot at the moment of submission.
+- [Architecture decisions](ADRS.md): choices, reasons, and tradeoffs.
+- [Defense in depth](DEFENSE_IN_DEPTH.md): identity, authorization, capabilities, grants, and security gaps.
+- [Edge cases](EDGE_CASES.md): concurrency, pruning, publication, recovery, and retry behavior with test evidence.
+- [Database model](ERD.md): columns, relationships, constraints, indexes, and metadata findings.
 
-3. **No Silent Overwrites (Compare-and-Swap Everywhere)**
-   - **Admin Drafting:** Every write supplies `expectedRevision`. If another administrator committed an intervening edit, the request fails with `HTTP 409 Conflict`, prompting the user to review diffs and resolve without clobbering work.
-   - **Patient Progress:** Incomplete session updates supply `expectedSessionRevision` to prevent multiple browser tabs from destroying answers.
-   - **Publishing & Submission:** Publications are serial and idempotent via `operationId`; submissions are locked at row level with a strict `UNIQUE(session_id)` constraint ensuring exactly-once execution.
-
-4. **Cryptographic Capability-Based Patient Resume**  
-   Patient privacy prohibits requiring external social logins, yet HIPAA concerns forbid exposing answers or persistent access via unauthenticated URLs. Intake Studio implements a dual-credential capability pattern:
-   - **Local Browser:** Ephemeral `HttpOnly`, `SameSite=Strict`, `Secure` capability cookie.
-   - **Cross-Browser / Device Transfer:** A high-entropy one-time recovery code (`BK-XXXX-XXXX-XXXX`) is issued and displayed to the patient upon session creation. The plaintext is never stored; only an HMAC/Argon2 digest is persisted. Redemption rotates the credential and issues a local cookie after rate-limit verification. Session references alone grant zero read/write capabilities.
-
-5. **Server-Authoritative Validation & Hidden-Field Pruning**  
-   Client-side validations exist purely for user feedback. The server evaluates conditional rules against the immutable snapshot. If a parent single-select answer changes from _Yes_ to _No_, all dependent answers are pruned immediately both in memory and in the database. Malicious or stale client submissions containing hidden fields or unknown choice IDs are rejected or stripped.
-
-6. **Retention Over Cascading Deletion**  
-   Forms with published versions or patient submissions cannot be deleted via cascading foreign keys (`ON DELETE RESTRICT`). Deleting a form archives it, preserving all historical responses and audit logs for compliance.
-
----
-
-## Document Index
-
-- [Architecture Decision Records (ADRs)](./ADRS.md): Formal record of key technical choices (ADR-001 through ADR-012).
-- [Entity-Relationship Diagram & Schema](./ERD.md): Detailed database schema, relationships, triggers, indexes, and constraints.
-- [API Contracts & Error Codes](./API_CONTRACTS.md): Full specification of server contracts, validation errors, and CAS protocols.
-- [Threat Model & Security Architecture](./THREAT_MODEL.md): STRIDE threat assessment, authentication/authorization boundaries, and PII protection.
-- [Edge Cases & Concurrency Deep Dive](./EDGE_CASES.md): Exhaustive analysis of race conditions, reordering hazards, network retries, and failure recoveries.
-
-See [Maintenance boundaries](MAINTAINABILITY.md) for the current feature orchestration, shared components/helpers, and verification limits.
-
-- [Design tokens and environment access](./DESIGN_SYSTEM.md): shared visual foundations, copy/constants, and runtime configuration boundaries.
+See also the [test plan](../testing/TEST_PLAN.md), [deployment guide](../DEPLOYMENT.md), and [master checklist](../../CHECKLIST.md).

@@ -1,48 +1,64 @@
 # Deployment
 
-## Hosting and environment isolation
+## Confirmed status and evidence limits
 
-Deploy the Next.js application on Vercel and use Supabase for PostgreSQL and Auth. Configure production deployments from `main` and preview deployments for pull requests. Repository linkage and hosted-flow checks remain pending.
+The project owner confirms that the application is deployed on Vercel and the hosted application works. This audit did not deploy, modify hosting settings, or independently exercise authenticated/patient flows. A read-only HTTPS GET of the supplied root URL returned HTTP 200.
 
-Use separate Supabase projects for the hosted application, previews, and disposable database tests. Preview deployments must not connect to the production database. Keep test authentication disabled on Vercel.
+| Item                                                    | Status / evidence                                                                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| GitHub/Vercel deployment                                | DONE — owner-confirmed                                                                                                    |
+| Hosted functionality                                    | DONE — owner-confirmed; independent hosted automation remains PENDING                                                     |
+| Application URL                                         | [karan-bask-health.vercel.app](https://karan-bask-health.vercel.app) — public HTTPS GET 200                               |
+| Published intake URL                                    | `[add verified /intake/[slug] URL]`                                                                                       |
+| Repository                                              | Git remote points to `https://github.com/Karandumbre/KaranBaskHealth.git`; privacy/invitations require owner confirmation |
+| Vercel Git linkage, branch mappings, environment scopes | External settings not observable from tracked configuration                                                               |
+| Production database/Auth target and preview separation  | Owner-marked complete in the checklist; not independently verified                                                        |
 
-## Application settings
+No tracked Vercel-specific configuration was found. The Next.js build script is `next build --webpack`; database migrations are separate. GitHub-to-Vercel linkage cannot be inferred from a Git remote or GitHub Actions file alone.
 
-Configure these variables separately for each Vercel environment:
+## Application environment and Auth setup
 
-| Variable                               | Purpose                                                                                   |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase Auth project URL                                                                 |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public Supabase publishable key                                                           |
-| `DATABASE_URL`                         | Application PostgreSQL connection; use the transaction pooler for serverless requests     |
-| `DATABASE_DIRECT_URL`                  | Direct or session-pooler connection for migrations                                        |
-| `APP_SESSION_PEPPER`                   | Independent high-entropy secret, at least 32 characters, for patient session cryptography |
-| `APP_ENV`                              | Environment classification; set to `production` for the hosted application                |
+Set these independently for production and preview deployments:
 
-Public intake links use the application's origin and published slug. Confirm HTTPS, database TLS settings, and provider storage-encryption guarantees as described in the [README](../README.md#security-and-deployment).
+| Variable                               | Purpose                                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Auth project URL, compiled into browser configuration                                                                 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public publishable key                                                                                                |
+| `DATABASE_URL`                         | Server-side application connection; transaction pooler is supported through `prepare: false`                          |
+| `DATABASE_DIRECT_URL`                  | Direct/session-pooler migration connection; falls back to `DATABASE_URL`                                              |
+| `APP_SESSION_PEPPER`                   | Independent high-entropy secret, at least 32 characters, for patient credential hashing and replay-payload encryption |
+| `APP_ENV`                              | Optional runtime classification; use `production` for production                                                      |
 
-## Database migrations
+Vercel/Node supply runtime identifiers. Keep `ENABLE_TEST_AUTH`, `TEST_AUTH_SECRET`, and `IS_TEST_DATABASE` out of hosted configuration. Use separate production, preview, and disposable test targets; preview isolation is required but not verified here. Public Supabase values are build-time inputs, so verify them for each build/environment.
 
-Migrations live in `db/migrations/`. `npm run db:migrate` calls the shared migration engine, which uses advisory locking and checksums. Migrations do not run during the Vercel build.
+Provision confirmed reviewer email/password accounts through Supabase Auth and share credentials privately. There is no signup or password-reset UI. Restrict public signups as appropriate because any verified user with no active membership receives an owner workspace on initial workspace lookup. Check Supabase Site URL and permitted redirects for the intended deployment; the implemented login uses password authentication, not an OAuth callback route. Hosted Auth settings were not accessible in this audit.
 
-1. Define schema changes in `src/lib/db/schema.ts` and generate SQL with `npm run db:generate`.
-2. Inspect the migration and run it against a designated development or disposable database.
-3. Configure GitHub environments named `preview` and `production`, with their own database secrets and approval rules.
-4. Run the [controlled migration workflow](../.github/workflows/db-migrate.yml), select the target environment, and supply its required `APPLY` confirmation.
-5. Coordinate application deployment with the schema change and check the hosted flow afterward.
+## PostgreSQL modes and migrations
 
-The workflow reads `DATABASE_DIRECT_URL` and `DATABASE_URL` from the selected GitHub environment. Confirm the target and backup/recovery plan before applying a hosted migration.
+`src/lib/db/index.ts` uses the application URL with prepared statements disabled, max 10 connections per production process (3 otherwise), and idle/connect/lifetime limits. A session/direct client uses one connection. Serverless instance count can multiply those pools; no capacity measurement is claimed.
 
-## CI and disposable tests
+`npm run db:migrate` calls the shared engine in `scripts/lib/migration-engine.mjs`, which uses a session-level advisory lock and SHA-256 migration checksums. Migrations do not run in `npm run build`.
 
-The [CI workflow](../.github/workflows/ci.yml) runs lint, type checking, unit tests, and a production build. Database integration runs when `TEST_DATABASE_URL` is configured and the existing safety guard approves the disposable target. It also uses `TEST_DATABASE_DIRECT_URL`, `APP_SESSION_PEPPER`, `NEXT_PUBLIC_SUPABASE_URL`, and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from GitHub secrets. Use test-project settings for this suite.
+For a future authorized schema change: inspect generated SQL, verify the intended target and backup/recovery plan, validate safely in development/disposable storage, then run the [manual workflow](../.github/workflows/db-migrate.yml) for `preview` or `production` with `APPLY`. It reads `DATABASE_DIRECT_URL`/`DATABASE_URL` from the selected GitHub environment. Configure environment approval rules externally; the YAML selects an environment but does not prove approvals are enforced. Coordinate schema/application compatibility; no automatic rollback is implemented.
 
-The build uses placeholder configuration. Browser E2E tests run separately against an approved disposable database; they must not run against the reviewer deployment.
+The audit performed no migrations. Read-only metadata on the repository-designated disposable project found both SQL versions applied with matching checksums, RLS enabled, browser-role table grants absent, and both UPDATE/DELETE immutability triggers enabled. Production migration state is unknown. See the [ERD](architecture/ERD.md).
 
-## Hosted checks
+## HTTPS, cookies, and transport
 
-- Sign in with a real reviewer account and check anonymous and cross-workspace access restrictions.
-- Publish an intake and complete start, save, cross-browser resume, and submission flows.
-- Check the administrator response list and details, including an older published version.
-- Confirm cookie security, test-auth exclusion, origin checks, and database transport settings.
-- Add the deployment and published intake URLs to the README and share reviewer credentials privately.
+Use HTTPS for the application and published intake. Patient capability cookies are HttpOnly/SameSite=Strict and Secure when production configuration is detected. Supabase Auth cookie options come from the SDK, so inspect them separately. Verify cross-origin rejection, cache headers, and safe failure responses on the deployed origin.
+
+The application does not explicitly force database TLS; the inspected local connection URLs have no `sslmode` option. `pg_stat_ssl` reported no TLS on the pooler-to-database leg. This does not reveal client-to-pooler encryption or production transport settings. Confirm TLS/verification settings for the actual deployed connections and provider storage-encryption guarantees externally. Keep transport and encryption-at-rest verification open until evidence is supplied.
+
+## CI and hosted verification still required
+
+[CI](../.github/workflows/ci.yml) runs Node 22 lint/types/unit/build checks, with integration conditional on disposable database secrets. Its build uses placeholder configuration. Browser E2E runs separately and must not target the reviewer deployment; see the [test plan](testing/TEST_PLAN.md).
+
+Record independent evidence for:
+
+- Verified HTTPS application and public intake URLs, Git linkage/branch settings, repository privacy, and reviewer invitations.
+- Real reviewer login, anonymous rejection, owner/editor restrictions, and cross-workspace response isolation.
+- Published intake start/save/cross-browser resume/submit and historical response review using synthetic data.
+- Cookies, test-auth exclusion, Origin behavior, sensitive caching/logs, runtime SQL privileges, TLS, and production/preview/test project separation.
+- Applied production migrations and backup/recovery procedures.
+
+Retain the owner's working-deployment confirmation separately from these unexecuted checks. No deployment or hosted configuration changes were made by this audit.

@@ -1,135 +1,51 @@
-# Defense-in-Depth Authorization & Database Security Strategy
+# Defense in depth
 
-This document details the multi-layered security model, database roles, grants, and access control boundaries implemented in **Intake Studio**.
+## Identity and workspace authorization
 
----
+`src/lib/supabase/server.ts` verifies administrators with `auth.getClaims()` and falls back to `auth.getUser()`. Protected pages/Route Handlers call `requireAdmin`; form/workspace services require active membership and resolve the resource's workspace. Owners and editors can author, publish, and read responses; only owners can delete unpublished forms or archive forms. There is no membership-management or audit-log browsing UI/API.
 
-## 1. Threat Profile & Architectural Reality
+The proxy refreshes Supabase sessions best-effort. Protected operations verify identity separately. Supabase Auth cookies use the SDK-provided options; do not attribute the patient cookie flags to all Auth cookies. Test identity overrides are opt-in, secret-signed, disposable-target guarded, and excluded on Vercel. They were not enabled for database inspection.
 
-In a typical Supabase architecture, browser clients use the Supabase client SDK and rely on PostgreSQL Row-Level Security (RLS) policies evaluated under the `anon` or `authenticated` PostgreSQL roles.
+Authenticated users with no active membership receive a new owner workspace on workspace lookup, including after all their memberships are revoked. Restrict Supabase signup/provisioning externally for the reviewer deployment; application login alone is not an invitation allowlist.
 
-However, **Intake Studio adopts a server-side Drizzle ORM architecture** (ADR-003). In this model:
+## PostgreSQL privileges, RLS, and grants
 
-- Browser clients **never** connect directly to PostgreSQL.
-- Server-side Next.js Route Handlers and Server Actions connect via connection strings (`DATABASE_URL`, `DATABASE_DIRECT_URL`).
-- PostgreSQL connection pooler connections execute under the administrative database role (`postgres`).
-- By default in PostgreSQL, table owners and superusers bypass RLS policies unless `FORCE ROW LEVEL SECURITY` is explicitly declared.
+Drizzle uses `DATABASE_URL` on the server. The client has `prepare: false`, a small per-process pool, and timeouts; direct/session pooling is available for migration work. The configured SQL username determines privileges, not Supabase Auth identity. No configured service-role API key or service-role Auth management flow exists in the application.
 
-**Crucial Security Rule:**
+Read-only catalog inspection on October 11, 2026 targeted the project named in `APPROVED_TEST_PROJECT_REFS`, identified from both connection URLs and the matching public Supabase host. This is the repository-designated disposable project, not independently established as the Vercel production target.
 
-> **Do not assume privileged Drizzle connections automatically enforce Supabase RLS.** The application service layer is the authoritative authorization boundary. Administrative and patient access control must be strictly enforced in code and backed by relational database constraints.
+| Metadata                   | Observed on inspected target                                                                                            |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Tables                     | Nine application tables plus `_schema_migrations`                                                                       |
+| RLS                        | Enabled on all ten; FORCE RLS false; no policies                                                                        |
+| Ownership/current SQL user | `postgres` owns all ten tables; inspection used `postgres`                                                              |
+| Role flags                 | `postgres` is not a superuser but has BYPASSRLS; `service_role` also has BYPASSRLS; `anon`/`authenticated` have neither |
+| Table grants               | Visible grants belong to `postgres` and `service_role`, including TRUNCATE; none to `anon`, `authenticated`, or PUBLIC  |
+| Immutability               | Enabled row triggers reject UPDATE/DELETE on `published_versions` and `submissions`                                     |
+| Migration ledger           | `0001_initial_schema.sql` and `0002_enable_rls_and_revoke_grants.sql`; both SHA-256 checksums match repository files    |
 
----
+**Privileged Drizzle access bypasses RLS.** Service authorization is the primary administrative boundary. Migration 0002 revokes browser-role table, sequence, and routine grants existing at migration time; it does not change default privileges for future objects. This audit inspected table grants, not every sequence/routine ACL or inherited privilege path. Least-privilege runtime roles remain a follow-up. Row triggers do not prevent privileged TRUNCATE or trigger disabling.
 
-## 2. PostgreSQL Roles & Privilege Topology
+## Patient capability and recovery
 
-| Role            | Environment                   | Access Level       | Description                                                                                                                                           |
-| --------------- | ----------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `postgres`      | Server-only (Next.js Backend) | Superuser / Owner  | Used exclusively by server-side Drizzle connection pool (`postgres.js`). Full CRUD and DDL capabilities. Credentials never exposed to client bundles. |
-| `service_role`  | Supabase Admin API            | Elevated Service   | Used for administrative auth management (e.g., seeding reviewers, inspecting auth users). Strictly forbidden in client bundles.                       |
-| `authenticated` | Supabase Client SDK           | Restricted         | Represents a logged-in Supabase user. Not used for direct SQL in our architecture.                                                                    |
-| `anon`          | Supabase Client SDK           | Public / Read-only | Used by browser SDK for public metadata. Not permitted direct SQL access to forms, drafts, or responses.                                              |
+`patient-cookies.ts` names cookies by sanitized public slug and stores `sessionId:capabilityToken`. Cookies are HttpOnly, SameSite=Strict, path `/`, with a 30-day lifetime. Secure is set when runtime/app/Vercel configuration is production. Cookie names isolate forms/versions; path `/` is not a narrow path restriction. The random token is not encrypted in the cookie; PostgreSQL stores its HMAC-SHA256 digest.
 
-### Defense Principles
+A reference alone grants no session access. Recovery requires the reference and a user-held `BK-XXXX-XXXX-XXXX-XXXX` code, verified with HMAC and constant-time comparison. Sessions expire after 30 days, recovery codes after seven days. Five failed attempts for a known session cause a 15-minute cooldown. Failed attempts commit before the generic rejection is raised. Successful resume row-locks the session and rotates both code and capability, invalidating old browser access. Completed sessions cannot resume through recovery.
 
-1. **Zero Client Secrets:** Client bundles contain only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
-2. **Strict Server Separation:** All database connection strings (`DATABASE_URL`, `DATABASE_DIRECT_URL`) and cryptographic keys (`APP_SESSION_PEPPER`) are imported in server-only modules (`import "server-only"`).
+The service stores an AES-256-GCM encrypted replacement-credential payload using a pepper-derived key, plus previous recovery metadata. It does not decrypt/reuse that payload on retry. A lost successful resume response may leave the user without the new credentials. The source does not implement the previously documented 60-second replay guarantee. Recovery cooldown does not protect login, unknown-reference flooding, session creation, or all public writes.
 
----
+## Origin protection and HTTP privacy
 
-## 3. Defense-in-Depth Security Layers
+Every current mutation Route Handler calls `verifyRequestOrigin`. It compares `Origin` host (including port) to `Host`, rejecting malformed/mismatched supplied origins. Missing Origin is accepted for server/test callers; scheme is not compared. This is not a strict requirement that every mutation carry Origin, and no separate CSRF token is issued.
 
-```text
-Incoming Request
-      │
-      ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Layer 1: Network Edge & Cookie Boundary (src/proxy.ts)      │
-│ - Refreshes expired Supabase Auth tokens                    │
-│ - Sets SameSite=Strict, HttpOnly, Secure cookie flags        │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Layer 2: Cryptographic Server Authentication               │
-│ - Validates JWT claims via auth.getClaims()                 │
-│ - Fallback re-verification via auth.getUser()               │
-│ - Explicitly rejects unverified auth.getSession() alone     │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Layer 3: Application Workspace Authorization (RBAC)         │
-│ - requireAdmin(): rejects public patients                   │
-│ - requireWorkspaceMembership(userId, wsId, role)            │
-│ - Every query explicitly scoped: WHERE workspace_id = $wsId │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Layer 4: Concurrency & Transaction Control (CAS)            │
-│ - UPDATE ... WHERE revision = expectedRevision              │
-│ - Raises HTTP 409 REVISION_CONFLICT on stale edits          │
-│ - SELECT ... FOR UPDATE during publish & submit             │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Layer 5: Patient Capability & Privacy Boundary              │
-│ - No answers or secrets in URLs                              │
-│ - High-entropy HMAC-SHA256 recovery tokens (stored hashed)  │
-│ - Atomic single-use code rotation on resume                 │
-│ - Rate limiting (max 3 attempts per 15m)                     │
-│ - Server-side hidden-answer pruning                         │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Layer 6: PostgreSQL Triggers & Relational Constraints       │
-│ - UNIQUE(session_id) on submissions (exact-once submit)     │
-│ - ON DELETE RESTRICT on historical records                  │
-│ - trg_protect_published_versions: blocks UPDATE/DELETE      │
-│ - trg_protect_submissions: blocks UPDATE/DELETE             │
-│ - RLS enabled + anon/authenticated grants revoked (0002)    │
-└─────────────────────────────────────────────────────────────┘
-```
+Request JSON is parsed against contracts; protected resources are resolved on the server. Patient progress checks revision, active status, and credential hash at the write; final submission validates against the pinned version. Error serialization returns safe envelopes rather than raw unexpected exceptions.
 
----
+Patient session GET responses explicitly use `Cache-Control: private, no-store`. Equivalent explicit headers are not established across every admin/session success and error response. Review deployed caching and proxy/log behavior before treating sensitive response handling as complete.
 
-## 4. Role-Based Access Control (RBAC) Specifications
+## Sensitive data and transport limits
 
-### Roles Defined
+Database credentials and `APP_SESSION_PEPPER` remain server-only; browsers receive only public Supabase configuration. Do not record patient answers, credentials, or recovery secrets in URLs, logs, analytics, documentation, or commits. Answer JSONB is not application-level field-encrypted. Audit events cover administrative lifecycle metadata, not all response reads; form names in metadata must also remain non-sensitive.
 
-- **`owner`**:
-  - Can manage workspace members (invite, change roles, revoke).
-  - Can archive forms.
-  - Can create, edit, duplicate, and publish forms.
-  - Can view all clinical submissions and audit logs.
-- **`editor`**:
-  - Can create, edit, duplicate, and publish form drafts.
-  - Can view form submissions.
-  - _Cannot_ archive forms or modify workspace membership.
-- **`public_patient`**:
-  - Anonymous patient interacting via public intake slug.
-  - **Zero administrative privileges.**
-  - Restricted strictly to reading the pinned published snapshot and managing their own session answers via an authenticated capability cookie.
+The application does not force PostgreSQL TLS. Inspected URLs have no `sslmode` option. `pg_stat_ssl` reported `ssl=false` for the observed pooler-to-database backend leg; that does not reveal client-to-pooler encryption. Transport verification is incomplete, and production settings were not inspected. Provider-managed storage encryption and HTTPS configuration also require provider/owner evidence; they are not proven by repository source.
 
-### Workspace Isolation Guarantee
-
-Every database mutation in `draft-service.ts` and `publish-service.ts` begins by resolving the form's `workspace_id` and confirming active membership for `userId`:
-
-```typescript
-const { form, membership } = await requireFormWorkspaceAccess(formId, user.id);
-// Proceed only within the validated workspace context
-```
-
----
-
-## 5. Patient Capability Isolation & Recovery Security
-
-1. **Session Reference (`BKS-XXXX-XXXX`):** Public, non-secret human-readable reference for support lookup.
-2. **Capability Token:** 32-byte cryptographically secure random token stored in a slug-namespaced `HttpOnly`, `SameSite=Strict`, `Secure` cookie (`bask_session_${slug}`). Stored server-side as `HMAC_SHA256(token, APP_SESSION_PEPPER)`.
-3. **Recovery Code (`BK-XXXX-XXXX-XXXX-XXXX`):** 16-character Crockford Base-32 random token displayed once to the patient. Stored server-side exclusively as `HMAC_SHA256(code, APP_SESSION_PEPPER)`.
-4. **Constant-Time Verification:** Verified using Node.js `crypto.timingSafeEqual` to eliminate timing attacks.
-5. **Atomic Rotation & Replay Protection:** Upon successful redemption, the old recovery code is immediately rotated inside a `SELECT ... FOR UPDATE` transaction, and a new recovery code + new capability cookie are returned (with a 60s `AES-256-GCM` encrypted replay payload for network drop resilience).
-6. **Rate Limiting:** If 5 failed recovery attempts occur within a 15-minute window (`RECOVERY_MAX_ATTEMPTS = 5`), subsequent attempts are rejected with `HTTP 429 RESUME_RATE_LIMITED` without checking the hash.
+Use synthetic data. Real patient use requires provider agreements, least-privilege roles, encryption/key management, retention/deletion, response-access auditing, abuse controls, monitoring, and incident/recovery review. See [deployment verification](../DEPLOYMENT.md) and [test evidence](../testing/TEST_PLAN.md).
